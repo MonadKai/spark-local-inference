@@ -19,6 +19,7 @@ test-tools = []
 runtime-package = ["dep:serde", "dep:serde_json", "dep:prost", "dep:prost-build", "dep:ring", "dep:zstd"]
 frontend = ["dep:serde", "dep:tokenizers", "dep:serde_json", "dep:sha2", "dep:ryu", "dep:deepseek-recipe-core", "dep:deepseek-recipe-encoding"]
 images = ["frontend", "dep:png", "dep:turbojpeg", "dep:image-webp"]
+audio = ["frontend", "dep:cc", "dep:pkg-config"]
 grammar = ["frontend", "dep:llguidance"]
 server = ["dep:serde", "images", "grammar", "dep:axum", "dep:tokio", "dep:async-stream", "dep:base64", "dep:ratatui", "dep:crossterm", "dep:futures-util", "dep:flate2", "dep:zstd", "dep:brotli", "dep:httpdate", "dep:deepseek-recipe"]
 # RoCEnante's RDMA proxy for ranks on separate hosts; links libibverbs.
@@ -72,6 +73,7 @@ flare-selene-manager = { path = "../selene-manager", features = ["test-support"]
 [build-dependencies]
 prost-build = { version = "0.14", optional = true }
 cc = { version = "1.6", optional = true }
+pkg-config = { version = "0.3", optional = true }
 
 [[bench]]
 name = "template"
@@ -162,5 +164,12 @@ bench = false
 name = "test_radio_images"
 path = "tests/tools/test_radio_images.rs"
 required-features = ["server", "test-tools"]
+test = false
+bench = false
+
+[[bin]]
+name = "test_audio"
+path = "tests/tools/test_audio.rs"
+required-features = ["audio", "test-tools"]
 test = false
 bench = false

@@ -5,6 +5,24 @@
  */
 
 fn main() {
+    #[cfg(feature = "audio")]
+    {
+        println!("cargo:rerun-if-changed=native/audio.c");
+        let mut build = cc::Build::new();
+        let mut libraries = Vec::new();
+        for name in ["libavformat", "libavcodec", "libavutil", "libswresample"] {
+            let library = pkg_config::Config::new().cargo_metadata(false).probe(name)
+                .unwrap_or_else(|error| panic!("native audio requires {name} development files: {error}"));
+            build.includes(&library.include_paths);
+            libraries.push(library);
+        }
+        build.file("native/audio.c").std("c11").warnings(true).compile("flare_audio");
+        // Dynamic dependencies follow the wrapper archive for --as-needed linkers.
+        for library in libraries {
+            for path in library.link_paths { println!("cargo:rustc-link-search=native={}", path.display()); }
+            for name in library.libs { println!("cargo:rustc-link-lib={name}"); }
+        }
+    }
     #[cfg(feature = "runtime-package")]
     {
         println!("cargo:rerun-if-changed=proto/runtime_package.proto");

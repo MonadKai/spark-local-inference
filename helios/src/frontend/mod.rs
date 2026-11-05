@@ -11,6 +11,8 @@ mod boundaries;
 mod templates;
 #[cfg(feature = "images")]
 pub mod images;
+#[cfg(feature = "audio")]
+pub mod audio;
 mod json;
 mod jinja;
 

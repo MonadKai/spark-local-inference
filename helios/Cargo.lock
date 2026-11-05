@@ -922,6 +922,7 @@ dependencies = [
  "llguidance",
  "minijinja",
  "minijinja-contrib",
+ "pkg-config",
  "png",
  "prost",
  "prost-build",
