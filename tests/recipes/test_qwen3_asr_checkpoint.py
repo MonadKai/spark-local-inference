@@ -75,6 +75,16 @@ def test_truncated_tied_payload_is_an_error(tmp_path):
         checkpoint.embedding_and_head_equal()
 
 
+def test_different_tied_tensor_geometry_is_rejected(tmp_path):
+    checkpoint = _small_checkpoint(tmp_path)
+    tensors = dict(checkpoint.index.tensors)
+    name = "thinker.lm_head.weight"
+    tensors[name] = replace(tensors[name], dtype="F32")
+    checkpoint = replace(checkpoint, index=replace(checkpoint.index, tensors=tensors))
+    with pytest.raises(CheckpointError, match="geometry or dtype"):
+        checkpoint.embedding_and_head_equal()
+
+
 @pytest.fixture(scope="module")
 def snapshot():
     configured = os.environ.get("FLARE_QWEN3_ASR_SNAPSHOT")
@@ -107,7 +117,12 @@ def test_real_original_checkpoint_keeps_both_vocabulary_tensors(checkpoint):
     ("text_config.num_key_value_heads", 16),
     ("text_config.attention_bias", True),
     ("text_config.head_dim", True),
+    ("text_config.use_cache", False),
+    ("text_config.use_sliding_window", True),
+    ("text_config.layer_types", ["sliding_attention"] * 28),
+    ("text_config.rope_parameters", {"rope_type": "default", "rope_theta": 500000}),
     ("text_config.rope_scaling.mrope_section", [16, 24, 24]),
+    ("text_config.rope_scaling.partial_rotary_factor", 0.5),
 ])
 def test_real_config_rejects_changed_semantics(snapshot, field, value):
     from ignition.recipes.qwen3_asr.checkpoint import validate_config

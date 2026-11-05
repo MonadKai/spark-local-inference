@@ -59,7 +59,7 @@ def validate_config(config: dict) -> None:
                 "num_attention_heads": 16, "num_key_value_heads": 8, "head_dim": 128,
                 "hidden_act": "silu", "attention_bias": False, "attention_dropout": 0,
                 "rms_norm_eps": 1e-6, "max_position_embeddings": 65536,
-                "rope_theta": 1000000, "tie_word_embeddings": True,
+                "rope_theta": 1000000, "tie_word_embeddings": True, "use_cache": True,
                 "rope_scaling": {
                     "rope_type": "default", "type": "default", "interleaved": True,
                     "mrope_interleaved": True, "mrope_section": [24, 20, 20],
@@ -67,6 +67,18 @@ def validate_config(config: dict) -> None:
             },
         },
     }, "config")
+    text = config["thinker_config"]["text_config"]
+    if text.get("use_sliding_window", False) is not False:
+        raise CheckpointError("text_config.use_sliding_window: requires full attention")
+    if text.get("layer_types") not in (None, ["full_attention"] * 28):
+        raise CheckpointError("text_config.layer_types: requires 28 full-attention layers")
+    if text.get("rope_parameters") is not None:
+        raise CheckpointError("text_config.rope_parameters: original format uses rope_scaling")
+    rotary_fields = {
+        "rope_type", "type", "interleaved", "mrope_interleaved", "mrope_section",
+    }
+    if extra := set(text["rope_scaling"]) - rotary_fields:
+        raise CheckpointError(f"text_config.rope_scaling: unsupported rotary parameters {sorted(extra)}")
     for section in (config, config["thinker_config"], config["thinker_config"]["audio_config"],
                     config["thinker_config"]["text_config"]):
         if section.get("quantization_config") is not None:
@@ -142,6 +154,8 @@ class OriginalCheckpoint:
         """
         embedding = self.index.tensors["thinker.model.embed_tokens.weight"]
         head = self.index.tensors["thinker.lm_head.weight"]
+        if (embedding.shape, embedding.dtype, embedding.nbytes) != (head.shape, head.dtype, head.nbytes):
+            raise CheckpointError("embedding and LM-head geometry or dtype differ")
         with (self.index.snapshot / embedding.shard).open("rb") as left, (
             self.index.snapshot / head.shard
         ).open("rb") as right:
