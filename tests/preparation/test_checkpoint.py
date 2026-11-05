@@ -69,6 +69,31 @@ def test_single_safetensors_checkpoint_without_index(tmp_path):
     assert checkpoint.tensors["weight"].nbytes == 4
 
 
+@pytest.mark.parametrize("metadata", [{"format": "pt"}, {"total_size": 4}])
+def test_indexed_checkpoint_with_optional_total_size(tmp_path, metadata):
+    from ignition.preparation.checkpoint import inspect_indexed_checkpoint
+
+    _write_header(tmp_path / "one.safetensors",
+                  {"weight": {"dtype": "F32", "shape": [1], "data_offsets": [0, 4]}})
+    (tmp_path / "model.safetensors.index.json").write_text(json.dumps({
+        "metadata": metadata, "weight_map": {"weight": "one.safetensors"},
+    }))
+    assert inspect_indexed_checkpoint(tmp_path).tensors["weight"].nbytes == 4
+
+
+@pytest.mark.parametrize("metadata", [{"total_size": 5}, {"total_size": None}, []])
+def test_indexed_checkpoint_rejects_incorrect_declared_total_size(tmp_path, metadata):
+    from ignition.preparation.checkpoint import inspect_indexed_checkpoint
+
+    _write_header(tmp_path / "one.safetensors",
+                  {"weight": {"dtype": "F32", "shape": [1], "data_offsets": [0, 4]}})
+    (tmp_path / "model.safetensors.index.json").write_text(json.dumps({
+        "metadata": metadata, "weight_map": {"weight": "one.safetensors"},
+    }))
+    with pytest.raises(CheckpointError, match="total_size"):
+        inspect_indexed_checkpoint(tmp_path)
+
+
 @pytest.mark.parametrize("dtype,shape,offsets", [
     ("F32", [2], [0, 4]),
     ("F32", [1], [0, 8]),
