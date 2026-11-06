@@ -66,6 +66,13 @@ impl ModelCatalog {
             .flatten();
         // Match vLLM's ModelCard / ModelPermission wire fields while
         // advertising only features supported by this server.
+        let mut input_modalities = vec!["text"];
+        if model.contract.vision.enabled() {
+            input_modalities.push("image");
+        }
+        if model.contract.audio.is_some() {
+            input_modalities.push("audio");
+        }
         let card = json!({
             "id": id,
             "object": "model",
@@ -103,11 +110,7 @@ impl ModelCatalog {
                 "max_image_tokens_per_image": limits.map_or(0, |l| l.max_image_tokens_per_image()),
                 "max_image_pixels": limits.map_or(0, |l| l.max_input_pixels),
                 "max_image_bytes": limits.map_or(0, |l| l.max_encoded_bytes),
-                "input_modalities": if model.contract.vision.enabled() {
-                    vec!["text", "image"]
-                } else {
-                    vec!["text"]
-                },
+                "input_modalities": input_modalities,
                 "output_modalities": ["text"],
             },
         });
@@ -338,6 +341,7 @@ mod tests {
             crate::execution::MAX_TOP_LOGPROBS
         );
         model.limits.max_sequence_tokens = 4096;
+        let text_vision = model.contract.vision.clone();
         model.contract.vision = VisionCapabilities {
             feature_slots: 4,
             max_images: 4,
@@ -364,6 +368,18 @@ mod tests {
         assert_eq!(vision["flare"]["max_image_tokens_per_image"], 256);
         assert_eq!(vision["flare"]["max_image_pixels"], 64 * 1024 * 1024);
         assert_eq!(vision["flare"]["max_image_bytes"], 32 * 1024 * 1024);
+
+        use crate::model::contract::{AudioCapacity, StateView};
+        let view = || StateView { buffer: String::new(), offset: 0, stride: 1, nbytes: 1 };
+        model.contract.audio = Some(AudioCapacity { feature_slots: 4,
+            features_per_request: 104, feature_width: 2048, frame_capacities: vec![100, 800],
+            mel_bins: 128, frames_per_chunk: 100, features_per_chunk: 13, subsampling_factor: 8,
+            attention_window_frames: 800, features: view(), generations: view(), counts: view() });
+        assert_eq!(ModelCatalog::new(&model, &[], None).card["flare"]["input_modalities"],
+            json!(["text", "image", "audio"]));
+        model.contract.vision = text_vision;
+        assert_eq!(ModelCatalog::new(&model, &[], None).card["flare"]["input_modalities"],
+            json!(["text", "audio"]));
     }
 
     #[test]

@@ -48,7 +48,7 @@ The additional `flare` object reports prepared and selected serving metadata:
 | `max_image_tokens_per_image` | Image tokens one image may cost after the profile's normalization; the smaller of one prepared vision graph and one feature window; zero for text-only packages |
 | `max_image_pixels` | Largest decoded image extent (width times height) accepted before normalization; zero for text-only packages |
 | `max_image_bytes` | Largest encoded image accepted; zero for text-only packages |
-| `input_modalities` | `text`, plus `image` when vision is prepared |
+| `input_modalities` | `text`, plus `image` or `audio` when the corresponding prepared storage contract is present |
 | `output_modalities` | `text` |
 
 Generation requests always use the loaded model, regardless of the request's
