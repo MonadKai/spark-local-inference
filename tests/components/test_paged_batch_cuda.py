@@ -114,3 +114,67 @@ def test_queued_decode_uses_pending_device_token_and_rejects_invalid_state(rank,
     assert requests.error_code[0].item() == 32
     assert requests.consumed_tokens[0].item() == 5
     graph.reset()
+
+
+@pytest.mark.parametrize("page_tokens", [128, 256])
+@pytest.mark.parametrize("mode", ["prefill", "decode"])
+@torch.no_grad()
+def test_page_geometry_controls_required_pages_and_full_context(page_tokens, mode):
+    from ignition.preparation.failure import retain_on_failed_drain
+    from ignition.preparation.module_images import ModuleImages
+
+    owners, graphs = [], []
+    with retain_on_failed_drain(0, owners, graphs), ModuleImages() as images:
+        owners.append(images)
+        device = torch.device("cuda", 0)
+        capacity, blocks = (256 if mode == "prefill" else 1), 8192 // page_tokens
+        requests = DeviceRequestState.allocate(device, vocab_size=256, capacity=1)
+        inputs = BatchInputs.allocate(capacity, blocks, device, capacity=1)
+        metadata = Metadata.allocate(capacity, 1, blocks, device)
+        pool = SimpleNamespace(memory_capacity=torch.tensor([2, blocks], device=device))
+        owners.extend((requests, inputs, metadata, pool))
+        batch = PreparedBatch(inputs, requests, metadata, mode=mode,
+            shard=TensorParallelShard(0, 1), pool=pool, page_tokens=page_tokens)
+        owners.append(batch)
+        def step():
+            batch.begin(batch.validate())
+            batch.finish()
+        compiled = compile_forward(step)
+        owners.append(compiled)
+        compiled()
+        graph = torch.cuda.CUDAGraph()
+        graphs.append(graph)
+        with torch.cuda.graph(graph):
+            compiled()
+        cases = [(0, 129), (0, 165), (0, 256)] if mode == "prefill" else [(255, 1), (256, 1), (8191, 1)]
+        for position, count in cases:
+            end = position + count
+            required = (end + page_tokens - 1) // page_tokens
+            for invalid in (False, True, False):
+                requests.admit(0, RequestAdmission(generation=1, seed=0), [7] * end, consumed_tokens=position)
+                if mode == "decode":
+                    requests.pending_token[0] = 11
+                inputs.request_state_rows[0, 0] = 1
+                inputs.row_slot_ids[0], inputs.row_generations[0] = 0, 1
+                inputs.live_rows.fill_(1)
+                inputs.query_lengths[0] = count
+                inputs.token_ids.fill_(7)
+                inputs.page_tables.fill_(-1)
+                inputs.page_tables[0, :required].copy_(torch.arange(required, device=device, dtype=torch.int32))
+                if invalid:
+                    inputs.page_tables[0, required - 1] = -1
+                torch.cuda.synchronize()
+                before = torch.cuda.memory_stats()
+                graph.replay()
+                torch.cuda.synchronize()
+                after = torch.cuda.memory_stats()
+                for name in ("allocation.all.allocated", "allocation.all.freed", "segment.all.allocated", "segment.all.freed"):
+                    assert before[name] == after[name], name
+                assert requests.status[0].item() == (ERROR if invalid else RUNNING)
+                assert requests.consumed_tokens[0].item() == (position if invalid else end)
+                if invalid:
+                    assert requests.error_code[0].item() == 32 and metadata.live_counts[0].item() == 0
+                else:
+                    assert metadata.positions[:count].tolist() == list(range(position, end))
+                    assert metadata.page_table[0, :required].tolist() == list(range(required))
+        graph.reset()

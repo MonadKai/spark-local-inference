@@ -186,3 +186,40 @@ These are component and package-boundary checks. They do not establish complete
 encoder arithmetic, ASR recognition, asynchronous request lifetime, performance
 or compatibility with every previously published package. Full model stage and
 teacher-logit scalar gates remain separate.
+
+## Paged causal attention component
+
+`PreparedPagedFlashAttention` captures ATen flash attention over BF16 paged K/V
+and explicit device cumulative query/key lengths. Page size must be a multiple
+of 256. Output storage is separate from every input; inactive packed output
+rows are exactly zero. Compilation, scratch allocation and capture finish in
+preparation, and exported executables replay in Rust after Python exits.
+
+The pinned [ATen GQA shortcut](https://github.com/pytorch/pytorch/blob/5c4886908584029761b579af026dcfb627c84070/aten/src/ATen/native/transformers/cuda/flash_attn/flash_api.cpp)
+for `max_seqlen_q == 1` reshapes queries as one row per request and sets the
+query cumulative-length pointer to null. That precondition fails for packed
+batches with empty request slots. The component uses a conservative launch
+capacity of at least two for GQA, retaining the ordinary varlen path and its
+actual device lengths. It does not invent a second query or pin `num_splits`.
+The decode empty-slot regression fails with the shortcut and passes with these
+explicit lengths.
+
+CUDA tests cover logical B1/2/4/8, changing slots/row order, empty/valid
+transitions, poisoned unrelated storage, guards, repeatability and allocation
+counters. Random prefill tests include unequal query/key lengths, real cache
+prefixes, permuted pages and 128/4096 query capacities, with a full contiguous
+canonical lower-right-causal comparison. Explicit FP64 softmax independently
+checks every row of short cases and selected boundary rows at capacity 4096;
+it is not an all-element FP64 qualification at that capacity. Wrong key lengths
+expose poisoned values and must fail the finite gate before exact recovery.
+Three native package cases separately cover empty decode, separated live slots
+and a prefill tail after preparation exits. Their constant-value outputs test
+export/replay mechanisms; random causal alignment is checked separately.
+
+Shared `PreparedBatch` must receive the same page size as the recipe's KV
+writer, pool and contract. Real captured validation tests exercise both 128 and
+256 token pages, one-page 129–256-token prefills with 256-token pages, the decode page boundary,
+the 8192-token endpoint and required-page rejection. These component gates do
+not establish complete ASR scalar, quality, asynchronous lifecycle or serving
+performance acceptance. Existing recipes and historical packages retain their
+own prepared page geometry and operations.
