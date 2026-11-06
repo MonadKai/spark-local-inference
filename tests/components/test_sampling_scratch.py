@@ -8,7 +8,8 @@ import torch
 
 from ignition.components.capacity import speculative_shapes
 from ignition.components.parallel_draft import prepare_sampling_scratch
-from ignition.preparation.scratch import GraphBufferPool
+from ignition.preparation.scratch import GraphBufferPool, bind_scratch
+from ignition.components.sampling import PreparedSampling, SamplingSelection
 
 
 @pytest.mark.parametrize("width,proposal,verification,keys", [
@@ -51,3 +52,22 @@ def test_qwen_sampling_catalog_fits_bounded_shared_backing():
         prepare_sampling_scratch(batch, width, 248320, "meta", buffers=cursor)
         cursor.zeros((batch, width - 1, 248320), torch.float32)
     assert pool.nbytes == capacity
+
+
+def test_fixed_selection_scratch_has_disjoint_typed_outputs_at_every_capacity():
+    pool = GraphBufferPool("cpu", chunk_bytes=256)
+    capacity = None
+    for rows in (8, 1, 2, 4, 8):
+        buffers = bind_scratch(PreparedSampling.scratch_layout(
+            rows, 151936, selection=SamplingSelection.FIRST_MAXIMUM), device="cpu", workspace=pool.cursor())
+        for index, tensor in enumerate(buffers.values(), 1):
+            tensor.fill_(True if tensor.dtype == torch.bool else index)
+        assert buffers["argmax_tokens"].dtype == torch.int64
+        assert buffers["sampled_tokens"].dtype == torch.int32
+        for index, tensor in enumerate(buffers.values(), 1):
+            assert torch.all(tensor == (True if tensor.dtype == torch.bool else index))
+        # The common planner must retain the first catalog's physical backing.
+        if rows == 8:
+            if capacity is not None:
+                assert pool.nbytes == capacity
+            capacity = pool.nbytes

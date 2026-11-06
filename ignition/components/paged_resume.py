@@ -8,7 +8,7 @@ import torch
 
 from ignition.components.collectives import PreparedAllReduce
 from ignition.components.resume import PreparedResumeState
-from ignition.components.sampling import PreparedSampling
+from ignition.components.sampling import PreparedSampling, SamplingSelection
 from ignition.components.vocabulary import PreparedVocabularyProjection
 from ignition.preparation.scratch import bind_scratch
 
@@ -33,6 +33,7 @@ class PreparedResume:
         activation_mode="a16",
         logits_dtype=torch.bfloat16,
         buffers=None,
+        sampling_selection=SamplingSelection.CATEGORICAL,
     ):
         if logits_dtype not in (torch.bfloat16, torch.float32):
             raise ValueError("resume logits require BF16 or FP32 storage")
@@ -82,9 +83,9 @@ class PreparedResume:
             sequence,
         )
         sampling_workspace = None if buffers is None else bind_scratch(
-            PreparedSampling.scratch_layout(rows, requests.vocab_size),
+            PreparedSampling.scratch_layout(rows, requests.vocab_size, selection=sampling_selection),
             device=self.logits.device, workspace=buffers)
-        self.completion = PreparedSampling(self.logits, *args, workspace=sampling_workspace)
+        self.completion = PreparedSampling(self.logits, *args, workspace=sampling_workspace, selection=sampling_selection)
         self.completion.prepare()
         self.completion.prepare_broadcast(runtime=vocabulary_runtime, session=session,
             coordinator=coordinator, name=name + ".sampling", buffers=buffers)

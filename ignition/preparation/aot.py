@@ -16,6 +16,7 @@ from concurrent.futures import FIRST_COMPLETED, wait
 from contextlib import ExitStack, contextmanager, nullcontext
 from contextvars import ContextVar
 from dataclasses import dataclass
+from enum import Enum
 from functools import partial
 from pathlib import Path
 from threading import RLock
@@ -120,7 +121,7 @@ class _GuardPickler(GuardsStatePickler):
             return _deserialize_triton_kernel, (_serialize_triton_kernel(obj),)
         if (hasattr(obj, '__dict__')
                 and type(obj).__module__.startswith(('ignition.', 'b12x.'))
-                and not inspect.isclass(obj) and not isinstance(obj, (torch.Tensor, torch.nn.Module))):
+                and not inspect.isclass(obj) and not isinstance(obj, (torch.Tensor, torch.nn.Module, Enum))):
             state = {key: value if id(value) in self.guard_tree_values
                      else _Missing('unguarded attribute')
                      for key, value in vars(obj).items()}

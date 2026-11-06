@@ -5,7 +5,7 @@
 """Collective text execution and request completion."""
 
 from ignition.components.collectives import PreparedAllReduce
-from ignition.components.sampling import PreparedSampling
+from ignition.components.sampling import PreparedSampling, SamplingSelection
 from ignition.components.state import save_hidden
 from ignition.preparation.scratch import bind_scratch
 
@@ -26,6 +26,7 @@ class PreparedGeneration:
         workspace,
         context_factory=None,
         buffers=None,
+        sampling_selection=SamplingSelection.CATEGORICAL,
     ):
         self.decoder, self.batch = decoder, batch
         self.validation = PreparedAllReduce(
@@ -47,9 +48,10 @@ class PreparedGeneration:
             sequence,
         )
         sampling_workspace = None if buffers is None else bind_scratch(
-            PreparedSampling.scratch_layout(rows, batch.requests.vocab_size),
+            PreparedSampling.scratch_layout(rows, batch.requests.vocab_size, selection=sampling_selection),
             device=decoder.scratch.logits.device, workspace=buffers)
-        self.completion = PreparedSampling(decoder.scratch.logits, *args, sample_enabled=b.sample_enabled[:rows], workspace=sampling_workspace)
+        self.completion = PreparedSampling(decoder.scratch.logits, *args, sample_enabled=b.sample_enabled[:rows],
+            workspace=sampling_workspace, selection=sampling_selection)
         self.completion.prepare()
         self.completion.prepare_broadcast(runtime=decoder.head.gather.runtime, session=session,
             coordinator=coordinator, name=name + ".sampling", buffers=buffers)
