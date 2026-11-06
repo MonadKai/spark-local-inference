@@ -72,7 +72,7 @@ different arithmetic configurations cannot share host prefix records.
 | Boundary | Required evaluation and BF16 nodes |
 |---|---|
 | Input | Per-input FP32 Log-Mel normalization, then BF16 before convolution |
-| Convolution | FP32 accumulation and bias; BF16 convolution result; exact GELU and BF16 result at each of three stages |
+| Convolution | FP32 compute; BF16 convolution result; separate bias addition and BF16 result; exact GELU and BF16 result at each of three stages |
 | Convolution projection | BF16 `conv_out`; FP32 position table converted to BF16; position addition rounded to BF16 |
 | Encoder norms | Native LayerNorm, FP32 statistics/normalization/affine, eps 1e-5, BF16 output |
 | Encoder attention | Q/K/V including bias each BF16; bidirectional window isolation; attention output BF16; output projection/bias BF16; residual addition BF16 |
@@ -87,6 +87,15 @@ different arithmetic configurations cannot share host prefix records.
 The compiler preserves intermediate precision casts and native mean, LayerNorm,
 exact GELU and FP32 sigmoid boundaries. This is a required implementation
 mechanism, not runtime numerical evidence by itself.
+
+The pinned ATen CUDNN path allocates its convolution output in the input dtype,
+then adds bias separately: see [Convolution.cpp](https://github.com/pytorch/pytorch/blob/5c4886908584029761b579af026dcfb627c84070/aten/src/ATen/native/Convolution.cpp#L1505-L1512)
+and [ConvShared.cpp](https://github.com/pytorch/pytorch/blob/5c4886908584029761b579af026dcfb627c84070/aten/src/ATen/native/cudnn/ConvShared.cpp#L243-L246).
+The BF16 result before bias must survive any replacement using an unfolded
+projection. Check the reduction before bias, then the separate BF16 bias and
+GELU nodes. This corrects the description of the existing arithmetic; the
+captured path and frozen stage/logit budgets are unchanged. The FP32 compute
+descriptor does not establish cuDNN's internal reduction order or RNE model.
 
 ## Local operator gates
 
