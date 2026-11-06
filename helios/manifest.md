@@ -143,6 +143,14 @@ normal FP32 temperature and use the same stochastic sampling executable.
 Unsupported mode strings reject manifest parsing before CUDA initialization.
 A model contract defines the required graph capacities.
 
+The downstream Qwen3-ASR recipe has the explicitly approved preparation-only
+fixed-argmax exception in [its D2 design decision](../docs/qwen3-asr-design.md#approved-downstream-exact-greedy-exception).
+Its captured program still uses `general` transport and positive parameter
+validation, with the same completion/state contract. Rust does not interpret a
+new greedy mode or select an algorithm from model identity or top-k. Existing
+packages keep their original stochastic executable and inclusive cutoff ties.
+The authorization is separate from recipe registration and GPU/package qualification.
+
 Two graph inputs are reserved and required in every serving executable's bindings:
 
 | Buffer | Dtype | Shape | Writer |

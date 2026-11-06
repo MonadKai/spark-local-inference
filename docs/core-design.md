@@ -1245,6 +1245,20 @@ supported manifest value. Bounded top-k optimization is deferred. Measure
 sampler cost inside the complete graph before changing it; threshold ties
 must never be truncated to a fixed number of candidates.
 
+The downstream Qwen3-ASR recipe has an explicit fork-maintainer-approved
+exception for fixed greedy selection, documented in
+[its D2 decision](qwen3-asr-design.md#approved-downstream-exact-greedy-exception).
+Its Ignition program selects the first maximum with prepared `torch.argmax`
+after the required BF16 LM-head rounding. It reuses the same completion/state
+guards, positive-temperature transport and `general` manifest mode. The
+selection is fixed during preparation, including prefill, decode and resume;
+native code does not choose a greedy algorithm. Existing probability-sampling
+programs and packages retain their stochastic cutoff ties and RNG semantics.
+Top-k=1 is not an implicit greedy selector. This scoped authorization does not
+permit broader sampling ranges or a new runtime policy mode.
+This authorization does not register the recipe or establish GPU/package
+qualification; the model's qualification gates still apply.
+
 Repetition, presence, and frequency penalties read a per-slot vocabulary
 histogram. A captured operation builds it from the full prompt token buffer at
 admission exactly once, including on a prefix hit. Prefill does not increment

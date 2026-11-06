@@ -143,6 +143,17 @@ New audio metadata is inert when absent. No raw processor/config JSON is a
 runtime asset. Decoder prefill uses typed feature indices and generation checks;
 audio preparation identifiers cannot select scheduler/cache policy.
 
+The added transcription field 13 declares prompt/output syntax, language labels,
+joining and control-marker removal. Its finite marker grammar requires the
+excluded body character exactly once at the end of the prefix and at the start
+of the suffix. Each round removes the entry string's leftmost nonoverlapping
+controls, then its literal text delimiters; new matches in the same phase wait
+for the next round. This preserves the pinned frontend's fixed point without
+quadratic full-string rescanning. It does not introduce executable metadata.
+This field and grammar are new in this feature; historical absent-field packages
+retain their existing frontend. No additional request prompt byte limit is used
+to conceal expensive sanitization.
+
 Required compatibility evidence includes real previously exported image and
 text packages loading and serving unchanged, plus a new audio package loaded
 by Rust after the preparing Python process exits. Schema round trips alone do
@@ -158,21 +169,67 @@ The pinned [SDK](https://github.com/QwenLM/Qwen3-ASR/blob/7c6daf77a2421100f5fb06
 uses temperature zero in its vLLM wrapper.
 
 Under [model development](model-development.md#sampling-and-frontend-metadata),
-absent author ranges fix parameters at defaults. Proposed policy is explicit
+absent author ranges fix parameters at defaults. Required ASR policy is explicit
 greedy, top-p 1, disabled min-p and neutral penalties, with request-controlled
-seed. Flare's existing sampling components require positive temperature. Their
-internal representation for the greedy recipe is temperature 1 and top-k 1;
-the existing fixed-default request policy maps external temperature 0 to that
-representation. This is an implementation of the author's greedy distribution,
-not a recommendation to sample at temperature 1. The top-k tie rule and actual
-tokens require qualification before promotion. This policy cannot claim
-non-greedy vLLM parity.
+seed. The earlier claim that internal temperature 1 and top-k 1 implement this
+greedy distribution was incorrect. Existing FlashInfer filtering retains every
+token tied at the cutoff, then samples them with RNG. The existing
+`test_sampling_flashinfer.py` threshold-tie test requires that behavior. BF16
+LM-head rounding can create a maximum tie even when FP32 products differ.
+Those stochastic semantics must remain unchanged for existing models/packages.
 On 2026-11-06 the fork maintainer selected greedy first, prioritizing existing
-Flare mechanisms. The broader exception is conditional on demonstrated need;
-it is not activated by this design. Implement the author-backed greedy default
-with Flare's existing fixed-default policy, and disclose effective parameters.
-Non-greedy parity remains open. The primary quality qualification stays greedy;
-a sampling change cannot repair a failed greedy numerical/quality gate.
+Flare mechanisms. The broader sampling-range exception is conditional on
+demonstrated need and remains inactive. Exact greedy selection also conflicts
+with the [core design sampling rule](core-design.md), which requires one probability
+sampling path, rejects zero temperature and preserves cutoff ties, and with
+the [manifest](../helios/manifest.md), which specifies the same stochastic
+executable. The new tie finding requires an explicit downstream decision on the
+following minimal preparation-only exception; the previous design description
+did not identify that conflict accurately. On 2026-11-06 the fork maintainer
+explicitly approved: “批准固定 argmax 例外，但一定要加文档说明”. This authorizes the
+fixed selection below for this ASR recipe only. It is not upstream-owner
+approval, broader sampling-range approval, or a seed=-1 exclusion. Implementation
+and qualification remain separate from the design authorization.
+The decision is recorded in [issue #1](https://github.com/MonadKai/spark-local-inference/issues/1#issuecomment-6675677496).
+
+### Approved downstream exact-greedy exception
+
+Use an explicitly prepared fixed argmax selection for the ASR recipe,
+using PyTorch's existing first-maximum operator. This does not activate broader
+sampling ranges or a seed=-1 exclusion, and does not reinterpret old stochastic
+top-k graphs. Internal native parameter validation remains positive-temperature;
+there is no native Greedy mode, model allowlist, runtime selection switch or new
+captured operation family.
+
+The prepared selection is a constant in the recipe's graph program, passed
+through both `PreparedGeneration` and `PreparedResume`. It covers the first
+prefill token, ordinary decode and cached-hidden resume. Keep the BF16 LM-head
+rounding before FP32 score processing. Declare an Int64 `[rows]` argmax output
+through the existing scratch planner, call `torch.argmax(scores, dim=-1, out=...)`,
+and copy the selected IDs into the existing Int32 sampling output. Maximum ties
+choose the lowest token ID, independently of seed, slot and row arrangement.
+
+Reuse existing penalties/grammar score preparation, completion, broadcast,
+logprob and record mechanisms. Preserve the maximum before sanitization so
+nonfinite and all-masked rows fail through the same guards. Supply the declared
+point-mass validity/mass to completion; preserve generation, terminal, pending,
+budget and inactive-row checks, and the successful counter+1 state reservation.
+The selection adds bounded scratch, not serving allocation or recapture.
+
+The default prepared selection remains the current categorical sampler for all
+existing call sites. Old packages retain their captured executable and loading
+semantics without re-export or signing. This proposal does not change Rust
+scheduling, admission, sampling-mode parsing or graph/state/completion contracts.
+The downstream core-design and manifest notes state this distinction explicitly.
+
+Qualification must cover unique maxima, all-equal logits and maximum ties across
+word/tile/vocabulary boundaries; BF16-rounding-created ties; B=1/2/4/8, partial
+rows, permutations, slot generations and seed/counter changes; inactive/invalid
+state and sample-disabled prefill; resume; repeated capture/native replay and
+allocation/storage stability. Old categorical threshold-tie and bytewise gates
+remain intact. Full package, numerical and recognition gates remain required.
+Non-greedy parity remains open. A sampling change cannot repair a failed greedy
+numerical/quality gate by substituting a different evaluation distribution.
 
 A concrete full-parity alternative is an explicitly approved exception for
 this recipe: temperature [0,2], top-p (0,1], top-k integers >=-1 (-1 and 0
