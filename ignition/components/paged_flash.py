@@ -44,13 +44,18 @@ class PreparedPagedFlashAttention:
         # conservative launch capacity; the device cumulative lengths still
         # define exactly which queries exist.
         self.max_query = max(2, max_query) if query.shape[1] > key.shape[2] else max_query
+        # Multi-split combination assumes dense per-request query offsets.
+        # It does not preserve this component's packed holes/short decode
+        # storage. Keep only the single-split candidate for those geometries;
+        # one-request prefill retains the library's automatic selection.
+        self.num_splits = 1 if max_query == 1 or pages.shape[0] > 1 else None
         self.max_key = pages.shape[1] * key.shape[1]
         self.positions = torch.arange(query.shape[0], device=query.device, dtype=torch.int32)
 
     def __call__(self):
         result, _, _, _, _ = torch.ops.aten._flash_attention_forward(
             self.query, self.key, self.value, self.cu_query, self.cu_key, self.max_query, self.max_key,
-            0., True, False, seqused_k=self.lengths, block_table=self.pages)
+            0., True, False, seqused_k=self.lengths, block_table=self.pages, num_splits=self.num_splits)
         self.output.copy_(result)
         self.output.masked_fill_((self.positions >= self.cu_query[-1])[:, None, None], 0)
         return self.output

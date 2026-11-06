@@ -200,11 +200,38 @@ for `max_seqlen_q == 1` reshapes queries as one row per request and sets the
 query cumulative-length pointer to null. That precondition fails for packed
 batches with empty request slots. The component uses a conservative launch
 capacity of at least two for GQA, retaining the ordinary varlen path and its
-actual device lengths. It does not invent a second query or pin `num_splits`.
+actual device lengths. It does not invent a second query.
 The decode empty-slot regression fails with the shortcut and passes with these
 explicit lengths.
 
-CUDA tests cover logical B1/2/4/8, changing slots/row order, empty/valid
+The same pinned implementation's
+[multi-split combine kernel](https://github.com/Dao-AILab/flash-attention/blob/14c377950125c70b7a9dabf9c561fca53715ac7d/csrc/flash_attn/src/flash_fwd_kernel.h#L1156)
+addresses output by batch and row rather than cumulative packed-query offsets.
+Its varlen setup does not populate the dense output batch stride. Multiple
+requests can therefore write overlapping rows; promoting a one-row GQA launch
+to two also makes its dense row bound exceed a one-row output allocation.
+The component excludes multi-split candidates for multi-request catalogs and
+semantic one-query decode. One-request prefill retains automatic selection:
+its physical output covers the declared query capacity and starts at offset
+zero. This is a correctness restriction on eligible geometries, not a measured
+performance choice. Automatic prefill selection still needs the component and
+full-model numerical gates.
+
+The upstream varlen interface documents exact packed query storage. Flare's
+fixed-capacity query tails and conservative GQA launch are a separately tested
+use of this pinned implementation, not an upstream compatibility guarantee.
+Tail output is cleared explicitly; that does not establish defined values for
+every unused internal accumulator. A dependency change must requalify these
+geometries, including physical B1/2/4/8 and the smallest one-row allocation.
+
+An exact-total-query control separately uses two requests with two queries
+each, without empty slots or capacity tails. Five single-split replays pass an
+independent FP64 bottom-right-causal target; five forced two-split replays leave
+the second request's raw return rows at their prefilled sentinel and fail the
+same arithmetic gate. This demonstrates missing output writes, not a complete
+memory-safety proof of ATen's internal allocation.
+
+CUDA tests cover physical and logical B1/2/4/8, changing slots/row order, empty/valid
 transitions, poisoned unrelated storage, guards, repeatability and allocation
 counters. Random prefill tests include unequal query/key lengths, real cache
 prefixes, permuted pages and 128/4096 query capacities, with a full contiguous

@@ -18,7 +18,8 @@ pytestmark = pytest.mark.skipif(os.environ.get("FLARE_RUN_CUDA_TESTS") != "1",
 
 
 @torch.no_grad()
-def test_paged_flash_decode_permutations_retirement_and_poisoned_storage():
+@pytest.mark.parametrize("physical", [1, 2, 4, 8])
+def test_paged_flash_decode_permutations_retirement_and_poisoned_storage(physical):
     owners, graphs = [], []
     with retain_on_failed_drain(0, owners, graphs), ModuleImages() as images:
         owners.append(images)
@@ -28,12 +29,12 @@ def test_paged_flash_decode_permutations_retirement_and_poisoned_storage():
             value = torch.zeros(shape, device="cuda:0", dtype=dtype)
             values.append(value)
             return value
-        q = allocate((8, 16, 128))
-        k, v = allocate((16, 256, 8, 128)), allocate((16, 256, 8, 128))
-        guard = allocate((8 * 16 * 128 + 32,))
+        q = allocate((physical, 16, 128))
+        k, v = allocate((2 * physical, 256, 8, 128)), allocate((2 * physical, 256, 8, 128))
+        guard = allocate((physical * 16 * 128 + 32,))
         output = guard[16:-16].view_as(q)
-        pages, lengths = allocate((8, 32), torch.int32), allocate((8,), torch.int32)
-        cu, cu_key = allocate((9,), torch.int32), allocate((9,), torch.int32)
+        pages, lengths = allocate((physical, 32), torch.int32), allocate((physical,), torch.int32)
+        cu, cu_key = allocate((physical + 1,), torch.int32), allocate((physical + 1,), torch.int32)
         op = PreparedPagedFlashAttention(q, k, v, pages, lengths, cu, cu_key, output, max_query=1)
         owners.append(op)
         with pytest.raises(ValueError, match="alias"):
@@ -54,11 +55,11 @@ def test_paged_flash_decode_permutations_retirement_and_poisoned_storage():
         generator = torch.Generator(device="cuda:0").manual_seed(20261106)
         sources = []
         owners.append(sources)
-        for shape in ((8, 16, 128), (8, 512, 8, 128), (8, 512, 8, 128)):
+        for shape in ((physical, 16, 128), (physical, 512, 8, 128), (physical, 512, 8, 128)):
             sources.append(allocate(shape))
             sources[-1].normal_(std=.2, generator=generator)
         source_q, source_k, source_v = sources
-        sizes = [13, 33, 129, 257, 511, 1, 256, 512]
+        sizes = [13, 33, 129, 257, 511, 1, 256, 512][:physical]
         expected, baseline = {}, {}
         for identity, size in enumerate(sizes):
             expected[identity] = torch.nn.functional.scaled_dot_product_attention(
@@ -66,15 +67,17 @@ def test_paged_flash_decode_permutations_retirement_and_poisoned_storage():
                 source_k[identity, :size].repeat_interleave(2, dim=1).transpose(0, 1)[None],
                 source_v[identity, :size].repeat_interleave(2, dim=1).transpose(0, 1)[None],
                 is_causal=False)[0, :, 0].cpu()
-        for count, reverse in [(8, False), (1, False), (2, False), (4, False), (8, True), (4, True), (2, True), (1, True), (0, False), (8, False)]:
+        counts_to_test = [value for value in (1, 2, 4, 8) if value <= physical]
+        layouts = [(count, reverse) for reverse in (False, True) for count in counts_to_test]
+        for count, reverse in [*layouts, (0, False), (physical, False)]:
             identities = list(range(count))
-            slots = [7 - i for i in range(count)] if reverse else list(range(count))
+            slots = [physical - 1 - i for i in range(count)] if reverse else list(range(count))
             q.fill_(float("nan"))
             k.fill_(float("nan"))
             v.fill_(float("nan"))
             pages.fill_(-1)
             lengths.zero_()
-            counts = [0] * 8
+            counts = [0] * physical
             for packed, (identity, slot) in enumerate(zip(identities, slots, strict=True)):
                 counts[slot] = 1
                 size = sizes[identity]
@@ -230,6 +233,74 @@ def test_paged_flash_prefill_prefix_causal_alignment_and_page_boundaries(capacit
         graph.replay()
         torch.cuda.synchronize()
         assert torch.equal(output.cpu().view(torch.uint8), baseline.view(torch.uint8))
+        graph.reset()
+
+
+@torch.no_grad()
+def test_paged_flash_exact_packed_queries_and_split_combine_failure_control():
+    owners, graphs = [], []
+    with retain_on_failed_drain(0, owners, graphs), ModuleImages() as images:
+        owners.append(images)
+        generator = torch.Generator(device="cuda").manual_seed(20261106)
+        q = torch.randn((4, 16, 128), device="cuda", dtype=torch.bfloat16, generator=generator) * .2
+        k = torch.randn((2, 256, 8, 128), device="cuda", dtype=torch.bfloat16, generator=generator) * .2
+        v = torch.randn(k.shape, device="cuda", dtype=torch.bfloat16, generator=generator) * .2
+        v[0] += 1
+        v[1] -= 1
+        k[:, 165:].fill_(float("nan"))
+        v[:, 165:].fill_(float("nan"))
+        cu = torch.tensor([0, 2, 4], device="cuda", dtype=torch.int32)
+        cu_key = torch.tensor([0, 165, 330], device="cuda", dtype=torch.int32)
+        lengths = torch.tensor([165, 165], device="cuda", dtype=torch.int32)
+        pages = torch.tensor([[0], [1]], device="cuda", dtype=torch.int32)
+        output = torch.empty_like(q)
+        owners.extend((q, k, v, cu, cu_key, lengths, pages, output))
+        targets = []
+        for batch in range(2):
+            query = q[2*batch:2*batch+2].cpu().double().transpose(0, 1)
+            key = k[batch, :165].cpu().double().repeat_interleave(2, 1).transpose(0, 1)
+            value = v[batch, :165].cpu().double().repeat_interleave(2, 1).transpose(0, 1)
+            scores = query @ key.transpose(-1, -2) / (128 ** .5)
+            visible = torch.arange(165)[None] <= 163 + torch.arange(2)[:, None]
+            scores.masked_fill_(~visible[None], -torch.inf)
+            targets.append((scores.softmax(-1) @ value).transpose(0, 1).bfloat16())
+        expected = torch.cat(targets)
+        op = PreparedPagedFlashAttention(q, k, v, pages, lengths, cu, cu_key, output, max_query=2)
+        compiled = compile_forward(op)
+        owners.extend((op, compiled))
+        compiled()
+        graph = torch.cuda.CUDAGraph()
+        graphs.append(graph)
+        with torch.cuda.graph(graph):
+            compiled()
+        for _ in range(5):
+            output.fill_(137)
+            graph.replay()
+            torch.cuda.synchronize()
+            assert torch.allclose(output.cpu(), expected, atol=.002, rtol=.02)
+        graph.reset()
+
+        # Exact total Q and no empty slots isolate the pinned implementation's
+        # combine defect from Flare's separately qualified capacity extension.
+        # The sentinel marks the raw ATen return itself, not a copied output.
+        warm = torch.ops.aten._flash_attention_forward(q, k, v, cu, cu_key, 2, 256,
+            0., True, False, seqused_k=lengths, block_table=pages, num_splits=2)[0]
+        owners.append(warm)
+        torch.cuda.synchronize()
+        graph = torch.cuda.CUDAGraph()
+        graphs.append(graph)
+        with torch.cuda.graph(graph):
+            rejected = torch.ops.aten._flash_attention_forward(q, k, v, cu, cu_key, 2, 256,
+                0., True, False, seqused_k=lengths, block_table=pages, num_splits=2)[0]
+        owners.append(rejected)
+        for _ in range(5):
+            rejected.fill_(137)
+            graph.replay()
+            torch.cuda.synchronize()
+            actual = rejected.cpu()
+            assert not torch.allclose(actual, expected, atol=.002, rtol=.02)
+            assert torch.isfinite(actual[:2]).all() and actual[:2].ne(137).all()
+            assert actual[2:].eq(137).all()
         graph.reset()
 
 
