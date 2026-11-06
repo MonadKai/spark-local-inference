@@ -154,3 +154,26 @@ byte identity across B=1/2/4/8, partial batches, row orders, slot/generation reu
 unrelated completion and cancellation. Cross-engine tolerance cannot excuse a
 failure of this determinism requirement. Preserve every existing model's
 bitwise, package and numerical regression gates.
+
+## Bounded encoder attention component
+
+`PreparedFlashWindow` captures the canonical ATen variable-length flash operation
+over one bidirectional BF16 window. Prepared Q/K/V/output storage has a fixed
+capacity; CUDA `cu[2]` supplies `[0, N]`. The caller validates `0 <= N <= capacity`.
+The component defines every unused output row as zero, including `N=0`, and
+rejects output/input storage overlap. It adds no serving-time Python or plan
+selection.
+
+Real compiled replay tests cover capacities 13 and 104, empty/full/interior live
+lengths, poisoned tails, repeated transitions and allocation counters. Valid
+rows match the pinned canonical SDPA operation exactly. A deliberately wrong
+length exposes nonfinite values and the same correct replay recovers. Two
+synthetic exported packages also replay in Rust after their preparer exits.
+Failure controls enqueue real graph work before rejecting its fence at replay,
+storage-context exit and recorder-context exit; retained owners survive exception
+disposal and GC, while disabling retention triggers the expected owner failure.
+
+These are component and package-boundary checks. They do not establish complete
+encoder arithmetic, ASR recognition, asynchronous request lifetime, performance
+or compatibility with every previously published package. Full model stage and
+teacher-logit scalar gates remain separate.
