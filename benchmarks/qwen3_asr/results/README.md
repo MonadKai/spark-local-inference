@@ -23,3 +23,27 @@ existing original-layout convolution pre-hook handles the one 24-frame tail.
 These are reference hypotheses for the frozen paired scoring protocol, not an
 ASR model acceptance or an all-language quality claim. Candidate numerical,
 recognition, lifecycle and native-serving gates remain separate.
+
+`projection-candidates-sm121.json` preserves every result from
+`qualify/asr_projection_candidates.py`: 104 applicable plans, four inapplicable
+configurations, 1124 observations and 420 decode timing cells, including all
+rejected candidates and raw event samples. The five actual ASR matrix geometries
+include the first-prefill-token LM-head input. Decode timing rotates all 28
+decoder-layer weight sets; the head has one weight set. B1/2/4/8 logical and
+fixed-eight physical rows are both measured. Prefill has numerical observations
+only, with no timing or performance claim.
+
+The complete eight represented rows are compared across shapes, row offsets and
+poisoned unrelated rows. The conditional FP64 error envelope covers only six
+output channels of layer zero. Weight rotation is a timing condition, not
+all-layer arithmetic qualification. In particular, MMA/TC/prefill arithmetic has
+not been proven to satisfy the frozen RNE update model. These short repeated
+CUDA-graph event timings are diagnostic kernel measurements; they do not
+establish an admissible production configuration, a full ASR throughput gain or
+a vLLM serving comparison.
+
+The historical projection result's `checkpoint_revision` names the expected
+source. This diagnostic checks represented tensor geometry/precision/finite
+values, not the supplied checkpoint's remote content identity. The original
+snapshot was checked separately; newer runs label that field
+`expected_checkpoint_revision` explicitly.
