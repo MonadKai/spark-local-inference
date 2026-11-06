@@ -189,6 +189,7 @@ struct Arena {
     driver: Driver,
     device: i32,
     granularity: usize,
+    total_memory: usize,
     gpudirect: bool,
     host_base: u64,
     free: Vec<(u64, usize)>,
@@ -278,8 +279,12 @@ extern "C" fn flare_package_initialize(rank: u32, world: u32, device: i32) -> i3
             ));
         }
         let driver = Driver::load()?;
-        let (mut address, mut granularity, mut gpudirect) = (0, 0, 0);
+        let (mut address, mut granularity, mut gpudirect, mut total_memory) = (0, 0, 0, 0);
         unsafe {
+            driver.check(
+                "cuDeviceTotalMem_v2",
+                (driver.device_total_memory)(&mut total_memory, device),
+            )?;
             driver.check(
                 "cuDeviceGetAttribute(GPU_DIRECT_RDMA_SUPPORTED)",
                 (driver.device_attribute)(&mut gpudirect, 116, device),
@@ -311,6 +316,7 @@ extern "C" fn flare_package_initialize(rank: u32, world: u32, device: i32) -> i3
             driver,
             device,
             granularity,
+            total_memory,
             gpudirect: gpudirect != 0,
             host_base: host_base + u64::from(rank) * EXTENT as u64,
             free: vec![(BASE + u64::from(rank) * EXTENT as u64, EXTENT / 2)],
@@ -366,6 +372,12 @@ fn package_allocate(size: usize, device: i32, transient: bool) -> *mut c_void {
                 a.mappings.insert(mapping.address, mapping.size);
                 return Ok(mapping.address);
             }
+        }
+        // Impossible allocations can make an integrated GPU's driver reclaim
+        // host memory for a long time before returning OOM. Return the same
+        // retryable null result without entering that driver allocation.
+        if size > a.total_memory {
+            return Ok(0);
         }
         let index = a
             .free
@@ -1078,6 +1090,7 @@ mod tests {
                 driver,
                 device: 0,
                 granularity: 4096,
+                total_memory: usize::MAX,
                 gpudirect: false,
                 host_base: 0,
                 free: Vec::new(),
@@ -1156,6 +1169,7 @@ mod tests {
                 driver,
                 device: 0,
                 granularity: 4096,
+                total_memory: usize::MAX,
                 gpudirect: false,
                 host_base: 0,
                 free: Vec::new(),
@@ -1175,6 +1189,66 @@ mod tests {
     }
 
     static FREE_TEST_UNMAP_CALLS: AtomicUsize = AtomicUsize::new(0);
+
+    static PHYSICAL_CREATE_CALLS: AtomicUsize = AtomicUsize::new(0);
+
+    unsafe extern "C" fn oom_create(
+        _handle: *mut u64,
+        _size: usize,
+        _properties: *const AllocationProperties,
+        _flags: u64,
+    ) -> i32 {
+        PHYSICAL_CREATE_CALLS.fetch_add(1, Ordering::SeqCst);
+        2
+    }
+
+    #[test]
+    fn impossible_allocation_is_retryable_without_entering_driver() {
+        let _guard = ARENA_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        let mut driver =
+            Driver::load().expect("allocator callback control requires the NVIDIA driver library");
+        driver.physical_create = oom_create;
+        PHYSICAL_CREATE_CALLS.store(0, Ordering::SeqCst);
+        *ERROR.lock().unwrap_or_else(|error| error.into_inner()) = None;
+        *ARENA.lock().unwrap_or_else(|error| error.into_inner()) = Some(Arena {
+            driver,
+            device: 0,
+            granularity: 4096,
+            total_memory: 8192,
+            gpudirect: false,
+            host_base: 0,
+            free: vec![(0x10000, 32768)],
+            mappings: BTreeMap::new(),
+            retained: RetainedBacking::default(),
+            retained_mappings: RetainedMappingPool::default(),
+        });
+        // Rounding the first byte above the limit must not enter cuMemCreate.
+        assert!(flare_package_allocate(8193, 0, null_mut()).is_null());
+        assert_eq!(PHYSICAL_CREATE_CALLS.load(Ordering::SeqCst), 0);
+        assert!(
+            ERROR
+                .lock()
+                .unwrap_or_else(|error| error.into_inner())
+                .is_none()
+        );
+        // A within-limit retry still reaches the driver and preserves ordinary
+        // driver OOM as retryable, rather than poisoning the package allocator.
+        assert!(flare_package_allocate(8192, 0, null_mut()).is_null());
+        assert_eq!(PHYSICAL_CREATE_CALLS.load(Ordering::SeqCst), 1);
+        assert!(
+            ERROR
+                .lock()
+                .unwrap_or_else(|error| error.into_inner())
+                .is_none()
+        );
+        let mut arena = ARENA.lock().unwrap_or_else(|error| error.into_inner());
+        let allocator = arena.as_ref().unwrap();
+        assert_eq!(allocator.free, vec![(0x10000, 32768)]);
+        assert!(allocator.mappings.is_empty());
+        *arena = None;
+    }
 
     unsafe extern "C" fn failing_once_unmap(_address: u64, _size: usize) -> i32 {
         if FREE_TEST_UNMAP_CALLS.fetch_add(1, Ordering::SeqCst) == 0 {
@@ -1199,6 +1273,7 @@ mod tests {
                 driver,
                 device: 0,
                 granularity: 4096,
+                total_memory: usize::MAX,
                 gpudirect: false,
                 host_base: 0,
                 free: Vec::new(),
