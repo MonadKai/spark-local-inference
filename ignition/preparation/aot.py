@@ -558,6 +558,8 @@ class ForwardCache:
         properties = torch.cuda.get_device_properties(device)
         options = {name: value for name, value in self.options.items() if name != 'compile_threads'}
         key = hashlib.sha256(pickle.dumps((namespace, options, torch_key(),
+            torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction,
+            torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction_split_k,
             properties.name, properties.major, properties.minor, properties.multi_processor_count)))
         for source in (Path(__file__).resolve().parents[1], Path(flashinfer.__file__).resolve().parent):
             for path in sorted(source.rglob('*.py')):

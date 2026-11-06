@@ -5,7 +5,7 @@
 
 Run in the isolated canonical Transformers environment, using Python -I.
 This CPU loading check performs no model forward and imports no Ignition code.
-The original SDK remains the primary oracle for original-format semantics.
+The original SDK independently checks the original-format loading semantics.
 The caller must separately establish the supplied checkpoint's content identity;
 this tool checks complete value consumption relative to those supplied files.
 """
@@ -98,7 +98,7 @@ def main():
         original_tensors_compared=len(index), all_original_tensor_bytes_equal=True,
         loading_device="cpu", model_forward_executed=False, buffers=buffers,
         frontend_semantics="original generation token roles retained; no upstream writer/template used",
-        range_limits="F<100 convolution width and SDK eager F>800 window semantics differ; raw SDK remains primary")
+        range_limits="F<100 convolution width and SDK eager F>800 window semantics differ; separate original-format layout qualification is required")
     with args.output.open("x") as output:
         json.dump(result, output, indent=2)
         output.write("\n")

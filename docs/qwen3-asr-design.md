@@ -305,10 +305,12 @@ normalization. The SDK's long-clip splitter and minimum-tail handling differ
 from the newer Transformers feature extractor; service behavior must be frozen
 against the pinned runnable vLLM rather than inferred from either processor.
 
-The issue's quality selection, scoring and numerical requirements remain
-binding. Stage/logit scalar thresholds, independent reference repeatability,
-actual corpus revisions and selected utterances still require freezing before
-candidate inference. No threshold can be inferred from a matching transcript.
+The issue's quality selection and scoring remain binding. The frozen corpus
+configuration records actual revisions and selected utterances. The
+[arithmetic contract](qwen3-asr-numerics.md) fixes development stage/logit
+thresholds from two independent references before candidate inference and
+records their separate repeatability requirements. These are acceptance gates;
+they do not establish a passing candidate or recognition quality.
 
 The primary performance comparison is full, naturally stopped ASR at B=4 and
 B=8; each throughput-ratio 95% lower confidence bound must exceed one. B=1
