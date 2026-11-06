@@ -1,0 +1,1039 @@
+{
+  "scope": "Exercise the declared audio HTTP subset against a separately started server.\n\nKeep responses for failed cases. This client does not identify the binary or\npackage, observe internal prompt/token IDs, establish concurrency safety, or\nqualify recognition/performance. Its launcher must record those identities.\n",
+  "uploaded_wav_sha256": "ccc1c42653df409e1fab848b3fa1c53926650e10b2c5081a21bd35581a61eb94",
+  "cases": [
+    {
+      "name": "models",
+      "expected_status": 200,
+      "passed": true,
+      "status": "complete",
+      "status_code": 200,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "1157",
+        "date": "Fri, 06 Nov 2026 22:58:16 GMT"
+      },
+      "body": "{\"object\":\"list\",\"data\":[{\"id\":\"Qwen/Qwen3-ASR-1.7B\",\"object\":\"model\",\"created\":1794005896,\"owned_by\":\"local\",\"root\":\"Qwen/Qwen3-ASR-1.7B\",\"parent\":null,\"max_model_len\":8192,\"permission\":[{\"id\":\"modelperm-1794005896-0\",\"object\":\"model_permission\",\"created\":1794005896,\"allow_create_engine\":false,\"allow_sampling\":true,\"allow_logprobs\":true,\"allow_search_indices\":false,\"allow_view\":true,\"allow_fine_tuning\":false,\"organization\":\"*\",\"group\":null,\"is_blocking\":false}],\"flare\":{\"vocab_size\":151936,\"max_top_logprobs\":20,\"max_concurrency\":8,\"prefill_chunk_size\":4096,\"default_max_tokens\":1024,\"sampling_defaults\":{\"seed\":0,\"temperature\":1.0,\"top_p\":1.0,\"min_p\":0.0,\"repetition_penalty\":1.0,\"presence_penalty\":0.0,\"frequency_penalty\":0.0,\"top_k\":1},\"thinking_token_budget\":null,\"sampling_ranges\":{\"temperature\":null,\"top_k\":null,\"top_p\":null,\"min_p\":null,\"repetition_penalty\":null,\"presence_penalty\":null,\"frequency_penalty\":null},\"max_images_per_prompt\":0,\"max_image_tokens_per_prompt\":0,\"image_feature_window_tokens\":0,\"max_image_tokens_per_image\":0,\"max_image_pixels\":0,\"max_image_bytes\":0,\"input_modalities\":[\"text\",\"audio\"],\"output_modalities\":[\"text\"]}}]}"
+    },
+    {
+      "name": "forced-en",
+      "expected_status": 200,
+      "passed": true,
+      "status": "complete",
+      "status_code": 200,
+      "headers": {
+        "content-type": "application/json",
+        "x-flare-generated-tokens": "7",
+        "x-flare-finish-reason": "stop",
+        "content-length": "75",
+        "date": "Fri, 06 Nov 2026 22:58:16 GMT"
+      },
+      "body": "{\"text\":\"Will you forgive me now?\",\"usage\":{\"type\":\"duration\",\"seconds\":2}}"
+    },
+    {
+      "name": "default",
+      "expected_status": 200,
+      "passed": true,
+      "status": "complete",
+      "status_code": 200,
+      "headers": {
+        "content-type": "application/json",
+        "x-flare-generated-tokens": "10",
+        "x-flare-finish-reason": "stop",
+        "content-length": "75",
+        "date": "Fri, 06 Nov 2026 22:58:16 GMT"
+      },
+      "body": "{\"text\":\"Will you forgive me now?\",\"usage\":{\"type\":\"duration\",\"seconds\":2}}"
+    },
+    {
+      "name": "empty-model",
+      "expected_status": 200,
+      "passed": true,
+      "status": "complete",
+      "status_code": 200,
+      "headers": {
+        "content-type": "application/json",
+        "x-flare-generated-tokens": "10",
+        "x-flare-finish-reason": "stop",
+        "content-length": "75",
+        "date": "Fri, 06 Nov 2026 22:58:17 GMT"
+      },
+      "body": "{\"text\":\"Will you forgive me now?\",\"usage\":{\"type\":\"duration\",\"seconds\":2}}"
+    },
+    {
+      "name": "format-json",
+      "expected_status": 200,
+      "passed": true,
+      "status": "complete",
+      "status_code": 200,
+      "headers": {
+        "content-type": "application/json",
+        "x-flare-generated-tokens": "10",
+        "x-flare-finish-reason": "stop",
+        "content-length": "75",
+        "date": "Fri, 06 Nov 2026 22:58:17 GMT"
+      },
+      "body": "{\"text\":\"Will you forgive me now?\",\"usage\":{\"type\":\"duration\",\"seconds\":2}}"
+    },
+    {
+      "name": "format-text",
+      "expected_status": 200,
+      "passed": true,
+      "status": "complete",
+      "status_code": 200,
+      "headers": {
+        "content-type": "application/json",
+        "x-flare-generated-tokens": "10",
+        "x-flare-finish-reason": "stop",
+        "content-length": "75",
+        "date": "Fri, 06 Nov 2026 22:58:17 GMT"
+      },
+      "body": "{\"text\":\"Will you forgive me now?\",\"usage\":{\"type\":\"duration\",\"seconds\":2}}"
+    },
+    {
+      "name": "unicode-context",
+      "expected_status": 200,
+      "passed": true,
+      "status": "complete",
+      "status_code": 200,
+      "headers": {
+        "content-type": "application/json",
+        "x-flare-generated-tokens": "10",
+        "x-flare-finish-reason": "stop",
+        "content-length": "75",
+        "date": "Fri, 06 Nov 2026 22:58:17 GMT"
+      },
+      "body": "{\"text\":\"Will you forgive me now?\",\"usage\":{\"type\":\"duration\",\"seconds\":2}}"
+    },
+    {
+      "name": "forced-zh",
+      "expected_status": 200,
+      "passed": true,
+      "status": "complete",
+      "status_code": 200,
+      "headers": {
+        "content-type": "application/json",
+        "x-flare-generated-tokens": "7",
+        "x-flare-finish-reason": "stop",
+        "content-length": "75",
+        "date": "Fri, 06 Nov 2026 22:58:17 GMT"
+      },
+      "body": "{\"text\":\"Will you forgive me now?\",\"usage\":{\"type\":\"duration\",\"seconds\":2}}"
+    },
+    {
+      "name": "cap-one",
+      "expected_status": 200,
+      "passed": true,
+      "status": "complete",
+      "status_code": 200,
+      "headers": {
+        "content-type": "application/json",
+        "x-flare-generated-tokens": "1",
+        "x-flare-finish-reason": "length",
+        "content-length": "55",
+        "date": "Fri, 06 Nov 2026 22:58:17 GMT"
+      },
+      "body": "{\"text\":\"Will\",\"usage\":{\"type\":\"duration\",\"seconds\":2}}"
+    },
+    {
+      "name": "signed-negative-seed",
+      "expected_status": 200,
+      "passed": true,
+      "status": "complete",
+      "status_code": 200,
+      "headers": {
+        "content-type": "application/json",
+        "x-flare-generated-tokens": "10",
+        "x-flare-finish-reason": "stop",
+        "content-length": "75",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"text\":\"Will you forgive me now?\",\"usage\":{\"type\":\"duration\",\"seconds\":2}}"
+    },
+    {
+      "name": "seed-float-integral",
+      "expected_status": 200,
+      "passed": true,
+      "status": "complete",
+      "status_code": 200,
+      "headers": {
+        "content-type": "application/json",
+        "x-flare-generated-tokens": "10",
+        "x-flare-finish-reason": "stop",
+        "content-length": "75",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"text\":\"Will you forgive me now?\",\"usage\":{\"type\":\"duration\",\"seconds\":2}}"
+    },
+    {
+      "name": "unknown-model",
+      "expected_status": 404,
+      "passed": true,
+      "status": "complete",
+      "status_code": 404,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "116",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"not_found_error\",\"message\":\"requested model is not loaded\",\"param\":null,\"code\":\"not_found_error\"}}"
+    },
+    {
+      "name": "stream",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "139",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"transcription requires non-streaming n=1\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "choices",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "139",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"transcription requires non-streaming n=1\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "unknown-field",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "140",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"transcription does not support timestamps\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "old-cap-alias",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "140",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"transcription does not support max_tokens\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "duplicate-language",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "137",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"duplicate transcription field language\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "format-verbose_json",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "149",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"transcription response_format must be json or text\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "format-srt",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "149",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"transcription response_format must be json or text\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "format-vtt",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "149",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"transcription response_format must be json or text\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "format-diarized_json",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "149",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"transcription response_format must be json or text\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "language-",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "127",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"unsupported transcription language\",\"param\":null,\"code\":\"invalid_request\"}}"
+    },
+    {
+      "name": "language-EN",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "127",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"unsupported transcription language\",\"param\":null,\"code\":\"invalid_request\"}}"
+    },
+    {
+      "name": "language-English",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "127",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"unsupported transcription language\",\"param\":null,\"code\":\"invalid_request\"}}"
+    },
+    {
+      "name": "language-auto",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "127",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"unsupported transcription language\",\"param\":null,\"code\":\"invalid_request\"}}"
+    },
+    {
+      "name": "language-en-US",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "127",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"unsupported transcription language\",\"param\":null,\"code\":\"invalid_request\"}}"
+    },
+    {
+      "name": "language-unknown",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "127",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"unsupported transcription language\",\"param\":null,\"code\":\"invalid_request\"}}"
+    },
+    {
+      "name": "invalid-cap-0",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "145",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"output limit must be between 1 and 2147483647 tokens\",\"param\":null,\"code\":\"invalid_request\"}}"
+    },
+    {
+      "name": "invalid-cap--1",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "135",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"output limit must be a nonnegative integer\",\"param\":null,\"code\":\"invalid_request\"}}"
+    },
+    {
+      "name": "invalid-cap-1.5",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "135",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"output limit must be a nonnegative integer\",\"param\":null,\"code\":\"invalid_request\"}}"
+    },
+    {
+      "name": "invalid-cap-\"1\"",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "142",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"invalid transcription max_completion_tokens\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "invalid-seed-null",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "143",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"seed must be a signed 64-bit integer or null\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "invalid-seed-true",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "143",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"seed must be a signed 64-bit integer or null\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "invalid-seed-1.5",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "143",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"seed must be a signed 64-bit integer or null\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "invalid-seed-9223372036854775808",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "143",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"seed must be a signed 64-bit integer or null\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "no-file",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "128",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"transcription requires a file\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "empty-file",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "118",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"audio file is empty\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "corrupt-file",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "154",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"audio decode failed: Invalid data found when processing input\",\"param\":null,\"code\":\"invalid_request\"}}"
+    },
+    {
+      "name": "two-files",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "138",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"transcription requires exactly one file\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "empty-nonmultipart",
+      "expected_status": 415,
+      "passed": false,
+      "status": "failed",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "151",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Invalid `boundary` for `multipart/form-data` request\",\"param\":null,\"code\":\"invalid_request_error\"}}",
+      "error": {
+        "type": "AssertionError",
+        "message": "expected HTTP 415, got 400"
+      }
+    },
+    {
+      "name": "compressed-envelope",
+      "expected_status": 415,
+      "passed": true,
+      "status": "complete",
+      "status_code": 415,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "142",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"multipart Content-Encoding must be identity\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "samples-0",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "150",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"decoded audio must be nonempty and fit the duration limit\",\"param\":null,\"code\":\"invalid_request\"}}"
+    },
+    {
+      "name": "samples-1",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "142",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"invalid finite PCM extent for centered audio STFT\",\"param\":null,\"code\":\"invalid_request\"}}"
+    },
+    {
+      "name": "samples-159",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "142",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"invalid finite PCM extent for centered audio STFT\",\"param\":null,\"code\":\"invalid_request\"}}"
+    },
+    {
+      "name": "samples-160",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "142",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"invalid finite PCM extent for centered audio STFT\",\"param\":null,\"code\":\"invalid_request\"}}"
+    },
+    {
+      "name": "samples-161",
+      "expected_status": 200,
+      "passed": true,
+      "status": "complete",
+      "status_code": 200,
+      "headers": {
+        "content-type": "application/json",
+        "x-flare-generated-tokens": "1",
+        "x-flare-finish-reason": "length",
+        "content-length": "59",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"text\":\"language\",\"usage\":{\"type\":\"duration\",\"seconds\":1}}"
+    },
+    {
+      "name": "samples-200",
+      "expected_status": 200,
+      "passed": true,
+      "status": "complete",
+      "status_code": 200,
+      "headers": {
+        "content-type": "application/json",
+        "x-flare-generated-tokens": "1",
+        "x-flare-finish-reason": "length",
+        "content-length": "59",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"text\":\"language\",\"usage\":{\"type\":\"duration\",\"seconds\":1}}"
+    },
+    {
+      "name": "samples-201",
+      "expected_status": 200,
+      "passed": true,
+      "status": "complete",
+      "status_code": 200,
+      "headers": {
+        "content-type": "application/json",
+        "x-flare-generated-tokens": "1",
+        "x-flare-finish-reason": "length",
+        "content-length": "59",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"text\":\"language\",\"usage\":{\"type\":\"duration\",\"seconds\":1}}"
+    },
+    {
+      "name": "samples-16000",
+      "expected_status": 200,
+      "passed": true,
+      "status": "complete",
+      "status_code": 200,
+      "headers": {
+        "content-type": "application/json",
+        "x-flare-generated-tokens": "1",
+        "x-flare-finish-reason": "length",
+        "content-length": "59",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"text\":\"language\",\"usage\":{\"type\":\"duration\",\"seconds\":1}}"
+    },
+    {
+      "name": "samples-16001",
+      "expected_status": 200,
+      "passed": true,
+      "status": "complete",
+      "status_code": 200,
+      "headers": {
+        "content-type": "application/json",
+        "x-flare-generated-tokens": "1",
+        "x-flare-finish-reason": "length",
+        "content-length": "59",
+        "date": "Fri, 06 Nov 2026 22:58:18 GMT"
+      },
+      "body": "{\"text\":\"language\",\"usage\":{\"type\":\"duration\",\"seconds\":2}}"
+    },
+    {
+      "name": "chat-base64",
+      "expected_status": 200,
+      "passed": true,
+      "status": "complete",
+      "status_code": 200,
+      "headers": {
+        "content-type": "application/json",
+        "x-request-id": "chatcmpl-176223f8d6a72de7-1",
+        "content-length": "420",
+        "date": "Fri, 06 Nov 2026 22:58:19 GMT"
+      },
+      "body": "{\"id\":\"chatcmpl-176223f8d6a72de7-1\",\"object\":\"chat.completion\",\"created\":1794005898,\"model\":\"Qwen/Qwen3-ASR-1.7B\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"language English<asr_text>Will you forgive me now?\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":39,\"completion_tokens\":10,\"total_tokens\":49,\"prompt_tokens_details\":{\"cached_tokens\":0},\"completion_tokens_details\":{\"reasoning_tokens\":0}}}"
+    },
+    {
+      "name": "chat-data-url",
+      "expected_status": 200,
+      "passed": true,
+      "status": "complete",
+      "status_code": 200,
+      "headers": {
+        "content-type": "application/json",
+        "x-request-id": "chatcmpl-176223f8d6a72de7-2",
+        "content-length": "421",
+        "date": "Fri, 06 Nov 2026 22:58:19 GMT"
+      },
+      "body": "{\"id\":\"chatcmpl-176223f8d6a72de7-2\",\"object\":\"chat.completion\",\"created\":1794005899,\"model\":\"Qwen/Qwen3-ASR-1.7B\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"language English<asr_text>Will you forgive me now?\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":39,\"completion_tokens\":10,\"total_tokens\":49,\"prompt_tokens_details\":{\"cached_tokens\":39},\"completion_tokens_details\":{\"reasoning_tokens\":0}}}"
+    },
+    {
+      "name": "cap-alias-priority",
+      "expected_status": 200,
+      "passed": true,
+      "status": "complete",
+      "status_code": 200,
+      "headers": {
+        "content-type": "application/json",
+        "x-request-id": "chatcmpl-176223f8d6a72de7-3",
+        "content-length": "388",
+        "date": "Fri, 06 Nov 2026 22:58:19 GMT"
+      },
+      "body": "{\"id\":\"chatcmpl-176223f8d6a72de7-3\",\"object\":\"chat.completion\",\"created\":1794005899,\"model\":\"Qwen/Qwen3-ASR-1.7B\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"language English\"},\"finish_reason\":\"length\"}],\"usage\":{\"prompt_tokens\":39,\"completion_tokens\":2,\"total_tokens\":41,\"prompt_tokens_details\":{\"cached_tokens\":39},\"completion_tokens_details\":{\"reasoning_tokens\":0}}}"
+    },
+    {
+      "name": "valid-new-invalid-old-cap",
+      "expected_status": 200,
+      "passed": true,
+      "status": "complete",
+      "status_code": 200,
+      "headers": {
+        "content-type": "application/json",
+        "x-request-id": "chatcmpl-176223f8d6a72de7-4",
+        "content-length": "388",
+        "date": "Fri, 06 Nov 2026 22:58:19 GMT"
+      },
+      "body": "{\"id\":\"chatcmpl-176223f8d6a72de7-4\",\"object\":\"chat.completion\",\"created\":1794005899,\"model\":\"Qwen/Qwen3-ASR-1.7B\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"language English\"},\"finish_reason\":\"length\"}],\"usage\":{\"prompt_tokens\":39,\"completion_tokens\":2,\"total_tokens\":41,\"prompt_tokens_details\":{\"cached_tokens\":39},\"completion_tokens_details\":{\"reasoning_tokens\":0}}}"
+    },
+    {
+      "name": "invalid-new-valid-old-cap",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "141",
+        "date": "Fri, 06 Nov 2026 22:58:19 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"output limit must be a nonnegative integer\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "chat-stream",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "136",
+        "date": "Fri, 06 Nov 2026 22:58:19 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"audio chat requires non-streaming n=1\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "chat-choices",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "136",
+        "date": "Fri, 06 Nov 2026 22:58:19 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"audio chat requires non-streaming n=1\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "chat-tools",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "132",
+        "date": "Fri, 06 Nov 2026 22:58:19 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"audio chat does not support tools\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "chat-language",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "135",
+        "date": "Fri, 06 Nov 2026 22:58:19 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"audio chat does not support language\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "chat-penalty",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "143",
+        "date": "Fri, 06 Nov 2026 22:58:19 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"audio chat does not support presence_penalty\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "chat-unknown",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "134",
+        "date": "Fri, 06 Nov 2026 22:58:19 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"audio chat does not support unknown\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "chat-unknown-model",
+      "expected_status": 404,
+      "passed": true,
+      "status": "complete",
+      "status_code": 404,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "116",
+        "date": "Fri, 06 Nov 2026 22:58:19 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"not_found_error\",\"message\":\"requested model is not loaded\",\"param\":null,\"code\":\"not_found_error\"}}"
+    },
+    {
+      "name": "chat-text-only",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "169",
+        "date": "Fri, 06 Nov 2026 22:58:19 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"audio chat requires one audio user turn and an optional system context\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "chat-two-audio",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "151",
+        "date": "Fri, 06 Nov 2026 22:58:19 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"audio user turn must contain exactly one audio input\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "chat-audio-and-text",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "151",
+        "date": "Fri, 06 Nov 2026 22:58:19 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"audio user turn must contain exactly one audio input\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "chat-bad-base64",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "119",
+        "date": "Fri, 06 Nov 2026 22:58:19 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"invalid audio base64\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "chat-bad-format",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "136",
+        "date": "Fri, 06 Nov 2026 22:58:19 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"input_audio format must be wav or mp3\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "chat-private-https",
+      "expected_status": 400,
+      "passed": true,
+      "status": "complete",
+      "status_code": 400,
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "122",
+        "date": "Fri, 06 Nov 2026 22:58:19 GMT"
+      },
+      "body": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"audio URL is not public\",\"param\":null,\"code\":\"invalid_request_error\"}}"
+    },
+    {
+      "name": "recovery-forced-en",
+      "expected_status": 200,
+      "passed": true,
+      "status": "complete",
+      "status_code": 200,
+      "headers": {
+        "content-type": "application/json",
+        "x-flare-generated-tokens": "7",
+        "x-flare-finish-reason": "stop",
+        "content-length": "75",
+        "date": "Fri, 06 Nov 2026 22:58:19 GMT"
+      },
+      "body": "{\"text\":\"Will you forgive me now?\",\"usage\":{\"type\":\"duration\",\"seconds\":2}}"
+    }
+  ],
+  "status": "failed",
+  "errors": [
+    "empty-nonmultipart"
+  ],
+  "internal_tokens_observed": false,
+  "models": {
+    "object": "list",
+    "data": [
+      {
+        "id": "Qwen/Qwen3-ASR-1.7B",
+        "object": "model",
+        "created": 1794005896,
+        "owned_by": "local",
+        "root": "Qwen/Qwen3-ASR-1.7B",
+        "parent": null,
+        "max_model_len": 8192,
+        "permission": [
+          {
+            "id": "modelperm-1794005896-0",
+            "object": "model_permission",
+            "created": 1794005896,
+            "allow_create_engine": false,
+            "allow_sampling": true,
+            "allow_logprobs": true,
+            "allow_search_indices": false,
+            "allow_view": true,
+            "allow_fine_tuning": false,
+            "organization": "*",
+            "group": null,
+            "is_blocking": false
+          }
+        ],
+        "flare": {
+          "vocab_size": 151936,
+          "max_top_logprobs": 20,
+          "max_concurrency": 8,
+          "prefill_chunk_size": 4096,
+          "default_max_tokens": 1024,
+          "sampling_defaults": {
+            "seed": 0,
+            "temperature": 1.0,
+            "top_p": 1.0,
+            "min_p": 0.0,
+            "repetition_penalty": 1.0,
+            "presence_penalty": 0.0,
+            "frequency_penalty": 0.0,
+            "top_k": 1
+          },
+          "thinking_token_budget": null,
+          "sampling_ranges": {
+            "temperature": null,
+            "top_k": null,
+            "top_p": null,
+            "min_p": null,
+            "repetition_penalty": null,
+            "presence_penalty": null,
+            "frequency_penalty": null
+          },
+          "max_images_per_prompt": 0,
+          "max_image_tokens_per_prompt": 0,
+          "image_feature_window_tokens": 0,
+          "max_image_tokens_per_image": 0,
+          "max_image_pixels": 0,
+          "max_image_bytes": 0,
+          "input_modalities": [
+            "text",
+            "audio"
+          ],
+          "output_modalities": [
+            "text"
+          ]
+        }
+      }
+    ]
+  },
+  "run_configuration": {
+    "head": "d223bd56e384d9b46b8b6709d42608182a2a46b1",
+    "package_export_head": "d148f599848ce9c8399bf9db250c64b1074a65b2",
+    "binary_sha256": "de5f75e12506f5511496675008d08a66bb441a7b51426ad177a2ed18231c5006",
+    "package_primary_sha256": "b02d534b436e7da74c0d38dc89f97ea3d14fb9579b25cb21d094215d6ae31335",
+    "model": "Qwen/Qwen3-ASR-1.7B",
+    "checkpoint_revision": "7278e1e70fe206f11671096ffdd38061171dd6e5",
+    "utterance": "en-61-70968-0058",
+    "source_integration_dirty": true,
+    "binary_rebuilt_from_observed_head": false,
+    "context": 8192,
+    "max_concurrency": 8,
+    "embedding_table_storage": "ram",
+    "prefix_cache_memory": 0,
+    "prefix_cache_disk_limit": 0,
+    "other_cache_conditions": "not established; repeated content is functional testing only",
+    "full_api_parity": false,
+    "numerically_qualified_model": false,
+    "performance_measurement": false
+  },
+  "expectation_error": "Empty request without multipart boundary returns JSON400 in the actual Axum parser. Initial client incorrectly expected415; engine and package were unchanged for the next run."
+}

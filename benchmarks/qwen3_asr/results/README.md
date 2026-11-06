@@ -119,3 +119,28 @@ same response bodies and actual token-count headers as the repaired run. Both
 frozen reference quality gates pass again. These are sequential B1 observations
 across separate server processes, not concurrent determinism or equality of
 unobserved token IDs.
+
+`native-http-initial.json` and `native-http.json` retain two 69-case black-box
+HTTP runs against the same repaired recognition package and native binary.
+The initial run has one incorrect client expectation: an empty request without
+a multipart boundary returns JSON 400, whereas the client expected 415. The
+corrected assertion passes on an unchanged server/package; both attempts remain.
+These observations cover model discovery, multipart and inline/data-URL audio,
+JSON output for both transcription format names, duration, short sample counts,
+signed seeds, actual output caps and chat alias precedence, explicit refusals,
+and recovery to the same transcription bytes/counts after invalid requests.
+
+Run `qualify/asr_http.py --base-url URL --wav WAV --output RESULT` against a
+separately started package server, using the frozen
+`en-61-70968-0058` qualification WAV. Each attempt is saved before sending and
+retains the response status, headers and body. Cap diagnostics require the
+uncapped fixture to generate more tokens and check actual counts/length stops.
+The launcher, rather than this client, checks the recorded binary/package.
+The observed source HEAD is distinct from that binary's earlier dirty build.
+
+This is a finite native subset check, not complete vLLM API parity or evidence
+for the new projection candidate. Public HTTPS/MP3 success, system-context
+handling, exact encoded/body/duration/context limits, long-parent cancellation,
+concurrent slot reuse and internal prompt/token IDs remain separate checks.
+Repeated content and cache hits here are functional observations, not cold
+performance workloads or cache-isolation acceptance.
