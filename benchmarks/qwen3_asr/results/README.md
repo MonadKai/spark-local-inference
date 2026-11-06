@@ -47,3 +47,35 @@ source. This diagnostic checks represented tensor geometry/precision/finite
 values, not the supplied checkpoint's remote content identity. The original
 snapshot was checked separately; newer runs label that field
 `expected_checkpoint_revision` explicitly.
+
+`vllm-recognition.json` contains the pinned vLLM 0.29.0 reference for the same
+256 requests and 261 naturally stopped chunks. The non-streaming HTTP server
+retained its compiled/CUDA-graph configuration. The observer in
+`qualify/asr_vllm_recognition_entry.py` delegates engine calls unchanged and
+records actual prompt IDs, generated IDs, text and stop reasons; its file IO
+excludes this run from performance comparisons.
+
+The second complete run records the actual multipart fields, uploaded WAV/PCM
+identities and selected sampling fields at `AsyncLLM.generate` entry. Later
+InputProcessor cloning and generation-config normalization were not observed.
+A separate CPU
+validator checks these against the frozen corpus, including prompt IDs, actual
+generated IDs, EOS, cleanup/joining and original HTTP response text. All 256
+responses and 261 chunks pass. Cross-request cache keys were not observed;
+processor/prefix cache configuration does not itself establish GPU cache state.
+
+`vllm-recognition-initial.json` preserves the first complete run. Its original
+client compared completion order with input order and flagged five long
+requests. The validator uses the pinned API's engine request ordinals and checks
+the original response text. All 256 responses pass; the five original client
+statuses/errors and their order-check reinterpretations remain explicit. This
+older run did not observe the actual multipart fields or upload/sampling data
+required from the second run.
+
+Fifteen result controls accept valid reversed completion order and reject
+fourteen deliberate corruptions: missing/duplicate chunks, wrong prompt IDs,
+length stop, missing EOS, wrong join, HTTP failure, malformed JSON, missing or
+malformed chunk identity/data, delta output, wrong seed, wrong form and wrong
+PCM. The affected request remains in the 256-request denominator. These are
+reference-result controls, not candidate quality or HTTP failure-recovery
+qualification.
