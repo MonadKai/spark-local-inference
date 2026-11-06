@@ -45,7 +45,7 @@ impl Responses {
         Fixture::prompt_for(
             vec![0],
             OUTPUT_EVENTS as u32,
-            PromptData {
+            PromptData { audio_token_indices: Vec::new(),
                 positions: vec![[0; 3]],
                 vision_token_indices: vec![-1],
                 ..Default::default()

@@ -95,6 +95,23 @@ pub(super) fn prepare_inference_cached(
     count_only: bool,
     input_store: Option<&flare_selene::input::InputStore>,
 ) -> Result<PreparedInference> {
+    prepare_inference_with_audio_cached(frontend, processor, compiler, config, request, index,
+        count_only, input_store, #[cfg(feature = "audio")] None,
+        #[cfg(feature = "audio")] &std::sync::atomic::AtomicBool::new(false))
+}
+
+pub(super) fn prepare_inference_with_audio_cached(
+    frontend: &Frontend,
+    processor: Option<&ImageProcessor>,
+    compiler: &crate::grammar::GrammarCompiler,
+    config: &ModelConfig,
+    request: &super::inference::Request,
+    index: usize,
+    count_only: bool,
+    input_store: Option<&flare_selene::input::InputStore>,
+    #[cfg(feature = "audio")] audio_processor: Option<&crate::frontend::audio::AudioProcessor>,
+    #[cfg(feature = "audio")] cancelled: &std::sync::atomic::AtomicBool,
+) -> Result<PreparedInference> {
     use super::inference::{Constraint, Input, RawPrompt, ToolChoice};
     let opts = &request.options;
     if let Some(top) = opts.prompt_logprobs {
@@ -250,6 +267,12 @@ pub(super) fn prepare_inference_cached(
     } else {
         (frontend.render_chat(&normalized, &options)?, String::new())
     };
+    #[cfg(feature = "audio")]
+    let audio = super::audio::prepare_chat_audio(frontend, audio_processor, config, request, cancelled)?;
+    #[cfg(not(feature = "audio"))]
+    if super::audio::has_audio(request) {
+        return Err(super::inference::unsupported("native audio frontend is not included in this build"));
+    }
     let images = describe_images(&rendered.image_sources, processor, input_store)?;
     let output = if raw.is_some() {
         None
@@ -281,13 +304,18 @@ pub(super) fn prepare_inference_cached(
         None => None,
     };
     let mut message_boundaries = rendered.message_boundaries.clone();
+    #[cfg(feature = "audio")]
+    let (prepared_input, conditioned_audio) = if let Some((audio, identity)) = audio {
+        let (prepared, input) = crate::model::prepare_audio_input(config, &rendered, audio, identity)?;
+        (prepared, Some(input))
+    } else {
+        (crate::model::prepare_image_inputs(config, frontend, processor, &rendered, images)?, None)
+    };
+    #[cfg(not(feature = "audio"))]
+    let prepared_input = crate::model::prepare_image_inputs(config, frontend, processor, &rendered, images)?;
     let crate::model::PreparedInput {
-        tokens,
-        token_expansions,
-        data,
-        conditioning,
-        conditioned_inputs,
-    } = crate::model::prepare_image_inputs(config, frontend, processor, &rendered, images)?;
+        tokens, token_expansions, data, conditioning, conditioned_inputs,
+    } = prepared_input;
     let mut expansions = token_expansions.iter().peekable();
     let mut additional = 0;
     for boundary in &mut message_boundaries {
@@ -380,6 +408,8 @@ pub(super) fn prepare_inference_cached(
     }
     Ok(PreparedInference {
         prompt: Prompt {
+            #[cfg(feature = "audio")]
+            conditioned_audio,
             tokens,
             message_boundaries,
             data,

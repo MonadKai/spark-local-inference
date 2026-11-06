@@ -39,6 +39,7 @@ pub struct Message {
 pub enum Part {
     Text(String),
     Image(String),
+    Audio(AudioSource),
     Reasoning(String),
     ToolCall {
         id: Option<String>,
@@ -51,6 +52,12 @@ pub enum Part {
         is_error: bool,
     },
 }
+#[derive(Clone, Debug, PartialEq)]
+pub enum AudioSource {
+    Base64 { data: String, format: String },
+    Url(String),
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Tool {
     pub name: String,
@@ -203,6 +210,7 @@ fn content(parts: &[Part]) -> Result<Value> {
         match part {
             Part::Text(text) => values.push(json!({"type":"text","text":text})),
             Part::Image(url) => values.push(json!({"type":"image_url","image_url":{"url":url}})),
+            Part::Audio(_) => values.push(json!({"type":"audio"})),
             _ => return Err("tool result content must contain text or images".into()),
         }
     }
@@ -290,7 +298,7 @@ pub fn template_messages(
         };
         for (part_index, part) in message.parts.iter().enumerate() {
             match part {
-                Part::Text(_) | Part::Image(_) => {
+                Part::Text(_) | Part::Image(_) | Part::Audio(_) => {
                     if current.get("tool_calls").is_some() {
                         flush(&mut current, &mut ordinary, &mut ordinary_hints, &mut out)?;
                     }

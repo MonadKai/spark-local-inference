@@ -78,7 +78,7 @@ fn engine_with_geometry(
             pages: 1024,
             snapshots: 256,
         },
-        SchedulerCapabilities {
+        SchedulerCapabilities { audio: None,
             completion_token_capacity: 16,
             vocabulary: 1024,
             page_tokens,
@@ -1125,7 +1125,7 @@ fn interactive_engine(active: usize, speculative: bool) -> RequestScheduler {
             pages: 32768,
             snapshots: 256,
         },
-        SchedulerCapabilities {
+        SchedulerCapabilities { audio: None,
             completion_token_capacity: 16,
             vocabulary: 1024,
             page_tokens: 64,
@@ -2766,7 +2766,7 @@ fn feedback_window_engine(rows: Option<usize>, policy: PolicyConfig) -> RequestS
             pages: 1024,
             snapshots: 256,
         },
-        SchedulerCapabilities {
+        SchedulerCapabilities { audio: None,
             completion_token_capacity: 16,
             vocabulary: 1024,
             page_tokens: 64,

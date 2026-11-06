@@ -60,6 +60,7 @@ contract_enum!(ValueSource {
     GrammarEnabled = 30, CopyTokenIds = 31, CopyTokenCount = 32,
     CopyConsumedTokens = 33, CopyGeneration = 34, CopyGrammarMask = 35,
     CopyGrammarCount = 36, ImageTensor = 37, ImageFeatureSlot = 38, PromptTargetToken = 39, SpeculativePrefixLimit = 40,
+    AudioTensor = 41, AudioFeatureIndex = 42, AudioFeatureSlot = 43,
 });
 contract_enum!(InputIndexing { Scalar = 1, SubmissionRow = 2, RequestRow = 3, PackedToken = 4, ActiveRow = 5 });
 contract_enum!(StateAccessKind { Read = 1, Write = 2, ReadWrite = 3 });
@@ -67,7 +68,10 @@ contract_enum!(ToolParserKind { QwenCoder = 1, GlmArgumentTags = 2, Dsml = 3, Xt
 contract_enum!(ReasoningParserKind { ThinkTags = 1, XtmlThink = 2, MmThink = 3, ChannelThought = 4, RecipientHeaders = 5 });
 contract_enum!(ImagePreparationKind { Qwen = 1, Mimo = 2, Deepseek = 3, Moonvit = 4, Step = 5, Radio = 6, DeepseekRowMajor = 7, Glm = 8, PatchMerge = 9 });
 contract_enum!(ImageLayoutKind { Qwen = 1, Mimo = 2, Deepseek = 3, Moonvit = 4, Step = 5, Radio = 6, DeepseekRowMajor = 7, Glm = 8, Bracketed = 9 });
-contract_enum!(GraphOperation { Init = 1, Restore = 2, Snapshot = 3, Prefill = 4, Decode = 5, Resume = 6, Vision = 7, Speculative = 8, Mixed = 9, ScoredPrefill = 12 });
+contract_enum!(AudioPreparationKind { CenteredSlaneyLogMel = 1 });
+contract_enum!(AudioSamplePadding { Unpadded = 1, HopMultiple = 2 });
+contract_enum!(AudioTensorKind { LogMel = 1, ValidFrames = 2, ConvolutionWidth = 3, GatherIndices = 4, CumulativeLengths = 5, FeatureCount = 6, FeatureOffset = 7 });
+contract_enum!(GraphOperation { Init = 1, Restore = 2, Snapshot = 3, Prefill = 4, Decode = 5, Resume = 6, Vision = 7, Speculative = 8, Mixed = 9, ScoredPrefill = 12, AudioEncode = 14 });
 
 impl TryFrom<GraphKind> for GraphOperation {
     type Error = crate::Error;
@@ -82,6 +86,7 @@ impl TryFrom<GraphKind> for GraphOperation {
             GraphKind::Decode => Self::Decode,
             GraphKind::Resume => Self::Resume,
             GraphKind::Vision => Self::Vision,
+            GraphKind::AudioEncode => Self::AudioEncode,
             GraphKind::Speculative => Self::Speculative,
             GraphKind::Mixed => Self::Mixed,
         })
@@ -102,6 +107,7 @@ pub struct PreparedContract {
     pub vocabulary: usize,
     pub input_vocabulary: usize,
     pub vision: VisionCapabilities,
+    pub audio: Option<AudioCapacity>,
     pub cache: CacheContract,
     pub graphs: Vec<GraphContract>,
     pub frontend: FrontendContract,
@@ -168,6 +174,7 @@ pub struct ValueBinding {
     pub value_offset: i64,
     pub padding: i64,
     pub tensor: String,
+    pub audio_tensor: Option<AudioTensorKind>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -306,6 +313,35 @@ pub struct FrontendContract {
     pub message_end_markers: Vec<String>,
     pub prefix_boundary: Option<PrefixBoundary>,
     pub image_tokens: Option<ImageTokenLayout>,
+    pub audio_preparation: Option<AudioPreparationKind>,
+    pub audio_tokens: Option<AudioTokenLayout>,
+}
+
+#[derive(Clone, Debug)]
+#[cfg_attr(any(feature = "frontend", feature = "runtime-package"), derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(any(feature = "frontend", feature = "runtime-package"), serde(deny_unknown_fields))]
+pub struct AudioCapacity {
+    pub feature_slots: usize,
+    pub features_per_request: usize,
+    pub feature_width: usize,
+    pub frame_capacities: Vec<usize>,
+    pub mel_bins: usize,
+    pub frames_per_chunk: usize,
+    pub features_per_chunk: usize,
+    pub subsampling_factor: usize,
+    pub attention_window_frames: usize,
+    pub features: StateView,
+    pub generations: StateView,
+    pub counts: StateView,
+}
+
+#[derive(Clone, Debug)]
+#[cfg_attr(any(feature = "frontend", feature = "runtime-package"), derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(any(feature = "frontend", feature = "runtime-package"), serde(deny_unknown_fields))]
+pub struct AudioTokenLayout {
+    pub feature_token: u32,
+    pub start_token: u32,
+    pub end_token: u32,
 }
 
 #[derive(Clone, Debug)]
@@ -361,6 +397,53 @@ impl PreparedContract {
         }
         self.vision.validate()?;
         self.frontend.validate()?;
+        if self.audio.is_some() != self.frontend.audio_preparation.is_some()
+            || self.audio.is_some() != self.frontend.audio_tokens.is_some()
+            || self.audio.is_some() != self.graphs.iter().any(|graph| graph.kind == GraphOperation::AudioEncode)
+        {
+            return Err("audio processing, storage and encoder graphs must agree".into());
+        }
+        if let Some(audio) = &self.audio {
+            audio.validate(manifest)?;
+            let tokens = self.frontend.audio_tokens.as_ref().unwrap();
+            let ids = [tokens.feature_token, tokens.start_token, tokens.end_token];
+            if ids.iter().any(|id| *id as usize >= self.input_vocabulary)
+                || ids.iter().collect::<std::collections::HashSet<_>>().len() != 3
+            {
+                return Err("invalid prepared audio-token layout".into());
+            }
+            for graph in &self.graphs {
+                let producer = graph.kind == GraphOperation::AudioEncode;
+                let consumer = matches!(graph.kind, GraphOperation::Prefill | GraphOperation::ScoredPrefill | GraphOperation::Mixed);
+                if producer {
+                    let tensors = [AudioTensorKind::LogMel, AudioTensorKind::ValidFrames,
+                        AudioTensorKind::ConvolutionWidth, AudioTensorKind::GatherIndices,
+                        AudioTensorKind::CumulativeLengths, AudioTensorKind::FeatureCount, AudioTensorKind::FeatureOffset];
+                    let identities = [ValueSource::RequestSlot, ValueSource::RequestGeneration, ValueSource::AudioFeatureSlot];
+                    if graph.inputs.len() != tensors.len() + identities.len()
+                        || tensors.iter().any(|kind| graph.inputs.iter().filter(|input|
+                            input.source == ValueSource::AudioTensor && input.audio_tensor == Some(*kind)).count() != 1)
+                        || identities.iter().any(|source| graph.inputs.iter().filter(|input| input.source == *source).count() != 1) {
+                        return Err("audio encoder requires every typed window and ownership input exactly once".into());
+                    }
+                }
+                if consumer && [ValueSource::AudioFeatureIndex, ValueSource::AudioFeatureSlot].iter()
+                    .any(|source| graph.inputs.iter().filter(|input| input.source == *source).count() != 1) {
+                    return Err("audio text prefill requires feature indices and its owned slot exactly once".into());
+                }
+                if producer || consumer {
+                    for (index, view) in [&audio.features, &audio.generations, &audio.counts].into_iter().enumerate() {
+                        if !graph.state.iter().any(|state| state.view.contains(view)
+                            && if producer && index == 0 { state.access != StateAccessKind::Read }
+                               else if producer { state.access == StateAccessKind::ReadWrite }
+                               else { state.access != StateAccessKind::Write })
+                        {
+                            return Err("audio features lack declared producer or consumer state access".into());
+                        }
+                    }
+                }
+            }
+        }
         if self.vision.enabled() != self.frontend.image_layout.is_some()
             || self.frontend.image_layout.is_some() != self.frontend.image_preparation.is_some()
         {
@@ -450,6 +533,11 @@ impl PreparedContract {
             }
             let mut destinations = std::collections::HashSet::new();
             for input in &graph.inputs {
+                if (input.source == ValueSource::AudioTensor) != input.audio_tensor.is_some()
+                    || (input.audio_tensor.is_some() && !input.tensor.is_empty())
+                {
+                    return Err("audio tensor kind requires its own value source without an image tensor name".into());
+                }
                 if !destinations.insert(&input.buffer)
                     || !descriptor
                         .input_bindings
@@ -576,6 +664,69 @@ impl PreparedContract {
     }
 }
 
+impl AudioCapacity {
+    pub(crate) fn tensor_layout(&self, kind: AudioTensorKind, frames: usize) -> Result<(crate::execution::Dtype, Vec<usize>)> {
+        use crate::execution::Dtype;
+        if !self.frame_capacities.contains(&frames) || self.frames_per_chunk == 0 {
+            return Err("audio tensor does not name a captured frame capacity".into());
+        }
+        let features = (frames / self.frames_per_chunk).checked_mul(self.features_per_chunk)
+            .ok_or("audio tensor feature capacity overflows")?;
+        Ok(match kind {
+            AudioTensorKind::LogMel => (Dtype::Float32, vec![self.mel_bins, frames]),
+            AudioTensorKind::GatherIndices => (Dtype::Int32, vec![features]),
+            AudioTensorKind::CumulativeLengths => (Dtype::Int32, vec![2]),
+            _ => (Dtype::Int32, vec![1]),
+        })
+    }
+
+    pub(crate) fn feature_stride(&self) -> Result<usize> {
+        let geometry = self.frames_per_chunk.checked_add(self.subsampling_factor.saturating_sub(1))
+            .and_then(|value| value.checked_div(self.subsampling_factor));
+        let window_features = self.attention_window_frames.checked_div(self.frames_per_chunk)
+            .and_then(|chunks| chunks.checked_mul(self.features_per_chunk));
+        if self.feature_slots == 0 || self.feature_slots > crate::execution::REQUEST_LANES
+            || self.features_per_request == 0 || self.feature_width == 0 || self.mel_bins == 0
+            || self.frames_per_chunk == 0 || self.features_per_chunk == 0
+            || geometry != Some(self.features_per_chunk)
+            || window_features.is_none_or(|features| features > self.features_per_request)
+            || self.features_per_request > i32::MAX as usize
+            || self.attention_window_frames > i32::MAX as usize
+            || self.attention_window_frames == 0
+            || !self.attention_window_frames.is_multiple_of(self.frames_per_chunk)
+            || self.frame_capacities.is_empty()
+            || self.frame_capacities.last() != Some(&self.attention_window_frames)
+            || self.frame_capacities.windows(2).any(|pair| pair[0] >= pair[1])
+            || self.frame_capacities.iter().any(|frames| *frames == 0 || !frames.is_multiple_of(self.frames_per_chunk))
+        {
+            return Err("invalid prepared audio capacities".into());
+        }
+        self.features_per_request.checked_mul(self.feature_width)
+            .and_then(|value| value.checked_mul(2)).ok_or_else(|| "audio feature extent overflows".into())
+    }
+
+    fn validate(&self, manifest: &ExecutionManifest) -> Result<()> {
+        use crate::execution::Dtype;
+        let stride = self.feature_stride()?;
+        for view in [&self.features, &self.generations, &self.counts] { view.validate(manifest)?; }
+        let features = manifest.buffer(&self.features.buffer)?;
+        let generations = manifest.buffer(&self.generations.buffer)?;
+        let counts = manifest.buffer(&self.counts.buffer)?;
+        if features.dtype != Dtype::Bfloat16
+            || features.shape != [self.feature_slots, self.features_per_request, self.feature_width]
+            || self.features.offset != 0 || self.features.stride != stride || self.features.nbytes != stride
+            || generations.dtype != Dtype::Int64 || counts.dtype != Dtype::Int32
+            || generations.shape.len() != 1 || generations.shape[0] < manifest.request_capacity()
+            || generations.shape != counts.shape
+            || self.generations.offset != 0 || self.generations.stride != 8 || self.generations.nbytes != 8
+            || self.counts.offset != 0 || self.counts.stride != 4 || self.counts.nbytes != 4
+        {
+            return Err("audio feature storage differs from its declared views".into());
+        }
+        Ok(())
+    }
+}
+
 impl StateView {
     fn contains(&self, other: &Self) -> bool {
         self.buffer == other.buffer
@@ -681,6 +832,69 @@ impl FrontendContract {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn audio_capacity_validates_real_views_and_rejects_bad_geometry() {
+        use crate::execution::Dtype;
+        let view = |buffer: &str, stride| StateView { buffer: buffer.into(), offset: 0, stride, nbytes: stride };
+        let audio = AudioCapacity {
+            feature_slots: 2, features_per_request: 104, feature_width: 2048,
+            frame_capacities: vec![100, 800], mel_bins: 128, frames_per_chunk: 100,
+            features_per_chunk: 13, subsampling_factor: 8, attention_window_frames: 800,
+            features: view("features", 104 * 2048 * 2), generations: view("generations", 8), counts: view("counts", 4),
+        };
+        let mut manifest = ExecutionManifest {
+            engram: None, collectives: None, cache: None, offload: None,
+            abi_version: crate::execution::ABI_VERSION, context: 0, device: 0,
+            completion_token_capacity: 8, max_active: 4, input_frame_bytes: 8,
+            buffers: vec![
+                BufferDescriptor { name: "features".into(), address: 4096, nbytes: 2 * 104 * 2048 * 2,
+                    dtype: Dtype::Bfloat16, shape: vec![2, 104, 2048], strides: vec![104 * 2048, 2048, 1] },
+                BufferDescriptor { name: "generations".into(), address: 1048576, nbytes: 32,
+                    dtype: Dtype::Int64, shape: vec![4], strides: vec![1] },
+                BufferDescriptor { name: "counts".into(), address: 1048608, nbytes: 16,
+                    dtype: Dtype::Int32, shape: vec![4], strides: vec![1] },
+            ], graphs: vec![], tuning_graphs: vec![],
+        };
+        audio.validate(&manifest).unwrap();
+        let mutations: [fn(&mut AudioCapacity); 10] = [
+            |a| a.subsampling_factor = 0,
+            |a| a.frames_per_chunk = usize::MAX,
+            |a| a.features_per_request = usize::MAX,
+            |a| a.features_per_request = 13,
+            |a| a.features_per_chunk = 12,
+            |a| a.frame_capacities = vec![800, 100],
+            |a| a.frame_capacities = vec![100],
+            |a| a.features.offset = 2,
+            |a| a.generations.stride = 16,
+            |a| a.counts.buffer = "missing".into(),
+        ];
+        for mutate in mutations {
+            let mut invalid = audio.clone();
+            mutate(&mut invalid);
+            assert!(invalid.validate(&manifest).is_err());
+        }
+        manifest.buffers[0].dtype = Dtype::Float16;
+        assert!(audio.validate(&manifest).is_err());
+        manifest.buffers[0].dtype = Dtype::Bfloat16;
+        manifest.buffers[1].shape = vec![2];
+        manifest.buffers[1].nbytes = 16;
+        manifest.buffers[2].shape = vec![2];
+        manifest.buffers[2].nbytes = 8;
+        assert!(audio.validate(&manifest).is_err());
+    }
+
+    #[test]
+    fn audio_tensor_kind_cannot_be_ignored_by_another_value_source() {
+        let config = crate::model::tests::config();
+        let mut contract = config.contract.clone();
+        let manifest = crate::model::testing::manifest(&config);
+        contract.validate(&manifest).unwrap();
+        let binding = contract.graphs.iter_mut().flat_map(|graph| &mut graph.inputs)
+            .find(|input| input.source == ValueSource::PromptToken).unwrap();
+        binding.audio_tensor = Some(AudioTensorKind::LogMel);
+        assert!(contract.validate(&manifest).unwrap_err().to_string().contains("audio tensor kind"));
+    }
 
     #[test]
     fn state_view_validation_resolves_buffers_and_preserves_storage_errors() {

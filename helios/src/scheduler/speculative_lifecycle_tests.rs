@@ -33,7 +33,7 @@ fn ready(geometry: Geometry, prompt: usize, budget: u32) -> (RequestScheduler, V
             pages: 128,
             snapshots: 16,
         },
-        SchedulerCapabilities {
+        SchedulerCapabilities { audio: None,
             completion_token_capacity: geometry.completion_token_capacity(),
             vocabulary: 1024,
             page_tokens: geometry.page,

@@ -32,8 +32,10 @@ class GraphSignature:
 
     def __post_init__(self):
         if self.kind not in ("init", "restore", "snapshot", "prefill", "scored_prefill", "decode", "resume",
-                             "vision", "speculative", "mixed"):
+                             "vision", "audio_encode", "speculative", "mixed"):
             raise ValueError("unknown prepared graph operation")
+        if self.kind == "audio_encode" and (self.batch_capacity != 1 or self.speculation_enabled is not None):
+            raise ValueError("audio encoding requires one input window and no speculation mode")
         if self.kind == "scored_prefill" and (self.batch_capacity != 1
                 or self.token_capacity < 64 or self.token_capacity % 64
                 or "prompt_target_tokens" not in self.inputs):

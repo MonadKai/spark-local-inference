@@ -32,6 +32,8 @@ pub struct Prompt {
     pub message_boundaries: Vec<usize>,
     pub data: crate::model::PromptData,
     pub conditioned_inputs: Vec<crate::frontend::images::PreparedImageInput>,
+    #[cfg(feature = "audio")]
+    pub conditioned_audio: Option<crate::frontend::audio::PreparedAudioInput>,
     pub conditioning: Vec<ConditioningEvent>,
     pub sampling: SamplingParameters,
     pub max_new_tokens: u32,
@@ -326,6 +328,8 @@ struct Active<'a> {
     incoming: Incoming,
     last_token: Option<u32>,
     next_image: usize,
+    #[cfg(feature = "audio")]
+    next_audio_window: usize,
     selected_images: Vec<crate::frontend::images::PreparedImageInput>,
     prepared_image: Option<crate::frontend::images::ProcessedImages>,
     stops: super::stops::TokenStops,
@@ -1352,14 +1356,26 @@ impl<'a> Worker<'a> {
                 .filter(|input| input.token_span.end > consumed)
                 .cloned()
                 .collect();
-            let inputs = selected_images
+            let mut inputs = selected_images
                 .iter()
                 .map(|image| crate::scheduler::ConditionedInput {
                     token_span: image.token_span.clone(),
                     feature_range: image.feature_range.clone(),
-                    patches: image.geometry.patches,
+                    encodings: vec![crate::scheduler::EncoderJob::Vision { patches: image.geometry.patches }],
                 })
                 .collect::<Vec<_>>();
+            #[cfg(feature = "audio")]
+            if let Some(audio) = incoming.prompt.conditioned_audio.as_ref()
+                .filter(|audio| audio.token_span().end > consumed)
+            {
+                let source = audio.audio();
+                inputs.push(crate::scheduler::ConditionedInput {
+                    token_span: audio.token_span().clone(), feature_range: 0..source.feature_count(),
+                    encodings: source.windows().iter().map(|window| crate::scheduler::EncoderJob::Audio {
+                        frames: window.frames.len(), features: window.features.len(),
+                    }).collect(),
+                });
+            }
             if let Err(error) = self.scheduler.set_conditioned_inputs(handle, &inputs) {
                 self.scheduler.cancel(handle)?;
                 if matches!(error, Error::Admission(AdmissionError::Capacity(_))) {
@@ -1372,6 +1388,10 @@ impl<'a> Worker<'a> {
                     incoming.fail(error);
                 }
                 continue;
+            }
+            #[cfg(feature = "audio")]
+            if incoming.prompt.conditioned_audio.is_some() {
+                self.scheduler.conditioned_inputs_ready(handle, true)?;
             }
             self.admissions[slot] = Some(crate::model::Admission::from_prompt(
                 self.config,
@@ -1423,6 +1443,8 @@ impl<'a> Worker<'a> {
                 incoming,
                 last_token: parked.last_token,
                 next_image: 0,
+                #[cfg(feature = "audio")]
+                next_audio_window: 0,
                 selected_images,
                 prepared_image: None,
                 carried: parked.carried,
@@ -1593,7 +1615,7 @@ impl<'a> Worker<'a> {
                 let (first, end) = (range.start, range.end);
                 let payload = completion.prompt_logprobs.as_ref().ok_or("scored prefill lacks results")?;
                 let values = (first..end).map(|position| {
-                    if position == 0 || prompt.data.is_image_position(position) {
+                    if position == 0 || prompt.data.is_conditioned_position(position) {
                         return Ok(None);
                     }
                     let value = payload.get(position - lane.start_position as usize - 1)
@@ -2032,6 +2054,30 @@ impl<'a> Worker<'a> {
             .inputs
             .as_mut()
             .expect("worker inputs initialized before submission");
+        if step.kind == GraphKind::AudioEncode {
+            #[cfg(feature = "audio")]
+            {
+                let request = self.active[step.lanes[0].request.slot as usize]
+                    .as_mut().ok_or("missing active audio request")?;
+                let live = self.scheduler.request(request.request)?;
+                let audio = request.incoming.prompt.conditioned_audio.as_ref()
+                    .ok_or("missing immutable audio input")?.audio();
+                let window = audio.windows().get(request.next_audio_window)
+                    .ok_or("audio request exhausted its encoder windows")?;
+                if live.encoder_job() != Some(crate::scheduler::EncoderJob::Audio {
+                    frames: window.frames.len(), features: window.features.len(),
+                }) {
+                    return Err("scheduled audio job differs from its immutable source window".into());
+                }
+                inputs.pack_audio(step, self.config, request.request,
+                    live.audio_slot.ok_or("audio request lacks a feature slot")?,
+                    audio, request.next_audio_window)?;
+                request.next_audio_window += 1;
+                return Ok(());
+            }
+            #[cfg(not(feature = "audio"))]
+            return Err("this build cannot submit audio encoder graphs".into());
+        }
         if step.kind == GraphKind::Vision {
             let request = self.active[step.lanes[0].request.slot as usize]
                 .as_mut()
@@ -2709,7 +2755,7 @@ mod tests {
                 },
                 max_new_tokens: 16,
                 prompt: vec![7],
-                data: PromptData {
+                data: PromptData { audio_token_indices: Vec::new(),
                     positions: vec![[0; 3]],
                     vision_token_indices: vec![-1],
                     ..Default::default()
@@ -2856,7 +2902,7 @@ mod tests {
                 pages: 4,
                 snapshots: 40,
             },
-            SchedulerCapabilities {
+            SchedulerCapabilities { audio: None,
                 completion_token_capacity: 16,
                 speculative_allocations: vec![],
                 vocabulary: 248320,
@@ -2954,12 +3000,14 @@ mod tests {
             prompt: Prompt {
                 tokens: vec![7],
                 message_boundaries: vec![],
-                data: PromptData {
+                data: PromptData { audio_token_indices: Vec::new(),
                     positions: vec![[0; 3]],
                     vision_token_indices: vec![-1],
                     ..Default::default()
                 },
                 conditioned_inputs: vec![],
+                #[cfg(feature = "audio")]
+                conditioned_audio: None,
                 conditioning: vec![],
                 sampling: SamplingParameters::default(),
                 max_new_tokens: 10,
@@ -3113,7 +3161,7 @@ mod tests {
                 pages: 4,
                 snapshots: 40,
             },
-            SchedulerCapabilities {
+            SchedulerCapabilities { audio: None,
                 completion_token_capacity: 16,
                 speculative_allocations: vec![],
                 vocabulary: 6,
@@ -3278,6 +3326,8 @@ mod tests {
             incoming,
             last_token: None,
             next_image: 0,
+            #[cfg(feature = "audio")]
+            next_audio_window: 0,
             selected_images: vec![],
             prepared_image: None,
             stops: super::super::stops::TokenStops::new(vec![], 6).unwrap(),
@@ -3296,7 +3346,7 @@ mod tests {
                 sampling: SamplingParameters::default(),
                 max_new_tokens: 10,
                 prompt: vec![0],
-                data: PromptData {
+                data: PromptData { audio_token_indices: Vec::new(),
                     positions: vec![[0; 3]],
                     vision_token_indices: vec![-1],
                     ..Default::default()
@@ -3467,6 +3517,8 @@ mod tests {
             incoming,
             last_token: None,
             next_image: 0,
+            #[cfg(feature = "audio")]
+            next_audio_window: 0,
             selected_images: vec![],
             prepared_image: None,
             stops: super::super::stops::TokenStops::new(vec![], 248320).unwrap(),
@@ -3635,7 +3687,7 @@ mod tests {
                 pages: 1,
                 snapshots: 2,
             },
-            SchedulerCapabilities {
+            SchedulerCapabilities { audio: None,
                 completion_token_capacity: 16,
                 speculative_allocations: vec![],
                 vocabulary: 248320,

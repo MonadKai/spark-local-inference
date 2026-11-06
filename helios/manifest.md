@@ -106,7 +106,7 @@ spans do not overlap; captured weights and scratch need not appear in this I/O
 manifest but must remain in the resource owner.
 
 Graph kinds are `init`, `restore`, `snapshot`, `prefill`, `scored_prefill`,
-`decode`, `speculative`, `mixed`, `resume`, and `vision`. Decode and speculative
+`decode`, `speculative`, `mixed`, `resume`, `vision`, and `audio_encode`. Decode and speculative
 batch capacities are powers of two through 64. Decode has one token per lane.
 A speculative graph performs complete proposal, optional confidence/allocation,
 verification, and commit work. It declares B/D/W/P explicitly: request capacity,
@@ -121,7 +121,12 @@ catalog for its `prefill_chunk_size`; transport validation does not infer a
 scheduling policy or substitute a missing graph.
 State operations
 and resume use power-of-two batch capacities through 64. Vision batch capacity is 1, and its
-token capacity is one of 256, 1024, 4096, or 16384 patches. Batch capacity can
+token capacity is one of 256, 1024, 4096, or 16384 patches.
+Audio encode batch capacity is 1 and its positive token-capacity field measures
+Mel frames, not consumed text tokens. The typed audio contract declares its
+actual frame catalog, tensor geometry and feature storage. It has no draft,
+packed-token, prefill or confidence extent and never samples a token.
+Batch capacity can
 exceed `max_active` for padding, but must not exceed its next power of two.
 Request storage capacity is `max_active.next_power_of_two()`. The manifest records
 capture capacity. Runtime admission may use a smaller `SchedulerLimits.max_active`,
@@ -274,7 +279,7 @@ selected frame's records, marking unused lanes inactive. Records for
 active lanes carry the submitted sequence and the corresponding request
 generation. Finished requests suppress further mutation inside subsequent
 graphs. The model scheduler requires an active completion for every submitted
-live maintenance or vision lane; an inactive row cannot confirm a state copy.
+live maintenance, vision or audio encode lane; an inactive row cannot confirm a state copy.
 
 The executor allocates two pinned input frames and two pinned completion
 frames. Input updates, graph execution and production events use the model
@@ -283,7 +288,7 @@ completion row, and records its completion event. A frame remains occupied
 until its transfer completes and its completion is consumed. Only decode and
 complete speculative generation may occupy both frames. Grammar-constrained
 work and host token stops require an empty window. Prefill, scored prefill,
-mixed, resume, vision, and state operations also drain the window before replay.
+mixed, resume, vision, audio encode, and state operations also drain the window before replay.
 Scheduler dependencies additionally serialize host-fed pending tokens and
 committed cursors, history inputs, unknown or stale costs, and phase transitions.
 

@@ -190,6 +190,21 @@ message ModelContract {
   CacheContract cache = 5;
   repeated GraphContract graphs = 6;
   FrontendContract frontend = 7;
+  AudioCapacity audio = 8;
+}
+message AudioCapacity {
+  uint64 feature_slots = 1;
+  uint64 features_per_request = 2;
+  uint64 feature_width = 3;
+  repeated uint64 frame_capacities = 4;
+  uint64 mel_bins = 5;
+  uint64 frames_per_chunk = 6;
+  uint64 features_per_chunk = 7;
+  uint64 subsampling_factor = 8;
+  uint64 attention_window_frames = 9;
+  StateView features = 10;
+  StateView generations = 11;
+  StateView counts = 12;
 }
 message VisionCapacity {
   // Zero inherits prepared execution concurrency when max_images is nonzero.
@@ -265,6 +280,19 @@ enum ValueSource {
   PROMPT_TARGET_TOKEN = 39;
   // Immutable per-request query-length ceiling for GPU-owned packed allocation.
   SPECULATIVE_PREFIX_LIMIT = 40;
+  AUDIO_TENSOR = 41;
+  AUDIO_FEATURE_INDEX = 42;
+  AUDIO_FEATURE_SLOT = 43;
+}
+enum AudioTensorKind {
+  AUDIO_TENSOR_UNSPECIFIED = 0;
+  AUDIO_LOG_MEL = 1;
+  AUDIO_VALID_FRAMES = 2;
+  AUDIO_CONVOLUTION_WIDTH = 3;
+  AUDIO_GATHER_INDICES = 4;
+  AUDIO_CUMULATIVE_LENGTHS = 5;
+  AUDIO_FEATURE_COUNT = 6;
+  AUDIO_FEATURE_OFFSET = 7;
 }
 enum InputIndexing {
   INDEXING_UNSPECIFIED = 0;
@@ -281,6 +309,7 @@ message ValueBinding {
   sint64 value_offset = 4;
   sint64 padding = 5;
   string tensor = 6;
+  optional AudioTensorKind audio_tensor = 7;
 }
 enum StateAccessKind {
   STATE_ACCESS_UNSPECIFIED = 0;
@@ -316,7 +345,7 @@ enum GraphOperation {
   reserved 10, 11, 13;
   reserved "PROPOSAL", "VERIFICATION", "PACKED_SPECULATIVE";
   SCORED_PREFILL = 12;
-
+  AUDIO_ENCODE = 14;
 }
 message TunedBinding { string buffer = 1; string tuning_graph = 2; }
 message GraphContract {
@@ -417,6 +446,17 @@ message FrontendContract {
   repeated string message_end_markers = 8;
   PrefixBoundary prefix_boundary = 9;
   ImageTokenLayout image_tokens = 10;
+  optional AudioPreparationKind audio_preparation = 11;
+  AudioTokenLayout audio_tokens = 12;
+}
+enum AudioPreparationKind {
+  AUDIO_PREPARATION_UNSPECIFIED = 0;
+  CENTERED_SLANEY_LOG_MEL = 1;
+}
+message AudioTokenLayout {
+  uint32 feature_token = 1;
+  uint32 start_token = 2;
+  uint32 end_token = 3;
 }
 message Cluster {
   uint32 world = 1;
@@ -460,6 +500,25 @@ message FrontendSettings {
   TemplateEncoding template_encoding = 4;
   PromptEncoder prompt_encoder = 5;
   optional uint32 image_placeholder_token_id = 6;
+  AudioSettings audio = 7;
+}
+message AudioSettings {
+  uint32 sample_rate = 1;
+  uint32 mel_bins = 2;
+  uint32 fft_size = 3;
+  uint32 hop_samples = 4;
+  uint64 max_file_bytes = 5;
+  uint64 max_samples = 6;
+  uint64 decode_timeout_millis = 7;
+  uint64 service_chunk_samples = 8;
+  uint64 silence_search_samples = 9;
+  uint64 silence_window_samples = 10;
+  AudioSamplePadding sample_padding = 11;
+}
+enum AudioSamplePadding {
+  AUDIO_SAMPLE_PADDING_UNSPECIFIED = 0;
+  AUDIO_SAMPLE_PADDING_NONE = 1;
+  AUDIO_SAMPLE_PADDING_HOP_MULTIPLE = 2;
 }
 enum PromptEncoder {
   PROMPT_JINJA = 0;

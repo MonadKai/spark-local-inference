@@ -74,6 +74,7 @@ serving contract and replay path unchanged.
 | `vocabulary` | Valid sampled token range and histogram/mask geometry |
 | `input_vocabulary` | Valid input range, including declared nonsampled image sentinels |
 | `vision` | Feature-slot and per-window feature capacities, patch-to-feature ratio, and captured patch capacities |
+| optional `audio` | BF16 feature-arena geometry, request generation/count views, Mel/chunk/window geometry and the captured frame catalog |
 | `cache` | Logical page tokens, attention-history storage, and page-table views |
 | `graphs` | Per-program operation, value bindings, persistent-state accesses, and resource dependencies |
 | `frontend` | Independent parser and image implementation identifiers plus their syntax and layout data |
@@ -187,6 +188,46 @@ be reused until every participating rank retires its consumer.
 maximum among selected graphs to partition execution and snapshot rows. It is
 not a model capability flag. Captured programs perform state updates and accepted
 speculative-state commits; native code manages the declared storage.
+
+## Audio feature publication
+
+An optional `AudioCapacity` declares contiguous BF16 feature rows, one generation
+and published-count element per request slot, and a bounded Mel-frame graph
+catalog. The feature arena has its own slot capacity, bounded by captured request
+storage. Absence preserves the old text/image package behavior; it neither
+changes `VISION` nor requires an engine-version gate, re-export or re-signing.
+
+An `audio_encode` graph receives one bounded FP32 Log-Mel matrix and typed Int32
+valid frames, global convolution width, gather indices, cumulative attention
+lengths, feature count and feature offset. Request slot/generation and the chosen
+feature slot are separate typed inputs. These values are uploaded through the
+shared execution transport; no runtime frontend callback executes model code.
+The graph owns convolution, attention, projector and feature publication. Its
+state accesses declare the arena writes and generation/count reads and writes;
+text prefill declares the corresponding reads. `AudioFeatureIndex` identifies
+expanded token positions and `AudioFeatureSlot` selects their owned arena row.
+Neither accepts an arithmetic value offset.
+
+Successful encoder completion has status 1, unchanged consumed/generated token
+counters, token ID -1 and no emitted token vector. Error status 3 retains the
+usual request failure and fenced cleanup semantics. Each successful completion
+retires exactly one encoder job before ordinary text prefill. It advances the
+scheduler's plan revision; the request generation remains stable across encoder
+windows. A generation mismatch or noncontiguous feature offset fails graph
+publication. The native worker retains the immutable audio input, and the shared
+scheduler retains its arena, until all submitted uses retire or shutdown confirms
+a drain. Cancellation does not release queued GPU resources.
+
+A single audio input carries its real decoded-PCM/processing identity at the
+first expanded feature token. Prefix histories include that conditioning event,
+so equal placeholder counts alone cannot identify reusable KV. Positions remain
+ordinary causal positions; the captured recipe defines the model arithmetic.
+Convolution chunks, bidirectional encoder windows and transcription service
+chunks are distinct boundaries. The CPU frontend normalizes Log-Mel separately
+for each service input, then slices already-normalized encoder windows.
+
+This data contract does not establish model, HTTP or CUDA qualification. Those
+require the native package, numerical and lifecycle execution checks.
 
 ## Attention histories and cache policy
 

@@ -27,6 +27,30 @@ LayerNorm, GELU, biases and residuals; ordinary Qwen3 full attention, Q/K norm,
 RMSNorm and full rotary semantics; and the BF16 LM-head rounding before any
 FP32 sampling conversion. Qwen3.8 hybrid attention is not this decoder.
 
+The original tokenizer pads inputs with 151643, has no BOS, and declares
+`<asr_text>` (151704) as a non-special token. Its generation stop set is
+{151643,151645}; these structural values override newer native-format defaults.
+The original template always renders a system turn, including empty context.
+The pinned vLLM transcription frontend omits that turn for empty sanitized
+context. Preserve endpoint-specific prompt bytes and IDs rather than treating
+the SDK wrapper's prompt as the transcription API oracle.
+
+The original SDK wrapper invokes its encoder separately for each audio. The
+encoder's eager/SDPA paths do not consume cumulative attention window boundaries,
+so a long single audio can attend across windows. The at-most-one-window eager
+path can provide an initial independent numerical check; longer SDK comparisons
+require a separately qualified backend that actually honors the boundaries.
+Do not modify the SDK reference or report these distinct paths as interchangeable.
+
+For single audio, the original SDK Whisper frontend produces `floor(N/160)` Mel
+frames. The pinned vLLM processor first zero-pads PCM to a hop multiple and
+therefore produces `ceil(N/160)` frames. For 16001 samples this changes audio
+placeholder expansion from 13 to 14 tokens. Native service preprocessing adopts
+the pinned vLLM hop-multiple padding explicitly in typed settings. Duration and
+file limits use the original decoded sample count. Independent SDK numerical
+checks receive PCM padded by this independently verified, declared rule; raw
+SDK-wrapper comparisons remain separate. Normalization is still request-local.
+
 ## D1: audio encoding operation (downstream decision)
 
 [AGENTS.md](../AGENTS.md#architecture-and-ownership) and
@@ -91,12 +115,15 @@ free; 7 remains `VISION`, and reserved 10/11/13 remain reserved. Proposed
   indexing and inactive padding. Names cannot select an algorithm or policy.
 
 For a captured capacity M (a multiple of 100), let C=M/100 and Ecap=13*C.
-Proposed input bindings are FP32 Log-Mel `[128,M]`, int32 valid frame count
-`[1]`, convolution lengths `[C]`, gather indices `[Ecap]`, cumulative encoder
-attention boundaries `[ceil(C/8)+1]`, and feature count/offset `[1]` each.
-Metadata after the valid prefix is initialized: unused gathers are -1 and
-unused cumulative boundaries repeat the terminal feature count. Eligibility
-of zero-length padded attention windows in a selected b12x plan is unverified.
+The initial catalog captures M=100 and M=800, each within one attention
+window. Inputs are FP32 Log-Mel `[128,M]`, int32 valid frame count `[1]`,
+whole-input convolution width `[1]`, gather indices `[Ecap]`, cumulative
+attention boundaries `[2]`, and feature count/offset `[1]` each. The common
+convolution width is `min(total_input_frames,100)`, including for a short last
+attention window of a longer input. Convolution padding is masked after each
+stride-2 convolution and GELU. Unused gathers are -1; boundaries are `[0,count]`.
+Empty attention is used only to guard invalid requests and still requires
+actual backend qualification.
 For L valid frames, the feature count is
 `13*floor(L/100) + ceil((L mod 100)/8)`, rather than `ceil(L/8)` for a clip.
 Storage is BF16 `[feature_slots,features_per_request,2048]`; publication has
@@ -132,8 +159,14 @@ uses temperature zero in its vLLM wrapper.
 
 Under [model development](model-development.md#sampling-and-frontend-metadata),
 absent author ranges fix parameters at defaults. Proposed policy is explicit
-greedy (temperature 0), top-p 1, disabled top-k/min-p and neutral penalties,
-with request-controlled seed. This policy cannot claim non-greedy vLLM parity.
+greedy, top-p 1, disabled min-p and neutral penalties, with request-controlled
+seed. Flare's existing sampling components require positive temperature. Their
+internal representation for the greedy recipe is temperature 1 and top-k 1;
+the existing fixed-default request policy maps external temperature 0 to that
+representation. This is an implementation of the author's greedy distribution,
+not a recommendation to sample at temperature 1. The top-k tie rule and actual
+tokens require qualification before promotion. This policy cannot claim
+non-greedy vLLM parity.
 On 2026-11-06 the fork maintainer selected greedy first, prioritizing existing
 Flare mechanisms. The broader exception is conditional on demonstrated need;
 it is not activated by this design. Implement the author-backed greedy default

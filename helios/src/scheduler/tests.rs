@@ -124,7 +124,7 @@ fn scheduler_with_geometry(active: usize, pages: u32, snapshots: u32, page_token
             pages,
             snapshots,
         },
-        SchedulerCapabilities {
+        SchedulerCapabilities { audio: None,
             completion_token_capacity: 16,
             vocabulary: 248320,
             page_tokens,
@@ -497,7 +497,7 @@ fn configured_prefill_chunks_and_tails_preserve_alignment_and_live_page_extents(
                 pages: 512,
                 snapshots: 2,
             },
-            SchedulerCapabilities {
+            SchedulerCapabilities { audio: None,
                 completion_token_capacity: 16,
                 vocabulary: 248320,
                 page_tokens: 64,
@@ -577,7 +577,7 @@ fn invalid_prefill_limits_reject_before_request_resources_are_created() {
                 pages: 64,
                 snapshots: 2,
             },
-            SchedulerCapabilities {
+            SchedulerCapabilities { audio: None,
                 completion_token_capacity: 16,
                 vocabulary: 248320,
                 page_tokens: 64,
@@ -1987,7 +1987,7 @@ fn copy_source_uses_no_draft_page_and_fixed_graph_masks_host_stops() {
 
 #[test]
 fn declared_model_capabilities_drive_state_slots_vision_buckets_and_copy_validation() {
-    let capabilities = SchedulerCapabilities {
+    let capabilities = SchedulerCapabilities { audio: None,
             completion_token_capacity: 16,        vocabulary: 32,
         page_tokens: 64,
         vision: crate::model::VisionCapabilities {

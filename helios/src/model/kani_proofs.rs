@@ -60,6 +60,7 @@ fn completion_fixture(tokens_below_vocabulary: bool) -> CompletionFixture {
             vocabulary: vocabulary as usize,
             input_vocabulary: vocabulary as usize,
             vision: VisionCapabilities::disabled(),
+            audio: None,
             cache: CacheContract {
                 page_tokens: 64,
                 regions: Vec::new(),
@@ -77,6 +78,8 @@ fn completion_fixture(tokens_below_vocabulary: bool) -> CompletionFixture {
                 message_end_markers: Vec::new(),
                 prefix_boundary: None,
                 image_tokens: None,
+                audio_preparation: None,
+                audio_tokens: None,
             },
         },
         identity: [0; 32],

@@ -3,13 +3,28 @@
 
 //! Native frontend probes with inspectable PCM/features, without a model or GPU.
 
-use flare_helios::frontend::audio::{self, AudioLimits, LogMelPlan};
+use flare_helios::frontend::audio::{self, AudioLimits, AudioProcessor, LogMelPlan};
 use std::{fs, io::Write, sync::atomic::AtomicBool};
 
 fn run() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<_> = std::env::args().collect();
+    if args.len() == 5 && args[1] == "split" {
+        let size = fs::metadata(&args[2])?.len();
+        if size > 600 * 16000 * 4 || size % 4 != 0 { return Err("invalid split PCM extent".into()); }
+        let bytes = fs::read(&args[2])?;
+        let samples: Vec<_> = bytes.chunks_exact(4)
+            .map(|bytes| f32::from_le_bytes(bytes.try_into().unwrap())).collect();
+        let settings = serde_json::from_slice(&fs::read(&args[4])?)?;
+        let processor = AudioProcessor::new(settings, 1)?;
+        let ranges = processor.transcription_ranges(&samples, &AtomicBool::new(false))?;
+        let ranges: Vec<_> = ranges.iter().map(|range| [range.start, range.end]).collect();
+        let output = fs::File::create_new(&args[3])?;
+        serde_json::to_writer(output, &ranges)?;
+        println!("{}", serde_json::json!({"operation":"split", "chunks":ranges.len()}));
+        return Ok(());
+    }
     if args.len() != 4 || !matches!(args[1].as_str(), "decode" | "features") {
-        return Err("usage: test_audio {decode|features} INPUT OUTPUT_F32LE".into());
+        return Err("usage: test_audio {decode|features} INPUT OUTPUT_F32LE; or split INPUT_F32LE OUTPUT_JSON SETTINGS_JSON".into());
     }
     let cancelled = AtomicBool::new(false);
     let size = fs::metadata(&args[2])?.len();

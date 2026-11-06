@@ -282,6 +282,7 @@ impl RequestScheduler {
             RequestPhase::Initialize => GraphKind::Init,
             RequestPhase::Restore => GraphKind::Restore,
             RequestPhase::Vision => GraphKind::Vision,
+            RequestPhase::AudioEncode => GraphKind::AudioEncode,
             RequestPhase::Prefill => request.prefill_kind(),
             RequestPhase::Resume => GraphKind::Resume,
             RequestPhase::Decode if self.speculative_widths.is_empty() => GraphKind::Decode,
@@ -294,7 +295,7 @@ impl RequestScheduler {
     pub(super) fn eligible(&self, request: &LiveRequest) -> bool {
         if request.window_snapshot_ready
             || self.request_kind(request).is_none()
-            || (request.phase == RequestPhase::Vision && !request.conditioned_inputs_ready)
+            || (matches!(request.phase, RequestPhase::Vision | RequestPhase::AudioEncode) && !request.conditioned_inputs_ready)
         {
             return false;
         }
@@ -318,6 +319,14 @@ impl RequestScheduler {
 
     fn prefill_catalog(&self, kind: GraphKind) -> &[usize] {
         if kind == GraphKind::ScoredPrefill { &self.scored_prefill_catalog } else { &self.prefill_catalog }
+    }
+
+    fn encoder_catalog(&self, kind: GraphKind) -> &[usize] {
+        match kind {
+            GraphKind::Vision => &self.capabilities.vision.patch_capacities,
+            GraphKind::AudioEncode => self.capabilities.audio.as_ref().map_or(&[], |audio| audio.frame_capacities.as_slice()),
+            _ => &[],
+        }
     }
 
     pub(super) fn prefill_work(&self, request: &LiveRequest, capacity: usize) -> usize {
@@ -560,16 +569,13 @@ impl RequestScheduler {
             }
             following = following.saturating_add(restore);
         }
-        let patches = next_window.map_or(&r.vision_patches, |window| &window.patches);
-        let skip = usize::from(kind == GraphKind::Vision);
-        for patches in patches.iter().skip(skip) {
-            let cost = self
-                .capabilities
-                .vision
-                .patch_capacities
+        let jobs = next_window.map_or(&r.encoder_jobs, |window| &window.encodings);
+        let skip = usize::from(matches!(kind, GraphKind::Vision | GraphKind::AudioEncode));
+        for job in jobs.iter().skip(skip) {
+            let cost = self.encoder_catalog(job.operation())
                 .iter()
-                .filter(|n| *n >= patches)
-                .filter_map(|n| self.costs.duration(GraphKind::Vision, 1, *n))
+                .filter(|n| **n >= job.units())
+                .filter_map(|n| self.costs.duration(job.operation(), 1, *n))
                 .min()
                 .unwrap_or(0);
             if cost == 0 {
@@ -583,8 +589,8 @@ impl RequestScheduler {
     fn following_kind(&self, r: &LiveRequest, kind: GraphKind) -> Option<GraphKind> {
         let phase = match kind {
             GraphKind::Snapshot => r.boundary_capture?.resume,
-            GraphKind::Init | GraphKind::Restore | GraphKind::Vision => {
-                if r.vision_patches.len() > usize::from(kind == GraphKind::Vision) {
+            GraphKind::Init | GraphKind::Restore | GraphKind::Vision | GraphKind::AudioEncode => {
+                if r.encoder_jobs.len() > usize::from(matches!(kind, GraphKind::Vision | GraphKind::AudioEncode)) {
                     return None;
                 }
                 if r.consumed_tokens == r.prompt_tokens as u64 {
@@ -615,7 +621,7 @@ impl RequestScheduler {
     ) -> Option<(u64, ValueRate)> {
         if !matches!(
             kind,
-            GraphKind::Init | GraphKind::Restore | GraphKind::Snapshot | GraphKind::Vision
+            GraphKind::Init | GraphKind::Restore | GraphKind::Snapshot | GraphKind::Vision | GraphKind::AudioEncode
         ) {
             return None;
         }
@@ -857,7 +863,7 @@ impl RequestScheduler {
                     continue;
                 }
             }
-            if kind == GraphKind::Vision && capacity < r.vision_patches[0] {
+            if matches!(kind, GraphKind::Vision | GraphKind::AudioEncode) && capacity < r.encoder_jobs[0].units() {
                 continue;
             }
             offers[count] = (
@@ -939,6 +945,7 @@ impl RequestScheduler {
             GraphKind::Prefill,
             GraphKind::ScoredPrefill,
             GraphKind::Vision,
+            GraphKind::AudioEncode,
             GraphKind::Init,
             GraphKind::Restore,
             GraphKind::Snapshot,
@@ -964,8 +971,8 @@ impl RequestScheduler {
                 for &capacity in self.prefill_catalog(kind) {
                     self.add_candidate(output, kind, 1, capacity, mask, values, age_price);
                 }
-            } else if kind == GraphKind::Vision {
-                for &capacity in &self.capabilities.vision.patch_capacities {
+            } else if matches!(kind, GraphKind::Vision | GraphKind::AudioEncode) {
+                for &capacity in self.encoder_catalog(kind) {
                     self.add_candidate(output, kind, 1, capacity, mask, values, age_price);
                 }
             } else {

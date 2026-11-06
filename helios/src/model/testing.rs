@@ -26,6 +26,7 @@ pub fn binding(
         value_offset,
         padding,
         tensor: String::new(),
+        audio_tensor: None,
     }
 }
 
@@ -215,6 +216,7 @@ pub fn metadata() -> PreparedContract {
         vocabulary: 248320,
         input_vocabulary: 248320,
         vision: VisionCapabilities::disabled(),
+        audio: None,
         cache: CacheContract {
             page_tokens: 64,
             regions: vec![],
@@ -235,6 +237,8 @@ pub fn metadata() -> PreparedContract {
             message_end_markers: vec![],
             prefix_boundary: None,
             image_tokens: None,
+            audio_preparation: None,
+            audio_tokens: None,
         },
     }
 }

@@ -679,6 +679,7 @@ mod tests {
             template_encoding: 0,
             prompt_encoder: wire::PromptEncoder::DeepseekV41 as i32,
             image_placeholder_token_id: Some(7),
+            audio: None,
         };
         let disabled = wire::VisionCapacity {
             feature_slots: 0,

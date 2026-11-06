@@ -22,7 +22,7 @@ def capture_forwards(functions, signatures, *, session, device, stream, pool,
                      progress=None, label="Prepare serving graphs", cache_root=None, retain_graphs=False,
                      warmup_storage=None, capture_names=None, before_run=None, compile_group=None,
                      report_catalog=True,
-                     compile_kinds=("prefill", "scored_prefill", "decode", "resume", "speculative", "mixed", "vision")):
+                     compile_kinds=("prefill", "scored_prefill", "decode", "resume", "speculative", "mixed", "vision", "audio_encode")):
     """Retain compiled callables and capture with an optional b12x IPC runtime.
 
     Persistent state and graph outputs must live in caller-owned storage.

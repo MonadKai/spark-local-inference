@@ -7,6 +7,7 @@
 //! Native HTTP admission, bounded generation streams and direct graph scheduling.
 
 mod config;
+mod audio;
 mod dashboard;
 mod http;
 mod inference;
@@ -102,6 +103,8 @@ struct HttpState {
     model: Arc<ModelRuntime>,
     frontend: Arc<Frontend>,
     images: Option<Arc<ImageProcessor>>,
+    #[cfg(feature = "audio")]
+    audio: Option<Arc<crate::frontend::audio::AudioProcessor>>,
     grammar: Arc<crate::grammar::GrammarCompiler>,
     frontend_slots: Arc<Semaphore>,
     ingress_slots: Arc<Semaphore>,
@@ -112,6 +115,7 @@ struct HttpState {
     run: u64,
     ids: AtomicU64,
     api_key: Option<String>,
+    served_names: Vec<String>,
     thinking_token_budget: Option<u32>,
     context_hint: String,
     capacity_hint: String,
@@ -195,6 +199,13 @@ impl Server {
         {
             return Err("invalid HTTP admission limits".into());
         }
+        if model.contract.audio.is_some() != frontend.audio_settings().is_some() {
+            return Err("audio settings must match prepared feature storage".into());
+        }
+        #[cfg(feature = "audio")]
+        let audio = frontend.audio_settings().cloned()
+            .map(|settings| crate::frontend::audio::AudioProcessor::new(settings, config.frontend_workers))
+            .transpose()?.map(Arc::new);
         let delimiters =
             crate::model::reasoning_delimiter_tokens(&frontend, &model.contract.frontend)?;
         config.validate_thinking_budget(&frontend, &model)?;
@@ -227,6 +238,8 @@ impl Server {
             model: model.clone(),
             frontend,
             images: images.map(Arc::new),
+            #[cfg(feature = "audio")]
+            audio,
             grammar,
             frontend_slots: Arc::new(Semaphore::new(config.frontend_workers)),
             ingress_slots: Arc::new(Semaphore::new(ingress_capacity)),
@@ -236,6 +249,7 @@ impl Server {
             run: run_id(),
             ids: AtomicU64::new(1),
             api_key: config.api_key.clone(),
+            served_names: config.served_names.clone(),
             thinking_token_budget: config.thinking_token_budget,
             context_hint: config.context_hint.clone(),
             capacity_hint: config.capacity_hint.clone(),

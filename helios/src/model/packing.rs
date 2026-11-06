@@ -6,6 +6,9 @@
 
 //! Resolve prepared value bindings once and pack bounded host uploads for each submission.
 
+#[cfg(feature = "audio")]
+mod audio;
+
 use crate::{
     Result,
     execution::{Dtype, ExecutionManifest, GraphKind, REQUEST_LANES, Upload},
@@ -100,6 +103,14 @@ impl Inputs {
                                 );
                             }
                         }
+                        if binding.source == ValueSource::AudioTensor {
+                            let audio = config.contract.audio.as_ref().ok_or("audio tensor lacks prepared storage")?;
+                            let kind = binding.audio_tensor.ok_or("audio tensor kind is absent")?;
+                            let (dtype, shape) = audio.tensor_layout(kind, graph.token_capacity)?;
+                            if buffer.dtype != dtype || buffer.shape != shape || binding.value_offset != 0 || binding.padding != 0 {
+                                return Err("audio tensor type, extent or offsets differ from its layout".into());
+                            }
+                        }
                         let width = match binding.indexing {
                             InputIndexing::Scalar => elements,
                             _ => buffer.shape.get(1..).unwrap_or(&[]).iter().product(),
@@ -119,9 +130,14 @@ impl Inputs {
                             ImageTensor => {
                                 graph.kind == GraphKind::Vision && binding.indexing == Scalar
                             }
+                            AudioTensor => graph.kind == GraphKind::AudioEncode && binding.indexing == Scalar,
                             LiveRows | PrefillRow => binding.indexing == Scalar,
                             ImageFeatureSlot => binding.indexing == Scalar && elements == 1
                                 && matches!(graph.kind, GraphKind::Vision | GraphKind::Prefill | GraphKind::ScoredPrefill | GraphKind::Mixed),
+                            AudioFeatureSlot => config.contract.audio.is_some() && binding.indexing == Scalar && elements == 1 && binding.value_offset == 0
+                                && matches!(graph.kind, GraphKind::AudioEncode | GraphKind::Prefill | GraphKind::ScoredPrefill | GraphKind::Mixed),
+                            AudioFeatureIndex => config.contract.audio.is_some() && binding.indexing == PackedToken && binding.value_offset == 0
+                                && matches!(graph.kind, GraphKind::Prefill | GraphKind::ScoredPrefill | GraphKind::Mixed),
                             PageTable | LiveStateRows => binding.indexing == RequestRow,
                             PromptToken | PromptTargetToken
                             | PromptAndPendingToken
@@ -131,7 +147,7 @@ impl Inputs {
                             | ImageRightContext => binding.indexing == PackedToken,
                             PendingToken => matches!(binding.indexing, SubmissionRow | PackedToken),
                             Constant => binding.indexing != PackedToken,
-                            RequestSlot | RequestGeneration if graph.kind == GraphKind::Vision => {
+                            RequestSlot | RequestGeneration if matches!(graph.kind, GraphKind::Vision | GraphKind::AudioEncode) => {
                                 binding.indexing == Scalar
                             }
                             _ => matches!(binding.indexing, SubmissionRow | RequestRow | ActiveRow),
@@ -146,7 +162,7 @@ impl Inputs {
                         {
                             return Err("row input cannot cover the prepared request slots".into());
                         }
-                        if matches!(binding.source, SamplingParameters | ImageTensor | PageTable)
+                        if matches!(binding.source, SamplingParameters | ImageTensor | AudioTensor | PageTable)
                             && binding.value_offset != 0
                         {
                             return Err("value offset requires an integer value source".into());
@@ -202,11 +218,12 @@ impl Inputs {
                             ValueSource::PromptPosition => {
                                 config.contract.frontend.position_dimensions
                             }
-                            ValueSource::PageTable | ValueSource::ImageTensor => width,
+                            ValueSource::PageTable | ValueSource::ImageTensor | ValueSource::AudioTensor => width,
                             _ => 1,
                         };
                         if width == 0
                             || width != expected_width
+                            || (matches!(binding.source, AudioFeatureIndex | AudioFeatureSlot) && buffer.dtype != Dtype::Int32)
                             || (binding.source == ValueSource::PageTable
                                 && buffer.dtype != Dtype::Int32)
                             || (matches!(
@@ -219,6 +236,7 @@ impl Inputs {
                                 && buffer.dtype != Dtype::Float32)
                             || (binding.source != ValueSource::SamplingParameters
                                 && binding.source != ValueSource::ImageTensor
+                                && binding.source != ValueSource::AudioTensor
                                 && !matches!(buffer.dtype, Dtype::Int32 | Dtype::Int64))
                             || (binding.indexing != InputIndexing::Scalar
                                 && elements < width * graph.batch_capacity)
@@ -425,8 +443,8 @@ impl Inputs {
                 }
                 continue;
             }
-            if binding.source == ValueSource::ImageTensor {
-                return Err("vision tensors require an image submission".into());
+            if matches!(binding.source, ValueSource::ImageTensor | ValueSource::AudioTensor) {
+                return Err("encoder tensors require a conditioned input submission".into());
             }
             if binding.indexing == InputIndexing::Scalar {
                 self.integers.clear();
@@ -439,6 +457,12 @@ impl Inputs {
                             match frame.step.lanes.iter().enumerate().find(|(row, _)|
                                 frame.step.lane_kind(*row).is_prefill()) {
                                 Some((_, lane)) => frame.scheduler.request(lane.request)?.image_slot.map_or(-1, |slot| slot as i64),
+                                None => -1,
+                            }
+                        }
+                        ValueSource::AudioFeatureSlot => {
+                            match frame.step.lanes.iter().enumerate().find(|(row, _)| frame.step.lane_kind(*row).is_prefill()) {
+                                Some((_, lane)) => frame.scheduler.request(lane.request)?.audio_slot.map_or(-1, |slot| slot as i64),
                                 None => -1,
                             }
                         }
@@ -546,8 +570,8 @@ impl Inputs {
                     PromptTargetToken => {
                         for position in lane.start_position as usize + 1..=lane.start_position as usize + lane.tokens {
                             let token = admission.prompt.get(position).copied();
-                            let image = admission.data.is_image_position(position);
-                            values.push(token.filter(|t| !image && (*t as usize) < frame.config.contract.vocabulary)
+                            let conditioned = admission.data.is_conditioned_position(position);
+                            values.push(token.filter(|t| !conditioned && (*t as usize) < frame.config.contract.vocabulary)
                                 .map_or(-1, |t| t as i64));
                         }
                     }
@@ -576,7 +600,7 @@ impl Inputs {
                             );
                         }
                     }
-                    PromptPosition | ImageFeatureIndex | ImageLeftContext | ImageRightContext => {
+                    PromptPosition | ImageFeatureIndex | AudioFeatureIndex | ImageLeftContext | ImageRightContext => {
                         if !lane_kind.is_prefill() {
                             continue;
                         }
@@ -611,6 +635,16 @@ impl Inputs {
                                     })
                                     .collect::<Result<Vec<_>>>()?,
                             ),
+                            AudioFeatureIndex => {
+                                let capacity = frame.config.contract.audio.as_ref().ok_or("audio feature input lacks storage")?;
+                                for value in admission.data.audio_token_indices.get(start..end).ok_or("audio indices exceed admission")? {
+                                    let index = live.feature_index(*value)?;
+                                    if index >= capacity.features_per_request as i64 {
+                                        return Err("audio feature index exceeds prepared execution arena".into());
+                                    }
+                                    values.push(index);
+                                }
+                            }
                             _ => {
                                 values.resize(lane.tokens, 0);
                                 for span in admission

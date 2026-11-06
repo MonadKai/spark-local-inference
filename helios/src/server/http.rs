@@ -113,6 +113,13 @@ pub(super) fn decode_body(
         )
     })
 }
+#[cfg(feature = "audio")]
+struct PreparationCancellation(Arc<std::sync::atomic::AtomicBool>);
+#[cfg(feature = "audio")]
+impl Drop for PreparationCancellation {
+    fn drop(&mut self) { self.0.store(true, Ordering::Release); }
+}
+
 enum Delivery {
     Frame(Frame),
     Complete(Value),
@@ -172,12 +179,27 @@ pub(super) async fn generate(
             );
         }
     };
+    #[cfg(feature = "audio")]
+    let cancelled = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    #[cfg(feature = "audio")]
+    let cancellation = PreparationCancellation(cancelled.clone());
     let prepare_state = state.clone();
     let preparation_ingress = ingress.clone();
     let preparation = tokio::task::spawn_blocking(move || {
         let _permit = permit;
         let _ingress = preparation_ingress;
         let body = decode_body(&bytes, &encoding, prepare_state.max_body_bytes)?;
+        if prepare_state.model.config().contract.audio.is_some() {
+            if protocol != Protocol::Chat || count {
+                return Err((StatusCode::BAD_REQUEST, "audio model requires the declared audio chat or transcription endpoint".into()));
+            }
+            super::audio::validate_chat_body(&body).map_err(|error| (StatusCode::BAD_REQUEST, error.to_string()))?;
+            let name = body.get("model").and_then(Value::as_str)
+                .ok_or((StatusCode::BAD_REQUEST, "audio chat model must be a string".into()))?;
+            if name != prepare_state.model.config().model_id && !prepare_state.served_names.iter().any(|alias| alias == name) {
+                return Err((StatusCode::NOT_FOUND, "requested model is not loaded".into()));
+            }
+        }
         let mut decoded = protocol::decode(protocol, body, count)
             .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
         if protocol != Protocol::Completions {
@@ -232,7 +254,7 @@ pub(super) async fn generate(
         let mut prepared = Vec::with_capacity(size);
         for index in 0..size {
             prepared.push(
-                request::prepare_inference_cached(
+                request::prepare_inference_with_audio_cached(
                     &prepare_state.frontend,
                     prepare_state.images.as_deref(),
                     &prepare_state.grammar,
@@ -241,6 +263,10 @@ pub(super) async fn generate(
                     index,
                     count,
                     prepare_state.model.input_store(),
+                    #[cfg(feature = "audio")]
+                    prepare_state.audio.as_deref(),
+                    #[cfg(feature = "audio")]
+                    &cancelled,
                 )
                 .map_err(|e| {
                     rejection_details(
@@ -256,6 +282,8 @@ pub(super) async fn generate(
         Ok((decoded, prepared, extra, tool_grammars))
     })
     .await;
+    #[cfg(feature = "audio")]
+    drop(cancellation);
     let (decoded, prepared, extra, tool_grammars) = match preparation {
         Ok(Ok(v)) => v,
         Ok(Err((status, message))) => return error(protocol, status, message),

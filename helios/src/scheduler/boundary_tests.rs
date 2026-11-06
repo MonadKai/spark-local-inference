@@ -25,7 +25,7 @@ fn scheduler_with_concurrency(snapshots: u32, mtp: bool, page_tokens: usize, act
             pages: 256,
             snapshots,
         },
-        SchedulerCapabilities {
+        SchedulerCapabilities { audio: None,
             completion_token_capacity: 16,
             vocabulary: 248320,
             page_tokens,

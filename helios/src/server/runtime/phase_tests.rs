@@ -196,7 +196,7 @@ impl Fixture {
         self.incoming_for(
             tokens,
             limit,
-            PromptData {
+            PromptData { audio_token_indices: Vec::new(),
                 positions: (0..length).map(|n| [n as i64; 3]).collect(),
                 vision_token_indices: vec![-1; length],
                 ..Default::default()
@@ -210,6 +210,8 @@ impl Fixture {
             message_boundaries: vec![],
             data,
             conditioned_inputs: vec![],
+            #[cfg(feature = "audio")]
+            conditioned_audio: None,
             conditioning: vec![],
             sampling: SamplingParameters::default(),
             max_new_tokens: limit,
@@ -3097,7 +3099,7 @@ fn unread_responses_finish_and_release_model_resources_but_retain_admission_capa
         fixture.config.limits.pages = 64;
         fixture.config.max_top_logprobs = 20;
         let (runtime, receiver) = group_runtime(&fixture, 2);
-        let prompt = |limit| Fixture::prompt_for(vec![0], limit, PromptData {
+        let prompt = |limit| Fixture::prompt_for(vec![0], limit, PromptData { audio_token_indices: Vec::new(),
             positions: vec![[0; 3]], vision_token_indices: vec![-1], ..Default::default()
         });
         let mut slow_prompt = prompt(512);
@@ -3153,7 +3155,7 @@ fn unread_response_keeps_its_budget_through_a_reasoning_continuation() {
     fixture.config.prepared_sequence_tokens = 256;
     fixture.config.limits.max_sequence_tokens = 256;
     let (runtime, receiver) = group_runtime(&fixture, 1);
-    let mut prompt = Fixture::prompt_for(vec![0], 80, PromptData {
+    let mut prompt = Fixture::prompt_for(vec![0], 80, PromptData { audio_token_indices: Vec::new(),
         positions: vec![[0; 3]], vision_token_indices: vec![-1], ..Default::default()
     });
     prompt.reasoning_cut = Some(budget_cut(4, 81));
@@ -3180,7 +3182,7 @@ fn grouped_submission_validates_all_children_before_enqueue_and_releases_capacit
         Fixture::prompt_for(
             vec![1, 2],
             4,
-            PromptData {
+            PromptData { audio_token_indices: Vec::new(),
                 positions: vec![[0; 3], [1; 3]],
                 vision_token_indices: vec![-1; 2],
                 ..Default::default()
@@ -3414,7 +3416,7 @@ fn text_preemption_restores_or_recomputes_every_attention_contract() {
             metadata.cache.page_tokens = page_tokens;
             exercise_text_preemption(
                 metadata,
-                |n| PromptData {
+                |n| PromptData { audio_token_indices: Vec::new(),
                     positions: (0..n).map(|p| [p as i64; 3]).collect(),
                     vision_token_indices: vec![-1; n],
                     ..Default::default()
@@ -3432,7 +3434,7 @@ fn reasoning_budget_survives_preemption_and_checkpoint_recomputation() {
         for close in [1, 4] {
             exercise_text_preemption(
                 crate::model::testing::metadata(),
-                |n| PromptData {
+                |n| PromptData { audio_token_indices: Vec::new(),
                     positions: (0..n).map(|p| [p as i64; 3]).collect(),
                     vision_token_indices: vec![-1; n],
                     ..Default::default()
@@ -3584,6 +3586,8 @@ fn http_state_for(
         input_store: None,
     });
     Arc::new(HttpState {
+        #[cfg(feature = "audio")]
+        audio: None,
         model,
         frontend: Arc::new(fixture.frontend),
         images: None,
@@ -3596,6 +3600,7 @@ fn http_state_for(
         run: crate::server::run_id(),
         ids: Default::default(),
         api_key,
+        served_names: Vec::new(),
         thinking_token_budget: None,
         context_hint: String::new(),
         capacity_hint: String::new(),
@@ -4708,7 +4713,7 @@ fn worker_restores_conditioned_windows_with_fresh_generation_and_unchanged_sampl
         .unwrap(),
     );
     let mut tokens = vec![0; 100];
-    let mut data = PromptData {
+    let mut data = PromptData { audio_token_indices: Vec::new(),
         positions: (0..100).map(|n| [n; 3]).collect(),
         vision_token_indices: vec![-1; 100],
         ..Default::default()

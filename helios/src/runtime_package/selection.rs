@@ -214,7 +214,7 @@ impl LoadOptions {
                         && graph.prefill_capacity <= config["prefill_chunk_size"].as_u64().unwrap_or(0)
                         && graph.speculation_enabled.is_some()
                         && if speculative { (1..=crate::execution::resolve_completion_token_capacity(execution.completion_token_capacity) as u64).contains(&graph.token_capacity) } else { graph.token_capacity == 1 },
-                    GraphKind::Prefill | GraphKind::ScoredPrefill | GraphKind::Vision => graph.batch_capacity == 1 && graph.token_capacity > 0,
+                    GraphKind::Prefill | GraphKind::ScoredPrefill | GraphKind::Vision | GraphKind::AudioEncode => graph.batch_capacity == 1 && graph.token_capacity > 0,
                     GraphKind::Speculative => BATCH_CAPACITIES.contains(&(graph.batch_capacity as usize)) && (1..=crate::execution::resolve_completion_token_capacity(execution.completion_token_capacity) as u64).contains(&graph.token_capacity),
                     _ => BATCH_CAPACITIES.contains(&(graph.batch_capacity as usize)) && graph.token_capacity == 1,
                 };
@@ -227,6 +227,7 @@ impl LoadOptions {
                         || graph.draft_tokens != Some(graph.confidence_width)))
                     || (kind == GraphKind::Speculative && graph.speculation_enabled == Some(false))
                     || (kind == GraphKind::Decode && graph.speculation_enabled == Some(true))
+                    || (kind == GraphKind::AudioEncode && graph.speculation_enabled.is_some())
                     || if speculative {
                         graph.verify_tokens != Some(graph.token_capacity as u32)
                             || graph.draft_tokens.is_none_or(|n| n as usize >= crate::execution::resolve_completion_token_capacity(execution.completion_token_capacity))

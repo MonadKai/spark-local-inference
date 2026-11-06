@@ -231,7 +231,7 @@ pub(super) struct Metrics {
     replay_gpu_ns: AtomicU64,
     replay_readiness_wait_ns: AtomicU64,
     replay_readiness_samples: AtomicU64,
-    launches: [AtomicU64; 9],
+    launches: [AtomicU64; 10],
     sampling_launches: [AtomicU64; 5],
     speculative: [Vec<RoundMetrics>; 7],
     draft_sources: Vec<[[AtomicU64; 2]; 2]>,
@@ -384,6 +384,7 @@ impl Metrics {
             GraphKind::Snapshot => 6,
             GraphKind::Speculative => 7,
             GraphKind::Mixed => 8,
+            GraphKind::AudioEncode => 9,
         };
         self.launches[index].fetch_add(1, Ordering::Relaxed);
         let sampling_index = match kind {
@@ -997,6 +998,7 @@ impl Metrics {
             "snapshot",
             "speculative",
             "mixed",
+            "audio_encode",
         ]
         .into_iter()
         .zip(&self.launches)
@@ -1540,6 +1542,7 @@ mod tests {
         assert!(text.contains("flare_cache_misses_total 3\n"));
         assert!(text.contains("flare_cache_reused_tokens_total 192\n"));
         assert!(text.contains("flare_graph_launches_total{kind=\"restore\"} 1\n"));
+        assert!(text.contains("flare_graph_launches_total{kind=\"audio_encode\"} 0\n"));
         assert!(!text.contains("mode=\"greedy\""));
         assert!(
             text.contains(
@@ -1550,7 +1553,7 @@ mod tests {
             text.lines()
                 .filter(|line| line.starts_with("flare_graph_launches_total{"))
                 .count(),
-            9
+            10
         );
     }
 }

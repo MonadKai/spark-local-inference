@@ -27,6 +27,8 @@ pub use inputs::{InputStep, pack_inputs};
 pub use packing::Inputs;
 #[cfg(feature = "server")]
 pub use prompt::{prepare_image_inputs, prepare_input, prepare_output, reasoning_delimiter_tokens};
+#[cfg(all(feature = "server", feature = "audio"))]
+pub use prompt::prepare_audio_input;
 #[cfg(feature = "server")]
 pub(crate) use prompt::validate_conditioned_inputs;
 
@@ -281,6 +283,7 @@ impl ModelConfig {
 pub struct PromptData {
     pub positions: Vec<[i64; 3]>,
     pub vision_token_indices: Vec<i32>,
+    pub audio_token_indices: Vec<i32>,
     pub spans: Vec<std::ops::Range<usize>>,
 }
 
@@ -288,6 +291,11 @@ impl PromptData {
     pub fn is_image_position(&self, position: usize) -> bool {
         self.vision_token_indices.get(position).is_some_and(|index| *index >= 0)
             || self.spans.iter().any(|span| span.contains(&position))
+    }
+
+    pub fn is_conditioned_position(&self, position: usize) -> bool {
+        self.is_image_position(position)
+            || self.audio_token_indices.get(position).is_some_and(|index| *index >= 0)
     }
 }
 
@@ -307,6 +315,7 @@ pub fn scheduler_capabilities(config: &ModelConfig) -> SchedulerCapabilities {
         vocabulary: config.contract.vocabulary,
         page_tokens: config.contract.cache.page_tokens,
         vision: config.contract.vision.clone(),
+        audio: config.contract.audio.clone(),
         draft_pages_per_request: config
             .contract
             .cache
@@ -415,6 +424,10 @@ pub fn validate_prompt_data(config: &ModelConfig, tokens: &[u32], data: &PromptD
                     .vision_token_indices
                     .iter()
                     .any(|i| *i < -1 || (*i >= 0 && (!config.contract.vision.enabled() || *i as usize >= tokens.len())))))
+        || (!data.audio_token_indices.is_empty()
+            && (data.audio_token_indices.len() != tokens.len()
+                || data.audio_token_indices.iter().any(|index| *index < -1
+                    || (*index >= 0 && (config.contract.audio.is_none() || *index as usize >= tokens.len())))))
         || data.spans.windows(2).any(|p| p[0].end > p[1].start)
         || data.spans.iter().any(|s| {
             s.start >= s.end || s.end > tokens.len() || s.len() > config.limits.prefill_chunk_size
@@ -451,6 +464,14 @@ pub fn validate_prompt_data(config: &ModelConfig, tokens: &[u32], data: &PromptD
             return Err("image layout does not declare atomic spans".into());
         }
     }
+    if let Some(layout) = &config.contract.frontend.audio_tokens {
+        if data.audio_token_indices.len() != tokens.len()
+            || tokens.iter().zip(&data.audio_token_indices)
+                .any(|(token, index)| (*token == layout.feature_token) != (*index >= 0))
+        {
+            return Err("audio feature tokens do not match their feature indices".into());
+        }
+    }
     Ok(())
 }
 
@@ -460,6 +481,8 @@ pub fn prompt_metadata(data: &mut PromptData) -> admission::PromptMetadataMut<'_
         positions: (!data.positions.is_empty()).then_some(&mut data.positions),
         vision_token_indices: (!data.vision_token_indices.is_empty())
             .then_some(&mut data.vision_token_indices),
+        audio_token_indices: (!data.audio_token_indices.is_empty())
+            .then_some(&mut data.audio_token_indices),
     }
 }
 

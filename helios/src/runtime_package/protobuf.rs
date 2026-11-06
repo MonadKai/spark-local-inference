@@ -161,12 +161,14 @@ pub(super) fn frontend_settings(value: wire::FrontendSettings) -> Result<serde_j
             })
         })
         .transpose()?;
-    Ok(
-        serde_json::json!({"tokenizer": tokenizer, "image": image, "eos_token_ids": value.eos_token_ids,
+    let mut result = serde_json::json!({"tokenizer": tokenizer, "image": image, "eos_token_ids": value.eos_token_ids,
                           "template_encoding": value.template_encoding,
                           "prompt_encoder": value.prompt_encoder,
-                          "image_placeholder_token_id": value.image_placeholder_token_id}),
-    )
+                          "image_placeholder_token_id": value.image_placeholder_token_id});
+    if let Some(audio) = value.audio {
+        result["audio"] = serde_json::to_value(audio).map_err(|error| invalid(error.to_string()))?;
+    }
+    Ok(result)
 }
 fn required<T>(value: Option<T>, name: &str) -> Result<T> {
     value.ok_or_else(|| invalid(format!("missing protobuf {name}")))
@@ -483,6 +485,7 @@ mod tests {
             template_encoding: 0,
             prompt_encoder: 0,
             image_placeholder_token_id: None,
+            audio: None,
             tokenizer: Some(wire::TokenizerSettings {
                 bos_token: Some("<bos>".into()),
                 eos_token: Some("<eos>".into()),
@@ -614,6 +617,7 @@ mod tests {
             template_encoding: 0,
             prompt_encoder: 0,
             image_placeholder_token_id: None,
+            audio: None,
             tokenizer: Some(wire::TokenizerSettings::default()),
             eos_token_ids: vec![1],
             image: Some(wire::ImageSettings {
@@ -680,6 +684,42 @@ mod tests {
         let restored = wire::ExecutionGraph::decode(graph.encode_to_vec().as_slice()).unwrap();
         assert_eq!((restored.draft_tokens, restored.verify_tokens, restored.packed_token_capacity),
             (Some(7), Some(6), 128));
+    }
+
+    #[test]
+    fn additive_audio_fields_roundtrip_without_changing_legacy_vision_or_bindings() {
+        let original: wire::ModelContract = serde_json::from_value(
+            serde_json::to_value(crate::model::testing::metadata()).unwrap()).unwrap();
+        let legacy = wire::ModelContract::decode(original.encode_to_vec().as_slice()).unwrap();
+        assert!(legacy.audio.is_none());
+        assert_eq!(legacy.vision, original.vision);
+        assert!(legacy.graphs.iter().flat_map(|graph| &graph.inputs).all(|input| input.audio_tensor.is_none()));
+        let mut value = original.clone();
+        let view = |buffer: &str, stride| wire::StateView { buffer: buffer.into(), stride, nbytes: stride, offset: 0 };
+        value.audio = Some(wire::AudioCapacity { feature_slots: 2, features_per_request: 7800,
+            feature_width: 2048, frame_capacities: vec![100, 800], mel_bins: 128, frames_per_chunk: 100,
+            features_per_chunk: 13, subsampling_factor: 8, attention_window_frames: 800,
+            features: Some(view("audio_features", 7800 * 2048 * 2)),
+            generations: Some(view("audio_generations", 8)), counts: Some(view("audio_counts", 4)) });
+        value.frontend.as_mut().unwrap().audio_preparation = Some(1);
+        value.frontend.as_mut().unwrap().audio_tokens = Some(wire::AudioTokenLayout {
+            feature_token: 151676, start_token: 151669, end_token: 151670 });
+        value.graphs.push(wire::GraphContract { graph: "audio800".into(), kind: 14,
+            inputs: vec![wire::ValueBinding { buffer: "mel".into(), source: 41, indexing: 1,
+                audio_tensor: Some(1), ..Default::default() }], ..Default::default() });
+        let restored = wire::ModelContract::decode(value.encode_to_vec().as_slice()).unwrap();
+        assert_eq!(restored, value);
+        assert_eq!(restored.vision, legacy.vision);
+        let contract: crate::model::contract::PreparedContract =
+            serde_json::from_value(serde_json::to_value(restored).unwrap()).unwrap();
+        assert_eq!(contract.audio.as_ref().unwrap().feature_stride().unwrap(), 7800 * 2048 * 2);
+        assert_eq!(contract.graphs.last().unwrap().kind, crate::model::contract::GraphOperation::AudioEncode);
+        assert_eq!(contract.graphs.last().unwrap().inputs[0].audio_tensor,
+            Some(crate::model::contract::AudioTensorKind::LogMel));
+        for kind in [0, 999] {
+            let mut bad = value.graphs.last().unwrap().inputs[0].clone(); bad.audio_tensor = Some(kind);
+            assert!(serde_json::from_value::<crate::model::contract::ValueBinding>(serde_json::to_value(bad).unwrap()).is_err());
+        }
     }
 
     #[test]

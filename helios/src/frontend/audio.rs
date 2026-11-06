@@ -17,6 +17,150 @@ const HOP: usize = 160;
 const BINS: usize = FFT / 2 + 1;
 const MELS: usize = 128;
 
+#[derive(Clone, Debug)]
+pub struct AudioWindow {
+    pub frames: std::ops::Range<usize>,
+    pub features: std::ops::Range<usize>,
+}
+
+/// Immutable request input. Encoder windows partition one already-normalized
+/// Mel matrix; they do not introduce STFT or normalization boundaries.
+#[derive(Clone)]
+pub struct PreparedAudio {
+    mel: std::sync::Arc<[f32]>,
+    frames: usize,
+    convolution_width: usize,
+    frames_per_chunk: usize,
+    features_per_chunk: usize,
+    subsampling_factor: usize,
+    frame_capacities: Vec<usize>,
+    attention_window_frames: usize,
+    windows: Vec<AudioWindow>,
+}
+
+pub struct AudioWindowBuffers {
+    pub mel: Vec<f32>,
+    pub frames: i32,
+    pub convolution_width: i32,
+    pub gather_indices: Vec<i32>,
+    pub cumulative_lengths: [i32; 2],
+    pub feature_count: i32,
+    pub feature_offset: i32,
+}
+
+/// A single immutable audio input and its expanded feature-token positions.
+#[derive(Clone)]
+pub struct PreparedAudioInput {
+    audio: std::sync::Arc<PreparedAudio>,
+    token_span: std::ops::Range<usize>,
+    identity: [u8; 32],
+}
+
+impl PreparedAudioInput {
+    pub fn new(audio: std::sync::Arc<PreparedAudio>, token_span: std::ops::Range<usize>, identity: [u8; 32]) -> Result<Self> {
+        if token_span.is_empty() || token_span.len() != audio.feature_count() {
+            return Err(invalid("audio token span differs from its prepared feature count"));
+        }
+        Ok(Self { audio, token_span, identity })
+    }
+
+    pub fn audio(&self) -> &PreparedAudio { &self.audio }
+    pub fn token_span(&self) -> &std::ops::Range<usize> { &self.token_span }
+    pub fn identity(&self) -> [u8; 32] { self.identity }
+}
+
+pub fn semantic_identity(pcm: &[f32], settings: &super::AudioSettings) -> Result<[u8; 32]> {
+    use sha2::{Digest, Sha256};
+    settings.validate()?;
+    if pcm.is_empty() || pcm.len() > settings.max_samples || pcm.iter().any(|sample| !sample.is_finite()) {
+        return Err(invalid("audio identity requires bounded finite decoded PCM"));
+    }
+    let mut hash = Sha256::new();
+    hash.update(b"flare-conditioned-audio-centered-slaney-v1\0");
+    hash.update(serde_json::to_vec(settings).map_err(|error| invalid(error.to_string()))?);
+    hash.update((pcm.len() as u64).to_le_bytes());
+    for sample in pcm { hash.update(sample.to_le_bytes()); }
+    Ok(hash.finalize().into())
+}
+
+impl PreparedAudio {
+    pub fn new(mel: Vec<f32>, frames: usize, capacity: &crate::model::contract::AudioCapacity) -> Result<Self> {
+        if frames == 0 || frames > 600 * RATE / HOP
+            || frames.checked_mul(MELS) != Some(mel.len()) || mel.iter().any(|value| !value.is_finite())
+            || capacity.mel_bins != MELS || capacity.frames_per_chunk == 0
+            || capacity.subsampling_factor == 0 || capacity.attention_window_frames == 0
+            || capacity.frame_capacities.last() != Some(&capacity.attention_window_frames)
+            || capacity.frame_capacities.windows(2).any(|pair| pair[0] >= pair[1])
+            || capacity.frame_capacities.iter().any(|value| *value == 0 || !value.is_multiple_of(capacity.frames_per_chunk))
+            || !capacity.attention_window_frames.is_multiple_of(capacity.frames_per_chunk)
+            || capacity.frames_per_chunk.div_ceil(capacity.subsampling_factor) != capacity.features_per_chunk
+        {
+            return Err(invalid("audio features differ from the prepared frame layout"));
+        }
+        let mut windows = Vec::new();
+        let mut offset = 0usize;
+        for begin in (0..frames).step_by(capacity.attention_window_frames) {
+            let end = begin.saturating_add(capacity.attention_window_frames).min(frames);
+            let length = end - begin;
+            let count = (length / capacity.frames_per_chunk).checked_mul(capacity.features_per_chunk)
+                .and_then(|full| full.checked_add((length % capacity.frames_per_chunk).div_ceil(capacity.subsampling_factor)))
+                .ok_or_else(|| invalid("audio feature count overflows"))?;
+            let next = offset.checked_add(count).filter(|next| *next <= capacity.features_per_request)
+                .ok_or_else(|| invalid("audio exceeds prepared feature storage"))?;
+            windows.push(AudioWindow { frames: begin..end, features: offset..next });
+            offset = next;
+        }
+        Ok(Self { mel: mel.into(), frames, convolution_width: frames.min(capacity.frames_per_chunk),
+            frames_per_chunk: capacity.frames_per_chunk, features_per_chunk: capacity.features_per_chunk,
+            subsampling_factor: capacity.subsampling_factor, frame_capacities: capacity.frame_capacities.clone(),
+            attention_window_frames: capacity.attention_window_frames, windows })
+    }
+
+    pub fn windows(&self) -> &[AudioWindow] { &self.windows }
+
+    pub fn feature_count(&self) -> usize { self.windows.last().unwrap().features.end }
+
+    pub fn matches_layout(&self, capacity: &crate::model::contract::AudioCapacity) -> bool {
+        capacity.mel_bins == MELS && capacity.frames_per_chunk == self.frames_per_chunk
+            && capacity.features_per_chunk == self.features_per_chunk
+            && capacity.subsampling_factor == self.subsampling_factor
+            && capacity.frame_capacities == self.frame_capacities
+            && capacity.attention_window_frames == self.attention_window_frames
+            && capacity.features_per_request >= self.feature_count()
+    }
+
+    pub fn window_buffers(&self, index: usize, frame_capacity: usize) -> Result<AudioWindowBuffers> {
+        let window = self.windows.get(index).ok_or_else(|| invalid("audio window index is outside its input"))?;
+        if frame_capacity < window.frames.len() || !self.frame_capacities.contains(&frame_capacity) {
+            return Err(invalid("audio window exceeds its graph frame capacity"));
+        }
+        let feature_capacity = (frame_capacity / self.frames_per_chunk).checked_mul(self.features_per_chunk)
+            .filter(|value| *value <= i32::MAX as usize).ok_or_else(|| invalid("audio gather capacity overflows"))?;
+        let extent = frame_capacity.checked_mul(MELS).filter(|value| *value <= MELS * (600 * RATE / HOP))
+            .ok_or_else(|| invalid("audio encoder window allocation exceeds its bounded capacity"))?;
+        let mut mel = vec![0.0; extent];
+        for bin in 0..MELS {
+            mel[bin * frame_capacity..bin * frame_capacity + window.frames.len()].copy_from_slice(
+                &self.mel[bin * self.frames + window.frames.start..bin * self.frames + window.frames.end]);
+        }
+        let mut gather_indices = vec![-1; feature_capacity];
+        let mut destination = 0;
+        for (chunk, begin) in (0..window.frames.len()).step_by(self.frames_per_chunk).enumerate() {
+            let length = self.frames_per_chunk.min(window.frames.len() - begin);
+            for column in 0..length.div_ceil(self.subsampling_factor) {
+                gather_indices[destination] = i32::try_from(chunk * self.features_per_chunk + column)
+                    .map_err(|_| invalid("audio gather index overflows"))?;
+                destination += 1;
+            }
+        }
+        let integer = |value| i32::try_from(value).map_err(|_| invalid("audio metadata exceeds Int32"));
+        Ok(AudioWindowBuffers { mel, frames: integer(window.frames.len())?,
+            convolution_width: integer(self.convolution_width)?, gather_indices,
+            cumulative_lengths: [0, integer(destination)?], feature_count: integer(destination)?,
+            feature_offset: integer(window.features.start)? })
+    }
+}
+
 #[repr(C)]
 #[derive(Clone, Copy, Default)]
 struct Complex {
@@ -121,9 +265,9 @@ pub fn decode(bytes: &[u8], limits: AudioLimits, cancelled: &AtomicBool) -> Resu
     if cancelled.load(Ordering::Acquire) || Instant::now() >= deadline {
         return Err(invalid("audio decode cancelled or timed out"));
     }
-    if count <= FFT / 2 || count > limits.samples {
+    if count == 0 || count > limits.samples {
         return Err(invalid(
-            "decoded audio requires more than 200 samples and must fit the duration limit",
+            "decoded audio must be nonempty and fit the duration limit",
         ));
     }
     output.truncate(count);
@@ -141,6 +285,124 @@ pub struct LogMelPlan {
     filters: Vec<f32>,
     input: [f32; FFT],
     spectrum: [Complex; BINS],
+}
+
+// SAFETY: the C plan owns only an AVTXContext and its function pointer; it has
+// no thread-local state. Moving its exclusive owner between CPU workers is safe.
+// LogMelPlan is not Sync: every transform requires &mut self and private scratch.
+unsafe impl Send for LogMelPlan {}
+
+/// Startup-created FFT plans bound concurrent feature preparation. HTTP's shared
+/// frontend admission bounds decoding; this pool retains plans across requests.
+pub struct AudioProcessor {
+    settings: super::AudioSettings,
+    plans: std::sync::Mutex<Vec<LogMelPlan>>,
+}
+
+struct PlanLease<'a> {
+    pool: &'a std::sync::Mutex<Vec<LogMelPlan>>,
+    plan: Option<LogMelPlan>,
+}
+
+impl Drop for PlanLease<'_> {
+    fn drop(&mut self) {
+        if let Some(plan) = self.plan.take() {
+            self.pool.lock().unwrap_or_else(|error| error.into_inner()).push(plan);
+        }
+    }
+}
+
+impl AudioProcessor {
+    pub fn new(settings: super::AudioSettings, workers: usize) -> Result<Self> {
+        settings.validate()?;
+        if !(1..=64).contains(&workers) {
+            return Err(invalid("audio preparation requires between 1 and 64 workers"));
+        }
+        let plans = (0..workers).map(|_| LogMelPlan::new()).collect::<Result<Vec<_>>>()?;
+        Ok(Self { settings, plans: std::sync::Mutex::new(plans) })
+    }
+
+    pub fn decode(&self, bytes: &[u8], cancelled: &AtomicBool) -> Result<Vec<f32>> {
+        decode(bytes, AudioLimits {
+            encoded_bytes: self.settings.max_file_bytes,
+            samples: self.settings.max_samples,
+            decode_timeout: Duration::from_millis(self.settings.decode_timeout_millis),
+        }, cancelled)
+    }
+
+    /// Transcription service boundaries. Encoder windows are computed later,
+    /// independently inside each service chunk; chat never calls this method.
+    pub fn transcription_ranges(&self, pcm: &[f32], cancelled: &AtomicBool)
+        -> Result<Vec<std::ops::Range<usize>>> {
+        if pcm.is_empty() || pcm.len() > self.settings.max_samples || pcm.iter().any(|value| !value.is_finite()) {
+            return Err(invalid("transcription splitting requires bounded finite PCM"));
+        }
+        let chunk = self.settings.service_chunk_samples;
+        let search = self.settings.silence_search_samples;
+        let window = self.settings.silence_window_samples;
+        let mut ranges = Vec::new();
+        let mut begin = 0;
+        while begin < pcm.len() {
+            if cancelled.load(Ordering::Acquire) { return Err(invalid("audio splitting cancelled")); }
+            let boundary = begin.saturating_add(chunk).min(pcm.len());
+            let mut end = boundary;
+            if boundary < pcm.len() {
+                let first = boundary - search;
+                end = first;
+                let mut lowest = f32::INFINITY;
+                // The reference range excludes the final candidate even when
+                // the search region is an exact multiple of the energy window.
+                for offset in (0..search.saturating_sub(window)).step_by(window) {
+                    let at = first + offset;
+                    let mean = pairwise_square_sum(&pcm[at..at + window]) / window as f32;
+                    let energy = mean.sqrt();
+                    if !energy.is_finite() { return Err(invalid("nonfinite audio split energy")); }
+                    if energy < lowest { lowest = energy; end = at; }
+                }
+                if end <= begin { end = boundary; }
+            }
+            ranges.push(begin..end);
+            begin = end;
+        }
+        Ok(ranges)
+    }
+
+    pub fn prepare_pcm(&self, pcm: &[f32], capacity: &crate::model::contract::AudioCapacity,
+                       cancelled: &AtomicBool) -> Result<(std::sync::Arc<PreparedAudio>, [u8; 32])> {
+        let plan = self.plans.lock().unwrap_or_else(|error| error.into_inner()).pop()
+            .ok_or_else(|| Error::admission(crate::AdmissionError::Capacity,
+                "native audio feature preparation is at capacity"))?;
+        let mut lease = PlanLease { pool: &self.plans, plan: Some(plan) };
+        if cancelled.load(Ordering::Acquire) { return Err(invalid("audio preparation cancelled")); }
+        let identity = semantic_identity(pcm, &self.settings)?;
+        let features = lease.plan.as_mut().unwrap().prepared_features(pcm, &self.settings, cancelled)?;
+        let frames = features.len() / MELS;
+        let audio = std::sync::Arc::new(PreparedAudio::new(features, frames, capacity)?);
+        if cancelled.load(Ordering::Acquire) { return Err(invalid("audio preparation cancelled")); }
+        Ok((audio, identity))
+    }
+}
+
+// Match the reference's FP32 square and NumPy pairwise mean reduction. The
+// eight-lane, 128-element block order is defined in NumPy v2.2.6 loops_utils.h.src:
+// https://github.com/numpy/numpy/blob/v2.2.6/numpy/_core/src/umath/loops_utils.h.src
+fn pairwise_square_sum(input: &[f32]) -> f32 {
+    if input.len() < 8 {
+        return input.iter().fold(-0.0, |sum, value| sum + value * value);
+    }
+    if input.len() > 128 {
+        let midpoint = (input.len() / 2) / 8 * 8;
+        return pairwise_square_sum(&input[..midpoint]) + pairwise_square_sum(&input[midpoint..]);
+    }
+    let mut lanes: [f32; 8] = std::array::from_fn(|index| input[index] * input[index]);
+    let full = input.len() / 8 * 8;
+    for values in input[8..full].chunks_exact(8) {
+        for (sum, value) in lanes.iter_mut().zip(values) { *sum += value * value; }
+    }
+    let mut sum = ((lanes[0] + lanes[1]) + (lanes[2] + lanes[3]))
+        + ((lanes[4] + lanes[5]) + (lanes[6] + lanes[7]));
+    for value in &input[full..] { sum += value * value; }
+    sum
 }
 
 impl LogMelPlan {
@@ -179,6 +441,25 @@ impl LogMelPlan {
             input: [0.0; FFT],
             spectrum: [Complex::default(); BINS],
         })
+    }
+
+    pub fn prepared_features(&mut self, pcm: &[f32], settings: &super::AudioSettings,
+                             cancelled: &AtomicBool) -> Result<Vec<f32>> {
+        settings.validate()?;
+        if pcm.is_empty() || pcm.len() > settings.max_samples {
+            return Err(invalid("audio exceeds the original decoded sample limit"));
+        }
+        match settings.sample_padding {
+            crate::model::contract::AudioSamplePadding::Unpadded => self.features(pcm, cancelled),
+            crate::model::contract::AudioSamplePadding::HopMultiple => {
+                let extent = pcm.len().div_ceil(HOP) * HOP;
+                if extent == pcm.len() { return self.features(pcm, cancelled); }
+                let mut padded = Vec::with_capacity(extent);
+                padded.extend_from_slice(pcm);
+                padded.resize(extent, 0.0);
+                self.features(&padded, cancelled)
+            }
+        }
     }
 
     /// Returns row-major [128, floor(samples/160)] features. Input is already
@@ -256,6 +537,138 @@ impl Drop for LogMelPlan {
 mod tests {
     use super::*;
 
+    fn settings() -> super::super::AudioSettings {
+        super::super::AudioSettings {
+            sample_rate: 16000, mel_bins: 128, fft_size: 400, hop_samples: 160,
+            max_file_bytes: 25 * 1024 * 1024, max_samples: 600 * RATE,
+            decode_timeout_millis: 60000, service_chunk_samples: 480000,
+            silence_search_samples: 16000, silence_window_samples: 1600,
+            sample_padding: crate::model::contract::AudioSamplePadding::HopMultiple,
+        }
+    }
+
+    #[test]
+    fn declared_padding_changes_frame_count_without_changing_decode_duration() {
+        let mut plan = LogMelPlan::new().unwrap();
+        let cancelled = AtomicBool::new(false);
+        let mut settings = settings();
+        for (samples, frames) in [(161, 2), (200, 2), (201, 2), (7999, 50), (16001, 101)] {
+            let result = plan.prepared_features(&vec![0.0; samples], &settings, &cancelled).unwrap();
+            assert_eq!(result.len(), MELS * frames);
+            assert!(result.iter().all(|value| *value == -1.5));
+        }
+        for samples in [1, 160] {
+            assert!(plan.prepared_features(&vec![0.0; samples], &settings, &cancelled).is_err());
+        }
+        settings.sample_padding = crate::model::contract::AudioSamplePadding::Unpadded;
+        assert_eq!(plan.prepared_features(&vec![0.0; 16001], &settings, &cancelled).unwrap().len(), MELS * 100);
+        assert!(plan.prepared_features(&vec![0.0; 200], &settings, &cancelled).is_err());
+    }
+
+    fn capacity() -> crate::model::contract::AudioCapacity {
+        use crate::model::contract::{AudioCapacity, StateView};
+        let view = || StateView { buffer: String::new(), offset: 0, stride: 1, nbytes: 1 };
+        AudioCapacity {
+            feature_slots: 1, features_per_request: 8192, feature_width: 2048,
+            frame_capacities: vec![100, 800], mel_bins: MELS, frames_per_chunk: 100,
+            features_per_chunk: 13, subsampling_factor: 8, attention_window_frames: 800,
+            features: view(), generations: view(), counts: view(),
+        }
+    }
+
+    #[test]
+    fn transcription_splits_preserve_first_minimum_and_exclude_final_candidate() {
+        let processor = AudioProcessor::new(settings(), 1).unwrap();
+        let cancelled = AtomicBool::new(false);
+        for length in [201, 480000, 480001, 960001] {
+            let ranges = processor.transcription_ranges(&vec![0.0; length], &cancelled).unwrap();
+            assert_eq!(ranges.first().unwrap().start, 0);
+            assert_eq!(ranges.last().unwrap().end, length);
+            assert!(ranges.windows(2).all(|pair| pair[0].end == pair[1].start));
+            assert!(ranges.iter().all(|range| !range.is_empty() && range.len() <= 480000));
+            if length > 480000 { assert_eq!(ranges[0].end, 464000); }
+        }
+        let mut pcm = vec![0.5; 600000];
+        pcm[478400..480000].fill(0.0); // excluded last candidate
+        pcm[467200..468800].fill(0.25);
+        assert_eq!(processor.transcription_ranges(&pcm, &cancelled).unwrap()[0].end, 467200);
+        pcm[465600..467200].fill(0.25); // an earlier tie wins
+        assert_eq!(processor.transcription_ranges(&pcm, &cancelled).unwrap()[0].end, 465600);
+        pcm.fill(0.6);
+        pcm[464000..465600].fill(0.5);
+        pcm[464000] = 0.5000477;
+        pcm[465600..467200].fill(0.5);
+        let first = pairwise_square_sum(&pcm[464000..465600]) / 1600.;
+        let second = pairwise_square_sum(&pcm[465600..467200]) / 1600.;
+        assert!(first > second);
+        assert_eq!(first.sqrt(), second.sqrt());
+        assert_eq!(processor.transcription_ranges(&pcm, &cancelled).unwrap()[0].end, 464000);
+        cancelled.store(true, Ordering::Release);
+        assert!(processor.transcription_ranges(&pcm, &cancelled).is_err());
+        assert!(processor.transcription_ranges(&[f32::NAN], &AtomicBool::new(false)).is_err());
+        assert!(processor.transcription_ranges(&vec![f32::MAX; 600000], &AtomicBool::new(false)).is_err());
+    }
+
+    #[test]
+    fn pooled_plans_return_after_rejection_cancellation_and_thread_reuse() {
+        let processor = std::sync::Arc::new(AudioProcessor::new(settings(), 1).unwrap());
+        let cancelled = AtomicBool::new(false);
+        let pcm = processor.decode(&wav(16001, 2, 16000), &cancelled).unwrap();
+        let (first, identity) = processor.prepare_pcm(&pcm, &capacity(), &cancelled).unwrap();
+        assert_eq!(first.frames, 101);
+        assert_eq!(first.feature_count(), 14);
+        assert_eq!(processor.plans.lock().unwrap().len(), 1);
+        let mut other = pcm.clone(); other[0] += 0.125;
+        assert_ne!(identity, semantic_identity(&other, &settings()).unwrap());
+        let mut different_settings = settings(); different_settings.sample_padding =
+            crate::model::contract::AudioSamplePadding::Unpadded;
+        assert_ne!(identity, semantic_identity(&pcm, &different_settings).unwrap());
+        for invalid_pcm in [vec![0.0; 160], vec![f32::NAN; 201]] {
+            assert!(processor.prepare_pcm(&invalid_pcm, &capacity(), &cancelled).is_err());
+            assert_eq!(processor.plans.lock().unwrap().len(), 1);
+        }
+        cancelled.store(true, Ordering::Release);
+        assert!(processor.prepare_pcm(&pcm, &capacity(), &cancelled).is_err());
+        assert_eq!(processor.plans.lock().unwrap().len(), 1);
+        let retained = processor.plans.lock().unwrap().pop().unwrap();
+        assert!(matches!(processor.prepare_pcm(&pcm, &capacity(), &AtomicBool::new(false)),
+            Err(Error::Admission(crate::AdmissionError::Capacity(_)))));
+        processor.plans.lock().unwrap().push(retained);
+        let owner = processor.clone();
+        let repeated = std::thread::spawn(move || {
+            let (audio, repeated_identity) = owner.prepare_pcm(&pcm, &capacity(), &AtomicBool::new(false)).unwrap();
+            assert_eq!(identity, repeated_identity);
+            audio
+        }).join().unwrap();
+        assert_eq!(first.mel.as_ref(), repeated.mel.as_ref());
+        assert_eq!(processor.plans.lock().unwrap().len(), 1);
+        assert!(AudioProcessor::new(settings(), 0).is_err());
+        assert!(AudioProcessor::new(settings(), 65).is_err());
+    }
+
+    #[test]
+    fn encoder_windows_keep_full_input_normalization_and_convolution_width() {
+        let source: Vec<_> = (0..MELS * 801).map(|index| (index % 801) as f32).collect();
+        let audio = PreparedAudio::new(source, 801, &capacity()).unwrap();
+        assert_eq!(audio.feature_count(), 105);
+        assert_eq!(audio.windows.len(), 2);
+        let tail = audio.window_buffers(1, 100).unwrap();
+        assert_eq!((tail.frames, tail.feature_count, tail.feature_offset, tail.convolution_width), (1, 1, 104, 100));
+        assert_eq!(tail.cumulative_lengths, [0, 1]);
+        assert_eq!(tail.gather_indices[0], 0);
+        assert!(tail.gather_indices[1..].iter().all(|value| *value == -1));
+        for bin in 0..MELS {
+            assert_eq!(tail.mel[bin * 100], 800.0);
+            assert!(tail.mel[bin * 100 + 1..(bin + 1) * 100].iter().all(|value| *value == 0.0));
+        }
+        assert!(audio.window_buffers(0, 100).is_err());
+        let short = PreparedAudio::new(vec![0.0; MELS * 99], 99, &capacity()).unwrap();
+        assert_eq!(short.window_buffers(0, 100).unwrap().convolution_width, 99);
+        let crossing = PreparedAudio::new(vec![0.0; MELS * 101], 101, &capacity()).unwrap();
+        assert_eq!(crossing.feature_count(), 14);
+        assert_eq!(crossing.window_buffers(0, 800).unwrap().gather_indices[13], 13);
+    }
+
     fn wav(samples: usize, channels: usize, rate: usize) -> Vec<u8> {
         let size = samples * channels * 2;
         let mut bytes = Vec::new();
@@ -313,7 +726,8 @@ mod tests {
     fn reject_short_corrupt_and_cancelled_audio() {
         let cancelled = AtomicBool::new(false);
         assert!(decode(b"corrupt", AudioLimits::default(), &cancelled).is_err());
-        assert!(decode(&wav(200, 1, 16000), AudioLimits::default(), &cancelled).is_err());
+        assert_eq!(decode(&wav(200, 1, 16000), AudioLimits::default(), &cancelled).unwrap().len(), 200);
+        assert!(LogMelPlan::new().unwrap().features(&vec![0.0; 200], &cancelled).is_err());
         assert_eq!(
             decode(&wav(201, 1, 16000), AudioLimits::default(), &cancelled)
                 .unwrap()

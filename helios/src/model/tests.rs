@@ -15,7 +15,7 @@ use crate::{
 
 #[test]
 fn prompt_scoring_recognizes_features_without_protected_image_spans() {
-    let data = PromptData { positions: vec![], vision_token_indices: vec![-1, 0, 1, -1, -1, -1],
+    let data = PromptData { audio_token_indices: Vec::new(), positions: vec![], vision_token_indices: vec![-1, 0, 1, -1, -1, -1],
         spans: vec![4..5] };
     assert!(!data.is_image_position(0));
     assert!(data.is_image_position(1));
@@ -90,7 +90,7 @@ fn admission_histogram_seed_and_partial_page_uploads_preserve_native_semantics()
         },
         max_new_tokens: 4,
         prompt: vec![7; 65],
-        data: PromptData {
+        data: PromptData { audio_token_indices: Vec::new(),
             positions: (0..65).map(|p| [p; 3]).collect(),
             vision_token_indices: vec![-1; 65],
             ..Default::default()
@@ -233,7 +233,7 @@ fn large_prefill_uploads_preserve_token_position_and_image_indices_without_tail_
         handle,
         sampling: SamplingParameters::default(),
         max_new_tokens: 4,
-        data: PromptData {
+        data: PromptData { audio_token_indices: Vec::new(),
             positions: prompt.iter().map(|&token| [token as i64; 3]).collect(),
             vision_token_indices: prompt
                 .iter()
@@ -549,7 +549,7 @@ fn packing_follows_value_bindings_after_buffers_and_model_are_renamed() {
         },
         max_new_tokens: 4,
         prompt: vec![7; 65],
-        data: PromptData {
+        data: PromptData { audio_token_indices: Vec::new(),
             positions: (0..65).map(|p| [p; 3]).collect(),
             ..Default::default()
         },
@@ -706,7 +706,7 @@ fn copy_staging_uses_physical_slots_stochastic_defaults_and_bonus_mask() {
         sampling: SamplingParameters::default(),
         max_new_tokens: 16,
         prompt: vec![7; 65],
-        data: PromptData {
+        data: PromptData { audio_token_indices: Vec::new(),
             positions: (0..65).map(|p| [p; 3]).collect(),
             vision_token_indices: vec![-1; 65],
             ..Default::default()
@@ -919,7 +919,7 @@ fn mixed_native_uploads_pack_prompt_after_the_decode_extent_and_sample_only_elig
                 sampling: SamplingParameters::default(),
                 max_new_tokens: 16,
                 prompt,
-                data: PromptData {
+                data: PromptData { audio_token_indices: Vec::new(),
                     positions: (0..count).map(|p| [p as i64; 3]).collect(),
                     vision_token_indices: vec![-1; count],
                     ..Default::default()
@@ -1127,7 +1127,7 @@ fn state_transfer_and_resume_upload_fixture() {
             sampling: SamplingParameters::default(),
             max_new_tokens: 2,
             prompt,
-            data: PromptData {
+            data: PromptData { audio_token_indices: Vec::new(),
                 positions: (0..64).map(|i| [i, i + 1, i + 2]).collect(),
                 vision_token_indices: vec![-1; 64],
                 ..Default::default()
@@ -1579,7 +1579,7 @@ fn prefill_compacts_execution_feature_indices_and_preserves_admission_metadata()
         sampling: SamplingParameters::default(),
         max_new_tokens: 1,
         prompt: vec![7; 4],
-        data: PromptData {
+        data: PromptData { audio_token_indices: Vec::new(),
             positions: vec![[0; 3]; 4],
             vision_token_indices: canonical.clone(),
             ..Default::default()
@@ -1678,7 +1678,7 @@ fn committed_generation_cursors_require_feedback_while_unused_prompt_positions_d
                 max_new_tokens: 64, grammar_constrained: false, host_stops: false, prompt_logprobs: false, growable_output: false }).unwrap();
             let mut admissions: [Option<Admission>; 4] = std::array::from_fn(|_| None);
             admissions[handle.slot as usize] = Some(Admission { handle, sampling: SamplingParameters::default(),
-                max_new_tokens: 64, prompt: vec![7; 64], data: PromptData {
+                max_new_tokens: 64, prompt: vec![7; 64], data: PromptData { audio_token_indices: Vec::new(),
                     positions: (0..64).map(|position| [position; 3]).collect(),
                     vision_token_indices: vec![-1; 64], ..Default::default()
                 }, grammar_mask: None, ignore_eos: true, prompt_logprobs: false });
