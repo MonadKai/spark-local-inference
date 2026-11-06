@@ -316,12 +316,22 @@ The ASR decoder prepares its small-row unquantized projections with eight
 physical GEMM rows, including the first-token and cached-resume vocabulary
 projection. Logical graph capacities remain 1/2/4/8. A shared prepared component
 clears padded input scratch, copies the logical rows, runs one cross-row GEMM,
-and copies only the logical output rows. Padding never reaches KV writers or
-changes admission, live-row validation, sampling or completion capacities.
+and copies only the logical output rows. Admission, live-row validation,
+sampling and completion retain their declared logical capacities.
 The recipe's memory report records this physical geometry. This addresses a
 measured source of shape-dependent BF16 projection results; it does not by
 itself establish attention determinism, scalar accuracy or a performance gain.
 Autotuning remains responsible for choosing legal b12x plans for that geometry.
+
+Projection padding alone did not remove cross-capacity differences in captured
+decoder histories. The current candidate also prepares decode arithmetic,
+including paged attention and final normalization, at eight physical rows.
+A shared metadata copy preserves the original packed token order and appends
+empty requests: their query lengths are zero, positions and pages are invalid,
+and KV writers must leave state untouched. Sampling, hidden-state publication
+and completion still use the original logical request rows. This is a graph
+shape choice inside preparation, not a new native scheduling policy. Its full
+numerical, lifecycle and performance acceptance remains open.
 
 The primary performance comparison is full, naturally stopped ASR at B=4 and
 B=8; each throughput-ratio 95% lower confidence bound must exceed one. B=1
