@@ -8,6 +8,7 @@ import torch
 
 from .collectives import PreparedAllGather
 from .linear import QuantizedProjection, UnquantizedProjection
+from .row_projection import PreparedRowProjection
 
 
 class PreparedVocabularyProjection:
@@ -26,7 +27,8 @@ class PreparedVocabularyProjection:
     """
 
     def __init__(self, source, weight, local_output, output, *, runtime, session,
-                 coordinator, name, activation_mode="a16", buffers=None, row_indices=None, workspace=None, gather=True):
+                 coordinator, name, activation_mode="a16", buffers=None, row_indices=None, workspace=None, gather=True,
+                 row_capacity=None):
         rows = source.shape[0]
         if row_indices is None and output.shape[0] != rows:
             raise ValueError("vocabulary output rows must match projected rows without row indices")
@@ -35,7 +37,12 @@ class PreparedVocabularyProjection:
                 or output.shape[0] < rows):
             raise ValueError("vocabulary row indices require one device int64 index per expanded output row")
         self.row_indices = row_indices
-        if isinstance(weight, torch.Tensor):
+        if row_capacity is not None:
+            if not isinstance(weight, torch.Tensor):
+                raise ValueError("fixed vocabulary row geometry requires unquantized weights")
+            self.projection = PreparedRowProjection(source, weight, local_output,
+                row_capacity=row_capacity, buffers=buffers, session=session, name=f"{name}.projection")
+        elif isinstance(weight, torch.Tensor):
             self.projection = UnquantizedProjection(source, weight, local_output,
                 session=session, name=f"{name}.projection")
         else:

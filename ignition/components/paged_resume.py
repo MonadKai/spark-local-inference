@@ -34,6 +34,7 @@ class PreparedResume:
         logits_dtype=torch.bfloat16,
         buffers=None,
         sampling_selection=SamplingSelection.CATEGORICAL,
+        projection_row_capacity=None,
     ):
         if logits_dtype not in (torch.bfloat16, torch.float32):
             raise ValueError("resume logits require BF16 or FP32 storage")
@@ -72,6 +73,7 @@ class PreparedResume:
             name=name + ".head",
             activation_mode=activation_mode,
             buffers=buffers,
+            row_capacity=projection_row_capacity,
         )
         args = (
             requests,

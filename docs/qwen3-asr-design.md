@@ -312,14 +312,26 @@ thresholds from two independent references before candidate inference and
 records their separate repeatability requirements. These are acceptance gates;
 they do not establish a passing candidate or recognition quality.
 
+The ASR decoder prepares its small-row unquantized projections with eight
+physical GEMM rows, including the first-token and cached-resume vocabulary
+projection. Logical graph capacities remain 1/2/4/8. A shared prepared component
+clears padded input scratch, copies the logical rows, runs one cross-row GEMM,
+and copies only the logical output rows. Padding never reaches KV writers or
+changes admission, live-row validation, sampling or completion capacities.
+The recipe's memory report records this physical geometry. This addresses a
+measured source of shape-dependent BF16 projection results; it does not by
+itself establish attention determinism, scalar accuracy or a performance gain.
+Autotuning remains responsible for choosing legal b12x plans for that geometry.
+
 The primary performance comparison is full, naturally stopped ASR at B=4 and
 B=8; each throughput-ratio 95% lower confidence bound must exceed one. B=1
 request latency and mixed-load P95 have a 5% maximum regression budget, assessed
-with uncertainty. Use independent interleaved repetitions, at least three
-valid runs of five minutes and 100 complete requests each; raw failures and
-warmups remain visible. Corpus/cache/configuration identity and statistical
-resampling units must be frozen before candidate results. Until that complete
-freeze exists, diagnostic kernel timings cannot establish a service speedup.
+with uncertainty. The frozen [performance protocol](../benchmarks/qwen3_asr/performance-protocol.json)
+requires five independent A/B/A blocks, with each primary run lasting at least
+five minutes and completing at least 100 requests. Raw failures and warmups
+remain visible. The fixed corpus, cache regimes and statistical units are
+recorded before comparative measurements; diagnostic kernel timings cannot
+establish a service speedup.
 
 Lifecycle changes require the affected TLA+/Rust conformance, Kani geometry and
 real CUDA fence/allocation checks described in [verification](verification.md)
