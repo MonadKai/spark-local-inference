@@ -1,6 +1,14 @@
 {
   "scope": "supplemental continuous annotated meeting speech; separate from the frozen 128+128 qualification set",
   "fixed_before_recognizer_execution": true,
+  "request": {
+    "temperature": 0,
+    "seed": 0,
+    "max_model_len": 8192,
+    "context": "",
+    "language": "utterance.language",
+    "max_completion_tokens": 1024
+  },
   "segments": [
     {
       "anchor_seconds": 30,

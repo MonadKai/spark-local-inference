@@ -40,3 +40,15 @@ model forward, exported-package, HTTP, GPU, quality or performance result.
 acquisition and annotation-boundary qualification is separate from the primary
 256 utterances. Missing safe boundaries must be recorded as acquisition failures,
 without inventing a cut through speech.
+
+`long-speech.json` freezes the resulting nine continuous meeting crops, original
+annotations, exact sample boundaries and PCM identities before ASR execution.
+Run `python -m qualify.asr_long_corpus --config
+benchmarks/qwen3_asr/long-speech-sources.json --source-dir INPUTS --output OUTPUT`
+with the acquired sources. All recordings are fully decoded; AISHELL-4 uses
+channel 0 of eight, not a channel average. RTTM is only a rounded cross-check of
+the original TextGrid. Three ES2002a acquisition failures remain explicit. AMI
+annotation gaps and Chinese partial/invalid/overlap markers remain visible;
+deterministic speaker ordering is not a word-interleaving claim.
+`regression_inputs` contains a separately labelled repeated-content 600-second
+stress input, excluded from real long-speech quality and unique-content throughput.
