@@ -228,6 +228,49 @@ def test_local_export_requires_valid_size(tmp_path, size):
         resolve(str(tmp_path)).verify(HUB)
 
 
+def test_local_index_without_optional_total_uses_validated_tensor_headers(tmp_path):
+    import torch
+    from safetensors.torch import save_file
+
+    (tmp_path / "config.json").write_text(json.dumps({"architectures": ["Glm5NextForConditionalGeneration"]}))
+    save_file({"a": torch.ones((3, 2), dtype=torch.bfloat16)}, tmp_path / "one.safetensors")
+    save_file({"b": torch.ones((4,), dtype=torch.bfloat16)}, tmp_path / "two.safetensors")
+    (tmp_path / "model.safetensors.index.json").write_text(json.dumps({"metadata": {},
+        "weight_map": {"a": "one.safetensors", "b": "two.safetensors"}}))
+    model = resolve(str(tmp_path))
+    assert model.checkpoint.stored_bytes == 20
+    model.verify(HUB)
+    # Header inference must preserve complete index coverage, rather than using
+    # file length or a declaration's estimated model size.
+    save_file({"a": torch.ones((3, 2), dtype=torch.bfloat16), "unindexed": torch.ones(1)},
+        tmp_path / "one.safetensors")
+    with pytest.raises(UsageError, match="index/shard mismatch"):
+        resolve(str(tmp_path))
+
+
+def test_named_checkpoint_accepts_optional_total_without_rewriting_its_index(tmp_path):
+    model = resolve("glm-5.3-flash")
+    snapshot = model.snapshot(tmp_path)
+    snapshot.mkdir(parents=True)
+    path = snapshot / "model.safetensors.index.json"
+    data = json.dumps({"metadata": {}, "weight_map": {"a": "not-downloaded.safetensors"}})
+    path.write_text(data)
+    model.verify(tmp_path)
+    assert path.read_text() == data
+
+
+def test_inferred_index_size_still_requires_positive_payload(tmp_path):
+    import torch
+    from safetensors.torch import save_file
+
+    (tmp_path / "config.json").write_text(json.dumps({"architectures": ["Glm5NextForConditionalGeneration"]}))
+    save_file({"a": torch.empty((0,), dtype=torch.bfloat16)}, tmp_path / "empty.safetensors")
+    (tmp_path / "model.safetensors.index.json").write_text(json.dumps({"metadata": {},
+        "weight_map": {"a": "empty.safetensors"}}))
+    with pytest.raises(UsageError, match="invalid safetensors total_size"):
+        resolve(str(tmp_path))
+
+
 def test_declared_ranges_are_consistent():
     assert len(set(aliases())) == len(aliases())
     for recipe in recipes():
