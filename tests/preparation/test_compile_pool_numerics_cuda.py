@@ -32,7 +32,11 @@ class MatmulPolicyForward:
 def test_reused_spawn_worker_preserves_reduction_and_split_k_before_aot(tmp_path):
     previous = (torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction,
                 torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction_split_k)
+    previous_blas = torch.backends.cuda.preferred_blas_library()
     try:
+        # Torch permits split-K=False only with cuBLASLt. This fixture covers
+        # transport of all valid settings, not default-cuBLAS support for them.
+        torch.backends.cuda.preferred_blas_library("cublaslt")
         with CompilePool("cuda:0", compile_workers=1) as pool:
             for index, policy in enumerate(((False, False), (True, True), (False, True))):
                 torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction = policy
@@ -58,3 +62,4 @@ def test_reused_spawn_worker_preserves_reduction_and_split_k_before_aot(tmp_path
                 pool.submit(MatmulPolicyForward(False, False), tmp_path / "wrong-policy.bin").result()
     finally:
         torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction = previous
+        torch.backends.cuda.preferred_blas_library(previous_blas)
