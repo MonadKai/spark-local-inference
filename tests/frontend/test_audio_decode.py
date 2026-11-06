@@ -31,6 +31,26 @@ def _decode(binary, tmp_path, name, payload):
     return result, output
 
 
+def test_speech_transport_fixtures_decode_with_separate_waveforms(binary, tmp_path):
+    import numpy as np
+    import wave
+
+    root = Path(__file__).with_name("audio-inputs")
+    wav = root / "en-61-70968-0058.wav"
+    with wave.open(str(wav), "rb") as audio:
+        assert (audio.getnchannels(), audio.getsampwidth(), audio.getframerate()) == (1, 2, 16000)
+        expected = np.frombuffer(audio.readframes(audio.getnframes()), dtype="<i2").astype(np.float32) / 32768
+    decoded = []
+    for suffix in ("wav", "mp3"):
+        result, output = _decode(binary, tmp_path, suffix, wav.with_suffix("." + suffix).read_bytes())
+        assert result.returncode == 0, result.stderr
+        values = np.fromfile(output, dtype="<f4")
+        assert values.size == 29120 and np.isfinite(values).all()
+        decoded.append(values)
+    assert np.array_equal(decoded[0], expected)
+    assert not np.array_equal(decoded[0], decoded[1]), "lossy MP3 was silently treated as identical PCM"
+
+
 def _aac(rate, channels):
     ffmpeg = shutil.which("ffmpeg")
     if ffmpeg is None:
