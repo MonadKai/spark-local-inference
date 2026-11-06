@@ -9,6 +9,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<_> = std::env::args().collect();
     let path = args.get(1).ok_or("expected package path")?;
     let namespace = args.get(2).ok_or("expected accepted namespace")?;
+    if namespace == "allocation-map" {
+        let described = flare_helios::runtime_package::test_support::allocation_map(std::path::Path::new(path))?;
+        println!("{}", serde_json::to_string(&described)?);
+        return Ok(());
+    }
     #[cfg(unix)]
     if namespace == "retarget-companion" {
         use flare_helios::runtime_package::{VerifiedPackage, test_support};

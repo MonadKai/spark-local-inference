@@ -330,7 +330,17 @@ def test_frozen_restore_ignores_conflicting_enabled_local_cache(tmp_path, monkey
         alternatives = [pickle.loads(data).config for data in probe.candidates[identity]
                         if pickle.loads(data).config.all_kwargs() != selected.config.all_kwargs()]
         if not alternatives:
-            continue
+            # A warm local cache can legitimately restore just the winning
+            # config. Build a real neighboring launch configuration so this
+            # negative control also exercises hot-cache runs, without clearing
+            # caches or disabling their use on the subsequent frozen restore.
+            alternative = copy.deepcopy(selected.config)
+            alternative.num_warps = 8 if alternative.num_warps != 8 else 16
+            compiled_alternative = tuner._precompile_config(alternative)
+            portable = pickle.loads(_portable(compiled_alternative))
+            assert portable.kernel.cubin_raw
+            assert portable.config.all_kwargs() != selected.config.all_kwargs()
+            alternatives = [portable.config]
         metadata = dict(tuner.inductor_meta, autotune_local_cache=True,
                         autotune_remote_cache=False, coordinate_descent_tuning=True)
         local_cache = AutotuneCache.create(metadata, tuner.filename, hash_configs([selected.config]))
