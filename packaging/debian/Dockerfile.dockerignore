@@ -48,7 +48,7 @@
 !NOTICE
 !THIRD_PARTY_NOTICES.md
 !helios/licenses/
-!helios/licenses/PyTorch.txt
+!helios/licenses/*.txt
 !packaging/
 !packaging/licenses.py
 !packaging/license-supplements/

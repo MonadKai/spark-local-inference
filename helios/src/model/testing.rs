@@ -239,7 +239,7 @@ pub fn metadata() -> PreparedContract {
             image_tokens: None,
             audio_preparation: None,
             audio_tokens: None,
-            transcription: None,
+            transcription: None, request_seed_syntax: None,
         },
     }
 }

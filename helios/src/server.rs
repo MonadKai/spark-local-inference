@@ -21,6 +21,7 @@ pub(crate) mod output;
 mod logprobs;
 mod protocol;
 mod request;
+mod seed;
 pub use request::{PreparedRequest, prepare as prepare_request};
 mod runtime;
 mod stops;

@@ -11,6 +11,10 @@ use crate::{frontend::{AudioSettings, FrontendSettings}, model::contract::{
 }};
 
 fn fixture() -> Fixture {
+    fixture_with_template(b"{% mark %}{{ messages[0].content }}")
+}
+
+fn fixture_with_template(template: &[u8]) -> Fixture {
     let settings = FrontendSettings {
         prompt_encoder: Default::default(), image_placeholder_token_id: None,
         tokenizer: Default::default(), eos_token_ids: vec![], template_encoding: Default::default(),
@@ -20,7 +24,7 @@ fn fixture() -> Fixture {
             service_chunk_samples: 3200, silence_search_samples: 1600, silence_window_samples: 160,
             sample_padding: AudioSamplePadding::HopMultiple }),
     };
-    let mut fixture = Fixture::with_template_settings(b"{% mark %}{{ messages[0].content }}",
+    let mut fixture = Fixture::with_template_settings(template,
         &["<eos>", "<audio>", "<feature>", "</audio>"], &[], Some(&settings));
     let tokenizer = fixture.frontend.tokenizer();
     fixture.config.contract.frontend.audio_tokens = Some(AudioTokenLayout {
@@ -238,6 +242,89 @@ async fn malformed_transcription_sampling_is_invalid_without_native_submission()
         assert_eq!(state.model.queue_capacity.available_permits(), 4);
         assert_eq!(state.frontend_slots.available_permits(), 1);
         assert_eq!(state.ingress_slots.available_permits(), 4);
+    }
+}
+
+#[tokio::test]
+async fn signed_transcription_seed_is_resolved_once_and_shared_by_children() {
+    use crate::model::contract::RequestSeedSyntax;
+    for (field, expected) in [(Some("-1"), None), (None, None),
+        (Some("-2"), Some(u64::MAX - 1)), (Some("-9223372036854775808"), Some(1u64 << 63)),
+        (Some("1.0"), Some(1))] {
+        let mut fixture = fixture();
+        fixture.config.contract.frontend.request_seed_syntax = Some(RequestSeedSyntax::Signed64Optional);
+        let (sender, receiver) = mpsc::sync_channel(4);
+        let state = http_state_for(fixture, sender, None);
+        let fields = field.map(|value| vec![("seed", value)]).unwrap_or_default();
+        let response = start(state.clone(), request(&fields, &[wav(6400)])).await;
+        let first = receive(&receiver).await;
+        first.notify_admission(Ok(()));
+        let second = receive(&receiver).await;
+        second.notify_admission(Ok(()));
+        let third = receive(&receiver).await;
+        third.notify_admission(Ok(()));
+        let key = first.prompt.sampling.seed;
+        assert_eq!(second.prompt.sampling.seed, key);
+        assert_eq!(third.prompt.sampling.seed, key);
+        if let Some(expected) = expected { assert_eq!(key, expected); }
+        for child in [&first, &second, &third] { finish(child, 0); }
+        drop((first, second, third));
+        assert_eq!(response.await.unwrap().status(), axum::http::StatusCode::OK);
+        assert_eq!(state.model.capacity.available_permits(), 4);
+        assert_eq!(state.model.queue_capacity.available_permits(), 4);
+    }
+}
+
+#[tokio::test]
+async fn signed_transcription_seed_rejects_literal_null_and_out_of_range_form_values() {
+    use crate::model::contract::RequestSeedSyntax;
+    for value in ["null", "9223372036854775808", "-9223372036854775809", "1.5", "true"] {
+        let mut fixture = fixture();
+        fixture.config.contract.frontend.request_seed_syntax = Some(RequestSeedSyntax::Signed64Optional);
+        let (sender, receiver) = mpsc::sync_channel(4);
+        let state = http_state_for(fixture, sender, None);
+        let response = start(state.clone(), request(&[("seed", value)], &[wav(6400)])).await.await.unwrap();
+        assert_eq!(response.status(), axum::http::StatusCode::BAD_REQUEST, "{value}");
+        assert!(receiver.try_recv().is_err());
+        assert_eq!(state.ingress_slots.available_permits(), 4);
+    }
+}
+
+#[tokio::test]
+async fn signed_chat_seed_normalizes_before_generic_protocol_decoding() {
+    use base64::Engine;
+    use crate::model::contract::RequestSeedSyntax;
+    for (seed, expected) in [(serde_json::json!(-2), Some(u64::MAX - 1)),
+        (serde_json::json!(i64::MIN), Some(1u64 << 63)), (serde_json::json!("1.0"), Some(1)),
+        (serde_json::json!(-1), None), (serde_json::Value::Null, None)] {
+        let mut fixture = fixture_with_template(b"{% mark %}<audio><feature></audio>");
+        fixture.config.contract.frontend.request_seed_syntax = Some(RequestSeedSyntax::Signed64Optional);
+        let (sender, receiver) = mpsc::sync_channel(4);
+        let state = http_state_for(fixture, sender, None);
+        let model = state.model.config().model_id.clone();
+        let body = serde_json::json!({"model":model,"seed":seed,"temperature":0,"max_tokens":2,
+            "messages":[{"role":"user","content":[{"type":"input_audio","input_audio":{
+                "format":"wav","data":base64::engine::general_purpose::STANDARD.encode(wav(6400))}}]}]});
+        let request = axum::http::Request::builder().method("POST").uri("/v1/chat/completions")
+            .header("content-type", "application/json").body(axum::body::Body::from(body.to_string())).unwrap();
+        let ingress = Arc::new(state.ingress_slots.clone().acquire_owned().await.unwrap());
+        let mut response = tokio::spawn(super::super::super::http::generate(State(state.clone()), Extension(ingress), request));
+        let incoming = tokio::select! {
+            incoming = receive(&receiver) => incoming,
+            result = &mut response => {
+                let response = result.unwrap();
+                let status = response.status();
+                let body = axum::body::to_bytes(response.into_body(), 65536).await.unwrap();
+                panic!("audio chat failed before native admission: {status} {}", String::from_utf8_lossy(&body));
+            }
+        };
+        if let Some(expected) = expected { assert_eq!(incoming.prompt.sampling.seed, expected); }
+        incoming.notify_admission(Ok(()));
+        finish(&incoming, 0);
+        drop(incoming);
+        assert_eq!(response.await.unwrap().status(), axum::http::StatusCode::OK);
+        assert_eq!(state.model.capacity.available_permits(), 4);
+        assert_eq!(state.model.queue_capacity.available_permits(), 4);
     }
 }
 

@@ -64,3 +64,13 @@ libjpeg-turbo
 This software is based in part on the work of the Independent JPEG
 Group.
 The libjpeg-turbo license texts are linked from third_party/rust/README.md.
+
+Pydantic
+--------
+Copyright (c) 2022 Samuel Colvin
+The seed text cleanup in helios/src/server/seed.rs adapts pydantic-core 2.46.5
+src/input/shared.rs, preserving the pinned request validator's signed integer
+coercions without a Python runtime dependency. The source release is:
+https://pypi.org/project/pydantic_core/2.46.5/
+Its MIT license is reproduced in helios/licenses/Pydantic.txt and included
+under licenses/Pydantic.txt in binary distributions.

@@ -70,6 +70,7 @@ contract_enum!(ImagePreparationKind { Qwen = 1, Mimo = 2, Deepseek = 3, Moonvit 
 contract_enum!(ImageLayoutKind { Qwen = 1, Mimo = 2, Deepseek = 3, Moonvit = 4, Step = 5, Radio = 6, DeepseekRowMajor = 7, Glm = 8, Bracketed = 9 });
 contract_enum!(AudioPreparationKind { CenteredSlaneyLogMel = 1 });
 contract_enum!(AudioSamplePadding { Unpadded = 1, HopMultiple = 2 });
+contract_enum!(RequestSeedSyntax { Signed64Optional = 1 });
 contract_enum!(AudioTensorKind { LogMel = 1, ValidFrames = 2, ConvolutionWidth = 3, GatherIndices = 4, CumulativeLengths = 5, FeatureCount = 6, FeatureOffset = 7 });
 contract_enum!(GraphOperation { Init = 1, Restore = 2, Snapshot = 3, Prefill = 4, Decode = 5, Resume = 6, Vision = 7, Speculative = 8, Mixed = 9, ScoredPrefill = 12, AudioEncode = 14 });
 
@@ -316,6 +317,7 @@ pub struct FrontendContract {
     pub audio_preparation: Option<AudioPreparationKind>,
     pub audio_tokens: Option<AudioTokenLayout>,
     pub transcription: Option<TranscriptionFormat>,
+    pub request_seed_syntax: Option<RequestSeedSyntax>,
 }
 
 #[derive(Clone, Debug)]

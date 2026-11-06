@@ -1,0 +1,1025 @@
+{
+  "expected_vllm_revision": "98dff2a81d747d1dba01a47f939f48c3526d4206",
+  "pydantic": "2.13.5",
+  "pydantic_core": "2.46.5",
+  "scope": "Observed request-model validation and SamplingParams normalization; no HTTP transport or model inference.",
+  "generator": "qualify/asr_vllm_sampling_reference.py",
+  "cases": [
+    {
+      "endpoint": "chat",
+      "name": "omitted",
+      "options": {},
+      "request_valid": true,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-0",
+      "options": {
+        "seed": null
+      },
+      "request_valid": true,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-1",
+      "options": {
+        "seed": -9223372036854775809
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-2",
+      "options": {
+        "seed": -9223372036854775808
+      },
+      "request_valid": true,
+      "request_seed": -9223372036854775808,
+      "seed": -9223372036854775808
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-3",
+      "options": {
+        "seed": -2
+      },
+      "request_valid": true,
+      "request_seed": -2,
+      "seed": -2
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-4",
+      "options": {
+        "seed": -1
+      },
+      "request_valid": true,
+      "request_seed": -1,
+      "seed": null
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-5",
+      "options": {
+        "seed": 0
+      },
+      "request_valid": true,
+      "request_seed": 0,
+      "seed": 0
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-6",
+      "options": {
+        "seed": 1
+      },
+      "request_valid": true,
+      "request_seed": 1,
+      "seed": 1
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-7",
+      "options": {
+        "seed": 9223372036854775807
+      },
+      "request_valid": true,
+      "request_seed": 9223372036854775807,
+      "seed": 9223372036854775807
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-8",
+      "options": {
+        "seed": 9223372036854775808
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-9",
+      "options": {
+        "seed": 18446744073709551615
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-10",
+      "options": {
+        "seed": 1.0
+      },
+      "request_valid": true,
+      "request_seed": 1,
+      "seed": 1
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-11",
+      "options": {
+        "seed": -1.0
+      },
+      "request_valid": true,
+      "request_seed": -1,
+      "seed": null
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-12",
+      "options": {
+        "seed": 1.5
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-13",
+      "options": {
+        "seed": true
+      },
+      "request_valid": true,
+      "request_seed": 1,
+      "seed": 1
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-14",
+      "options": {
+        "seed": false
+      },
+      "request_valid": true,
+      "request_seed": 0,
+      "seed": 0
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-15",
+      "options": {
+        "seed": "-1"
+      },
+      "request_valid": true,
+      "request_seed": -1,
+      "seed": null
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-16",
+      "options": {
+        "seed": "-2"
+      },
+      "request_valid": true,
+      "request_seed": -2,
+      "seed": -2
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-17",
+      "options": {
+        "seed": "0"
+      },
+      "request_valid": true,
+      "request_seed": 0,
+      "seed": 0
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-18",
+      "options": {
+        "seed": "1.0"
+      },
+      "request_valid": true,
+      "request_seed": 1,
+      "seed": 1
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-19",
+      "options": {
+        "seed": "1.5"
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-20",
+      "options": {
+        "seed": "null"
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-21",
+      "options": {
+        "seed": ""
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-22",
+      "options": {
+        "seed": "  19  "
+      },
+      "request_valid": true,
+      "request_seed": 19,
+      "seed": 19
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-23",
+      "options": {
+        "seed": "+19"
+      },
+      "request_valid": true,
+      "request_seed": 19,
+      "seed": 19
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-24",
+      "options": {
+        "seed": "0019"
+      },
+      "request_valid": true,
+      "request_seed": 19,
+      "seed": 19
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-25",
+      "options": {
+        "seed": "-0"
+      },
+      "request_valid": true,
+      "request_seed": 0,
+      "seed": 0
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-26",
+      "options": {
+        "seed": "+0"
+      },
+      "request_valid": true,
+      "request_seed": 0,
+      "seed": 0
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-27",
+      "options": {
+        "seed": "1e0"
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-28",
+      "options": {
+        "seed": "1E0"
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-29",
+      "options": {
+        "seed": "1_0"
+      },
+      "request_valid": true,
+      "request_seed": 10,
+      "seed": 10
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-30",
+      "options": {
+        "seed": "_10"
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-31",
+      "options": {
+        "seed": "10_"
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-32",
+      "options": {
+        "seed": "1__0"
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-33",
+      "options": {
+        "seed": "1.00"
+      },
+      "request_valid": true,
+      "request_seed": 1,
+      "seed": 1
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-34",
+      "options": {
+        "seed": "-2.000"
+      },
+      "request_valid": true,
+      "request_seed": -2,
+      "seed": -2
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-35",
+      "options": {
+        "seed": "+19.000"
+      },
+      "request_valid": true,
+      "request_seed": 19,
+      "seed": 19
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-36",
+      "options": {
+        "seed": "19."
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-37",
+      "options": {
+        "seed": "19.0_0"
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-38",
+      "options": {
+        "seed": "  +0019.000  "
+      },
+      "request_valid": true,
+      "request_seed": 19,
+      "seed": 19
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-39",
+      "options": {
+        "seed": "١٩"
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-40",
+      "options": {
+        "seed": "１９"
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-41",
+      "options": {
+        "seed": "\t19\n"
+      },
+      "request_valid": true,
+      "request_seed": 19,
+      "seed": 19
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-42",
+      "options": {
+        "seed": "0x10"
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-43",
+      "options": {
+        "seed": "9223372036854775807.0"
+      },
+      "request_valid": true,
+      "request_seed": 9223372036854775807,
+      "seed": 9223372036854775807
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-44",
+      "options": {
+        "seed": "-9223372036854775808.0"
+      },
+      "request_valid": true,
+      "request_seed": -9223372036854775808,
+      "seed": -9223372036854775808
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-45",
+      "options": {
+        "seed": "-9223372036854775809.0"
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-46",
+      "options": {
+        "seed": "9223372036854775806.0"
+      },
+      "request_valid": true,
+      "request_seed": 9223372036854775806,
+      "seed": 9223372036854775806
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-47",
+      "options": {
+        "seed": 9.223372036854775e+18
+      },
+      "request_valid": true,
+      "request_seed": 9223372036854774784,
+      "seed": 9223372036854774784
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-48",
+      "options": {
+        "seed": -9.223372036854776e+18
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "chat",
+      "name": "seed-49",
+      "options": {
+        "seed": 1e+20
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "transcription",
+      "name": "omitted",
+      "options": {},
+      "request_valid": true,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-0",
+      "options": {
+        "seed": null
+      },
+      "request_valid": true,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-1",
+      "options": {
+        "seed": -9223372036854775809
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-2",
+      "options": {
+        "seed": -9223372036854775808
+      },
+      "request_valid": true,
+      "request_seed": -9223372036854775808,
+      "seed": -9223372036854775808
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-3",
+      "options": {
+        "seed": -2
+      },
+      "request_valid": true,
+      "request_seed": -2,
+      "seed": -2
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-4",
+      "options": {
+        "seed": -1
+      },
+      "request_valid": true,
+      "request_seed": -1,
+      "seed": null
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-5",
+      "options": {
+        "seed": 0
+      },
+      "request_valid": true,
+      "request_seed": 0,
+      "seed": 0
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-6",
+      "options": {
+        "seed": 1
+      },
+      "request_valid": true,
+      "request_seed": 1,
+      "seed": 1
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-7",
+      "options": {
+        "seed": 9223372036854775807
+      },
+      "request_valid": true,
+      "request_seed": 9223372036854775807,
+      "seed": 9223372036854775807
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-8",
+      "options": {
+        "seed": 9223372036854775808
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-9",
+      "options": {
+        "seed": 18446744073709551615
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-10",
+      "options": {
+        "seed": 1.0
+      },
+      "request_valid": true,
+      "request_seed": 1,
+      "seed": 1
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-11",
+      "options": {
+        "seed": -1.0
+      },
+      "request_valid": true,
+      "request_seed": -1,
+      "seed": null
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-12",
+      "options": {
+        "seed": 1.5
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-13",
+      "options": {
+        "seed": true
+      },
+      "request_valid": true,
+      "request_seed": 1,
+      "seed": 1
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-14",
+      "options": {
+        "seed": false
+      },
+      "request_valid": true,
+      "request_seed": 0,
+      "seed": 0
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-15",
+      "options": {
+        "seed": "-1"
+      },
+      "request_valid": true,
+      "request_seed": -1,
+      "seed": null
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-16",
+      "options": {
+        "seed": "-2"
+      },
+      "request_valid": true,
+      "request_seed": -2,
+      "seed": -2
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-17",
+      "options": {
+        "seed": "0"
+      },
+      "request_valid": true,
+      "request_seed": 0,
+      "seed": 0
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-18",
+      "options": {
+        "seed": "1.0"
+      },
+      "request_valid": true,
+      "request_seed": 1,
+      "seed": 1
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-19",
+      "options": {
+        "seed": "1.5"
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-20",
+      "options": {
+        "seed": "null"
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-21",
+      "options": {
+        "seed": ""
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-22",
+      "options": {
+        "seed": "  19  "
+      },
+      "request_valid": true,
+      "request_seed": 19,
+      "seed": 19
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-23",
+      "options": {
+        "seed": "+19"
+      },
+      "request_valid": true,
+      "request_seed": 19,
+      "seed": 19
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-24",
+      "options": {
+        "seed": "0019"
+      },
+      "request_valid": true,
+      "request_seed": 19,
+      "seed": 19
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-25",
+      "options": {
+        "seed": "-0"
+      },
+      "request_valid": true,
+      "request_seed": 0,
+      "seed": 0
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-26",
+      "options": {
+        "seed": "+0"
+      },
+      "request_valid": true,
+      "request_seed": 0,
+      "seed": 0
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-27",
+      "options": {
+        "seed": "1e0"
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-28",
+      "options": {
+        "seed": "1E0"
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-29",
+      "options": {
+        "seed": "1_0"
+      },
+      "request_valid": true,
+      "request_seed": 10,
+      "seed": 10
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-30",
+      "options": {
+        "seed": "_10"
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-31",
+      "options": {
+        "seed": "10_"
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-32",
+      "options": {
+        "seed": "1__0"
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-33",
+      "options": {
+        "seed": "1.00"
+      },
+      "request_valid": true,
+      "request_seed": 1,
+      "seed": 1
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-34",
+      "options": {
+        "seed": "-2.000"
+      },
+      "request_valid": true,
+      "request_seed": -2,
+      "seed": -2
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-35",
+      "options": {
+        "seed": "+19.000"
+      },
+      "request_valid": true,
+      "request_seed": 19,
+      "seed": 19
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-36",
+      "options": {
+        "seed": "19."
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-37",
+      "options": {
+        "seed": "19.0_0"
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-38",
+      "options": {
+        "seed": "  +0019.000  "
+      },
+      "request_valid": true,
+      "request_seed": 19,
+      "seed": 19
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-39",
+      "options": {
+        "seed": "١٩"
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-40",
+      "options": {
+        "seed": "１９"
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-41",
+      "options": {
+        "seed": "\t19\n"
+      },
+      "request_valid": true,
+      "request_seed": 19,
+      "seed": 19
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-42",
+      "options": {
+        "seed": "0x10"
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-43",
+      "options": {
+        "seed": "9223372036854775807.0"
+      },
+      "request_valid": true,
+      "request_seed": 9223372036854775807,
+      "seed": 9223372036854775807
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-44",
+      "options": {
+        "seed": "-9223372036854775808.0"
+      },
+      "request_valid": true,
+      "request_seed": -9223372036854775808,
+      "seed": -9223372036854775808
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-45",
+      "options": {
+        "seed": "-9223372036854775809.0"
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-46",
+      "options": {
+        "seed": "9223372036854775806.0"
+      },
+      "request_valid": true,
+      "request_seed": 9223372036854775806,
+      "seed": 9223372036854775806
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-47",
+      "options": {
+        "seed": 9.223372036854775e+18
+      },
+      "request_valid": true,
+      "request_seed": 9223372036854774784,
+      "seed": 9223372036854774784
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-48",
+      "options": {
+        "seed": -9.223372036854776e+18
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    },
+    {
+      "endpoint": "transcription",
+      "name": "seed-49",
+      "options": {
+        "seed": 1e+20
+      },
+      "request_valid": false,
+      "request_seed": null,
+      "seed": null
+    }
+  ]
+}

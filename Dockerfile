@@ -9,6 +9,7 @@ FROM rust:1.94.1-slim-trixie AS build
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         build-essential cmake nasm pkg-config protobuf-compiler \
+        libavformat-dev libavcodec-dev libavutil-dev libswresample-dev \
     && if [ "$(dpkg --print-architecture)" = arm64 ]; then \
         apt-get install -y --no-install-recommends libibverbs-dev; \
     fi \
@@ -34,7 +35,8 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 FROM debian:trixie-slim
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libgcc-s1 \
+    && apt-get install -y --no-install-recommends \
+        libgcc-s1 libavformat61 libavcodec61 libavutil59 libswresample5 \
     && if [ "$(dpkg --print-architecture)" = arm64 ]; then \
         apt-get install -y --no-install-recommends libibverbs1 ibverbs-providers; \
     fi \
@@ -45,7 +47,7 @@ RUN apt-get update \
 
 COPY --from=build /out/flare /usr/local/bin/flare
 COPY LICENSE NOTICE /usr/share/doc/flare/
-COPY helios/licenses/PyTorch.txt /usr/share/doc/flare/licenses/PyTorch.txt
+COPY helios/licenses/ /usr/share/doc/flare/licenses/
 
 USER flare
 WORKDIR /home/flare

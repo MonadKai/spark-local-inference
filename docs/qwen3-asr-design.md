@@ -240,6 +240,24 @@ also needs an explicit compatibility/determinism decision. These are observed
 vLLM API ranges, not author recommendations. The proposal does not grant a
 general exception for other recipes or alter the repository rule.
 
+### Signed request seed syntax
+
+The native frontend declares nullable signed-64-bit seed syntax as typed data,
+independently of model identity and the distribution sampler. An absent declaration
+retains every old package's unsigned request syntax and packaged seed default.
+For the new declaration, explicit fixed integers retain their 64 bits; for example,
+-2 becomes the native unsigned key 18446744073709551614. Omission, JSON null and
+-1 resolve once per parent to a fresh host key. Every transcription child receives
+that same key. Native uint64 storage, Philox counters and prepared graph arithmetic
+remain unchanged; greedy argmax output is seed-independent.
+
+Pinned vLLM/Pydantic request-model probes establish signed bounds and numeric/text
+coercion cases before native comparison. Native seed text cleanup retains the
+Pydantic MIT notice. A form field containing literal `null` is not JSON null and
+is rejected, matching the request model. This design does not activate stochastic
+sampling ranges or exclude -1. CPU request-model comparisons do not establish
+multipart HTTP or GPU sampling equivalence.
+
 ## Native API input boundaries
 
 The implementation remains unregistered and requires real HTTP/model

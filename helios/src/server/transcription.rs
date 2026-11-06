@@ -34,6 +34,7 @@ fn parameters(mut fields: Map<String, Value>) -> Result<Parameters> {
 
 async fn multipart(request: Request, state: &Arc<HttpState>, maximum: usize)
     -> std::result::Result<(Vec<u8>, Map<String, Value>), (StatusCode, String)> {
+    let signed_seed = state.model.config().contract.frontend.request_seed_syntax.is_some();
     if request.headers().get("content-encoding").is_some_and(|value| value != "identity") {
         return Err((StatusCode::UNSUPPORTED_MEDIA_TYPE, "multipart Content-Encoding must be identity".into()));
     }
@@ -62,13 +63,15 @@ async fn multipart(request: Request, state: &Arc<HttpState>, maximum: usize)
         }
         if fields.contains_key(&name) { return Err((StatusCode::BAD_REQUEST, format!("duplicate transcription field {name}"))); }
         let text = field.text().await.map_err(|error| (error.status(), error.to_string()))?;
-        let value = if ["model", "language", "prompt", "response_format"].contains(&name.as_str()) {
+        let value = if ["model", "language", "prompt", "response_format"].contains(&name.as_str())
+            || name == "seed" && signed_seed {
             Value::String(text)
         } else {
             serde_json::from_str(&text).map_err(|_| (StatusCode::BAD_REQUEST, format!("invalid transcription {name}")))?
         };
         if name == "stream" && !value.is_boolean() || name != "stream"
-            && !["model", "language", "prompt", "response_format"].contains(&name.as_str()) && !value.is_number() {
+            && !["model", "language", "prompt", "response_format"].contains(&name.as_str())
+            && !(name == "seed" && signed_seed) && !value.is_number() {
             return Err((StatusCode::BAD_REQUEST, format!("invalid transcription {name}")));
         }
         fields.insert(name, value);
@@ -95,7 +98,10 @@ pub(super) async fn generate(State(state): State<Arc<HttpState>>,
             return http::error(Protocol::Chat, StatusCode::NOT_FOUND, "requested model is not loaded");
         }
     }
-    let parameters = match parameters(fields) {
+    let parameters = match parameters(fields).and_then(|mut value| {
+        super::seed::normalize(&mut value.sampling, state.model.config().contract.frontend.request_seed_syntax)?;
+        Ok(value)
+    }) {
         Ok(value) => Arc::new(value),
         Err(error) => return http::error(Protocol::Chat, StatusCode::BAD_REQUEST, error),
     };

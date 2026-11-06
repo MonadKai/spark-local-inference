@@ -48,6 +48,11 @@ FlashInfer/b12x source. Its upstream Apache-2.0 license
 is retained in `helios/licenses/FlashInfer.txt` and included in binary archives.
 This native C source is distinct from the separately installed Python package.
 
+The native request seed text normalizer adapts Pydantic's MIT-licensed integer
+cleanup from pydantic-core 2.46.5. Its copyright and complete license are retained
+in `helios/licenses/Pydantic.txt` and included in binary archives. This is compiled
+Rust code; the native server does not link or execute Python/Pydantic.
+
 The vLLM-derived sampler and DeepSeek recipe assets belong to the source and
 preparation tools. Their existing notices and license texts remain in the source
 tree. They are not part of the native executable's dependency graph.

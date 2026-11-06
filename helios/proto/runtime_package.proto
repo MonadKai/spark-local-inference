@@ -449,6 +449,13 @@ message FrontendContract {
   optional AudioPreparationKind audio_preparation = 11;
   AudioTokenLayout audio_tokens = 12;
   TranscriptionFormat transcription = 13;
+  // Absent preserves unsigned seed/default parsing in existing packages.
+  optional RequestSeedSyntax request_seed_syntax = 14;
+}
+enum RequestSeedSyntax {
+  REQUEST_SEED_UNSPECIFIED = 0;
+  // Nullable signed int64; -1 is unseeded, other negatives retain their bits.
+  SIGNED64_OPTIONAL = 1;
 }
 // Fixed prompt/output syntax. These fields never select model computation or
 // scheduling, sampling, cache, graph or completion policy.

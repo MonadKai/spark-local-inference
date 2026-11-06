@@ -188,7 +188,12 @@ pub(super) async fn generate(
     let preparation = tokio::task::spawn_blocking(move || {
         let _permit = permit;
         let _ingress = preparation_ingress;
-        let body = decode_body(&bytes, &encoding, prepare_state.max_body_bytes)?;
+        let mut body = decode_body(&bytes, &encoding, prepare_state.max_body_bytes)?;
+        if let Some(syntax) = prepare_state.model.config().contract.frontend.request_seed_syntax {
+            let fields = body.as_object_mut().ok_or((StatusCode::BAD_REQUEST, "request must be a JSON object".into()))?;
+            super::seed::normalize(fields, Some(syntax))
+                .map_err(|error| (StatusCode::BAD_REQUEST, error.to_string()))?;
+        }
         if prepare_state.model.config().contract.audio.is_some() {
             if protocol != Protocol::Chat || count {
                 return Err((StatusCode::BAD_REQUEST, "audio model requires the declared audio chat or transcription endpoint".into()));
