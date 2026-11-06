@@ -335,7 +335,9 @@ def prepare(snapshot, config, *, progress=None, package_storage):
 
         studies = {width: SpeculationStudy(owner, width, buffers=private_buffers.cursor())
                    for width, owner in study_owners.items()}
-    with phase(progress, "Prepare and tune kernels") as stage, transient:
+    from ignition.preparation.failure import retain_on_failed_drain
+
+    with retain_on_failed_drain(device, session, forwards, weights, package_storage, transient), phase(progress, "Prepare and tune kernels") as stage, transient:
         tuning = session.tune(show_progress=progress is not None, console=stage.console)
     stream, graph_pool = torch.cuda.Stream(device=device), package_storage.graph_pool.id
     graphs, compiled = capture_forwards(forwards, signatures, session=session, device=device,

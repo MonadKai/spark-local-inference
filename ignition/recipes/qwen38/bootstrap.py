@@ -259,20 +259,27 @@ def prepare_rank(snapshot, config, *, rank, group, progress=None, package_storag
 @torch.no_grad()
 def prepare_model(snapshot: Path, config: PreparationConfig | None = None, *, progress=None,
                   compile_decoder: bool = True, rank: int = 0, group=None, package_storage=None) -> PreparedModel:
+    from ignition.preparation.failure import resources_retained, retain_undrained
+
     config = PreparationConfig() if config is None else config
     transient = contextlib.ExitStack()
+    prepared = None
     try:
         prepared = _prepare_model(snapshot, config, progress=progress, compile_decoder=compile_decoder,
             rank=rank, group=group, package_storage=package_storage, transient=transient)
+        transient.close()
     except BaseException as error:
+        if resources_retained(error):
+            retain_undrained(error, transient, package_storage, prepared)
+            raise
         try:
             transient.close()
         except BaseException as cleanup_error:
+            if resources_retained(cleanup_error):
+                retain_undrained(error, transient, package_storage, prepared)
             error.add_note(f"transient allocation scope cleanup failed: {cleanup_error!r}")
         raise
-    else:
-        transient.close()
-        return prepared
+    return prepared
 
 
 @with_autotune_effort
@@ -571,7 +578,9 @@ def _prepare_model(snapshot: Path, config: PreparationConfig | None = None, *, t
                         add(f"{mode}{capacity}" + suffix, maintenance, mode, capacity, 1, fields, enabled=enabled)
                         owners.append(maintenance)
         session.register_scratch(workspaces)
-        with phase(progress, "Prepare and tune kernels") as stage, transient:
+        from ignition.preparation.failure import retain_on_failed_drain
+
+        with retain_on_failed_drain(device, session, functions, weights, package_storage, transient), phase(progress, "Prepare and tune kernels") as stage, transient:
             tuning = session.tune(show_progress=progress is not None, console=stage.console)
         report(f"selected prepared kernels: {tuning['selection_counts']}")
         stream = torch.cuda.Stream(device=device)
@@ -702,10 +711,14 @@ def _prepare_model(snapshot: Path, config: PreparationConfig | None = None, *, t
                              *((hidden_gather_collective,) if hidden_gather_collective is not None
                                and hidden_gather_collective is not collective else ()),
                              *((vocabulary_collective, collective) if collective is not None else ())))
-    except BaseException:
-        torch.cuda.synchronize(device)
-        for graph in graphs.values():
-            graph.reset()
-        session.close()
-        table.close()
+    except BaseException as error:
+        from ignition.preparation.failure import drain_or_retain
+
+        if drain_or_retain(error, device, graphs, session, table, collective,
+                           vocabulary_collective, hidden_gather_collective, coordinator):
+            for cleanup in (*(graph.reset for graph in graphs.values()), session.close, table.close):
+                try:
+                    cleanup()
+                except BaseException as cleanup_error:
+                    error.add_note(f"Qwen preparation owner cleanup failed: {cleanup_error!r}")
         raise

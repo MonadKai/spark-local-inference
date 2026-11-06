@@ -43,7 +43,9 @@ class PackageStorage:
 
     def __init__(self, *, rank=0, world=1, device=0, local_ranks=None):
         import torch
+        from .failure import require_retention
 
+        require_retention()
         self.rank, self.world, self.device = rank, world, device
         self.local_ranks = world if local_ranks is None else local_ranks
         if type(self.local_ranks) is not int or not 1 <= self.local_ranks <= world:
@@ -209,11 +211,29 @@ class PackageStorage:
                      else self._allocator)
         pool = torch.cuda.MemPool(allocator.allocator())
         self._preparation_pools.add(pool.id)
+        from .failure import drain_or_retain
+
         try:
             with torch.cuda.use_mem_pool(pool, device=self.device):
                 yield
-        finally:
-            torch.cuda.synchronize(self.device)
+        except BaseException as error:
+            if not drain_or_retain(error, self.device, self, pool, allocator):
+                raise
+            try:
+                del pool
+                torch.cuda.empty_cache()
+                self.seal_low_window()
+            except BaseException as cleanup_error:
+                error.add_note(f"transient pool cleanup failed: {cleanup_error!r}")
+            raise
+        else:
+            try:
+                torch.cuda.synchronize(self.device)
+            except BaseException as error:
+                from .failure import retain_undrained
+
+                retain_undrained(error, self, pool, allocator)
+                raise
             del pool
             torch.cuda.empty_cache()
             # Returned segments may reopen low addresses that later library allocations would take.

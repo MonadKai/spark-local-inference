@@ -600,9 +600,22 @@ fn flare_heliopause(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<NativeServer>()?;
     module.add_function(wrap_pyfunction!(current_context, module)?)?;
     module.add_function(wrap_pyfunction!(memory_inventory, module)?)?;
+    module.add_function(wrap_pyfunction!(retain_undrained_preparation, module)?)?;
     module.add_function(wrap_pyfunction!(serve_tensor_parallel_rank, module)?)?;
     #[cfg(target_os = "linux")]
     module.add_function(wrap_pyfunction!(bind_parent_lifetime, module)?)?;
+    Ok(())
+}
+
+/// Failed preparation cannot release GPU owners until a confirmed drain or
+/// process exit. Match native execution's OwnerLease semantics independently
+/// of Python exception/traceback lifetime; there is deliberately no release API.
+#[pyfunction]
+fn retain_undrained_preparation(py: Python<'_>, owner: Py<PyAny>) -> PyResult<()> {
+    if owner.bind(py).is_none() {
+        return Err(PyValueError::new_err("undrained preparation requires resource owners"));
+    }
+    drop(OwnerLease(Some(owner)));
     Ok(())
 }
 

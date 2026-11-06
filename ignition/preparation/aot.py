@@ -34,6 +34,7 @@ from .compilation import (DEFAULT_CACHE_ROOT, _INVOCATIONS, _OPTIONS, _Invocatio
                           _byte_storage, _storage_region, _lower_storage, _compiler_recursion)
 from .device_binding import bind_device, relocate_inductor, restore_device, restore_prepared_device
 from .host_memory import release_unused
+from .failure import retain_on_failed_drain
 
 _GUARD_LOCK = RLock()
 _GUARD_TENSOR_MODE = ContextVar("flare_guard_tensor_mode", default=None)
@@ -689,55 +690,56 @@ class ForwardCache:
                                        materialize=materialize, warmup=warmup, before_run=before_run)
         selections = InductorSelections(self.device, lock_gpu_clocks=self.lock_gpu_clocks)
         compiled, paths, pending = {}, {}, []
-        with phase(progress, "Compile model forwards", total=len(functions)) as stage, CompilePool(self.device,
-                headroom_bytes=self.headroom_bytes, options=self.options, compile_workers=self.compile_workers) as compiler:
-            def finish():
-                name, bound, path = _completed(pending)
-                try:
-                    with _guard_code_cache(self.root / 'guards'):
-                        if bound.pending is not None:
-                            bound.pending.result()
-                        if materialize is None:
-                            if not bound.cache_hit:
-                                bound = self._load(bound.owner, path, required=True,
-                                                   before_run=None if before_run is None else lambda: before_run(name))
-                                bound.cache_hit = False
-                            compiled[name] = self._warm(bound, path, name=name, progress=None,
-                                                       selections=selections, warmup=warmup,
-                                                       before_run=None if before_run is None else lambda name=name: before_run(name))
-                        else:
-                            paths[name] = path
-                except Exception as error:
-                    raise RuntimeError(f"failed to prepare compiled forward {name}") from error
-                stage.update(advance=1)
+        with retain_on_failed_drain(self.device, compiled, selections, functions, materialize, warmup, before_run):
+            with phase(progress, "Compile model forwards", total=len(functions)) as stage, CompilePool(self.device,
+                    headroom_bytes=self.headroom_bytes, options=self.options, compile_workers=self.compile_workers) as compiler:
+                def finish():
+                    name, bound, path = _completed(pending)
+                    try:
+                        with _guard_code_cache(self.root / 'guards'):
+                            if bound.pending is not None:
+                                bound.pending.result()
+                            if materialize is None:
+                                if not bound.cache_hit:
+                                    bound = self._load(bound.owner, path, required=True,
+                                                       before_run=None if before_run is None else lambda: before_run(name))
+                                    bound.cache_hit = False
+                                compiled[name] = self._warm(bound, path, name=name, progress=None,
+                                                           selections=selections, warmup=warmup,
+                                                           before_run=None if before_run is None else lambda name=name: before_run(name))
+                            else:
+                                paths[name] = path
+                    except Exception as error:
+                        raise RuntimeError(f"failed to prepare compiled forward {name}") from error
+                    stage.update(advance=1)
 
-            for name, forward in functions.items():
-                with _guard_code_cache(self.root / 'guards'):
-                    bound, path = self._prepare(forward, name=name, signature=signatures[name], compiler=compiler,
-                                                deferred=materialize is not None,
-                                                before_run=None if before_run is None else lambda name=name: before_run(name))
-                pending.append((name, bound, path))
-                if len(pending) >= compiler.workers:
-                    finish()
-            while pending:
-                finish()
-        release_unused()
-        if materialize is not None:
-            materialize()
-            with phase(progress, "Warm compiled forwards", total=len(functions)) as stage:
                 for name, forward in functions.items():
                     with _guard_code_cache(self.root / 'guards'):
-                        try:
-                            bound = self._load(forward, paths[name], required=True,
-                                               before_run=None if before_run is None else lambda name=name: before_run(name))
-                        except BindingMismatch:
-                            bound = BoundForward(aot_forward(forward, options=self.options), forward, False)
-                        compiled[name] = self._warm(bound, paths[name], name=name, progress=None,
-                                                   selections=selections, warmup=warmup,
+                        bound, path = self._prepare(forward, name=name, signature=signatures[name], compiler=compiler,
+                                                    deferred=materialize is not None,
+                                                    before_run=None if before_run is None else lambda name=name: before_run(name))
+                    pending.append((name, bound, path))
+                    if len(pending) >= compiler.workers:
+                        finish()
+                while pending:
+                    finish()
+            release_unused()
+            if materialize is not None:
+                materialize()
+                with phase(progress, "Warm compiled forwards", total=len(functions)) as stage:
+                    for name, forward in functions.items():
+                        with _guard_code_cache(self.root / 'guards'):
+                            try:
+                                bound = self._load(forward, paths[name], required=True,
                                                    before_run=None if before_run is None else lambda name=name: before_run(name))
-                    stage.update(advance=1)
-        release_unused()
-        return compiled
+                            except BindingMismatch:
+                                bound = BoundForward(aot_forward(forward, options=self.options), forward, False)
+                            compiled[name] = self._warm(bound, paths[name], name=name, progress=None,
+                                                       selections=selections, warmup=warmup,
+                                                       before_run=None if before_run is None else lambda name=name: before_run(name))
+                        stage.update(advance=1)
+            release_unused()
+            return compiled
 
     def _prepare_ranks(self, functions, signatures, coordinator, *, progress, materialize, warmup,
                        before_run):
@@ -766,179 +768,180 @@ class ForwardCache:
         compilers = _variant_compilers(selections)
         work = [(name, variant, functions[name]) for (name, variant), compiler in compilers.items() if compiler == share]
         selected, outcome, error, compiler, paths, lent, sent = {}, (None, None), None, None, {}, set(), []
-        unavailable, loans = None, []
-        with ExitStack() as scope:
-            stage = scope.enter_context(phase(progress, "Compile model forwards", total=len(work)))
-            try:
-                compiler = scope.enter_context(CompilePool(
-                    self.device, headroom_bytes=self.headroom_bytes, pools=coordinator.local_ranks,
-                    options=self.options, compile_workers=self.compile_workers))
-            except MemoryError as failure:
-                # A rank whose GPU has no room for a compiler lends its forwards to the others on this host.
-                unavailable = f"{type(failure).__name__}: {failure}"
-            except Exception as failure:
-                error = f"{type(failure).__name__}: {failure}"
-            # Variants that only one rank selects, such as rank zero's sampling, can leave that rank most of
-            # the catalog. Ranks on one host share its cache, so a rank lends forwards it cannot restore, whether
-            # missing or bound differently by another launch, to ranks whose compilers would otherwise finish
-            # first; the borrower compiles the owner's metadata.
-            restored, missing = {}, []
-            try:
-                for index, (name, variant, forward) in enumerate(work):
-                    with _guard_code_cache(self.root / 'guards'):
-                        bound, path = self._restore(forward, name=f"{name}.{variant}", signature=signatures[name],
-                                                    deferred=materialize is not None,
-                                                    before_run=None if before_run is None else lambda name=name: before_run(name))
-                    if bound is None:
-                        missing.append(index)
-                    else:
-                        restored[index] = bound, path
-            except Exception as failure:
-                error = error or f"{type(failure).__name__}: {failure}"
-            demand = [None] * len(ranks)
-            dist.all_gather_object(demand, (len(missing), 0 if compiler is None else compiler.workers), group=group)
-            if not coordinator.spans_hosts and any(workers for _, workers in demand):
-                assigned = _balance_compilations([count for count, _ in demand], [workers for _, workers in demand])
-                loans = [(borrower, missing[index]) for borrower, forwards in enumerate(assigned)
-                         for owner, index in forwards if owner == share and borrower != share]
-                lent = {work[index][:2] for _, index in loans}
+        with retain_on_failed_drain(self.device, selected, functions, coordinator, materialize, warmup, before_run):
+            unavailable, loans = None, []
+            with ExitStack() as scope:
+                stage = scope.enter_context(phase(progress, "Compile model forwards", total=len(work)))
                 try:
-                    from .forward_metadata import dumps
-
-                    jobs = self.root / 'lent'
-                    jobs.mkdir(parents=True, exist_ok=True)
-                    for borrower, index in loans:
-                        name, variant, forward = work[index]
-                        path = self._path(forward, name=f"{name}.{variant}", signature=signatures[name])
-                        job = jobs / f"{path.stem}.forward"
-                        with tempfile.NamedTemporaryFile(dir=jobs, suffix='.tmp', delete=False) as file:
-                            pickle.dump((dumps(forward), str(path)), file)
-                        os.replace(file.name, job)
-                        sent.append((borrower, str(job)))
-                        # The borrower compiles it before every rank gathers the outcome below.
-                        paths[name, variant] = str(path), True
+                    compiler = scope.enter_context(CompilePool(
+                        self.device, headroom_bytes=self.headroom_bytes, pools=coordinator.local_ranks,
+                        options=self.options, compile_workers=self.compile_workers))
+                except MemoryError as failure:
+                    # A rank whose GPU has no room for a compiler lends its forwards to the others on this host.
+                    unavailable = f"{type(failure).__name__}: {failure}"
+                except Exception as failure:
+                    error = f"{type(failure).__name__}: {failure}"
+                # Variants that only one rank selects, such as rank zero's sampling, can leave that rank most of
+                # the catalog. Ranks on one host share its cache, so a rank lends forwards it cannot restore, whether
+                # missing or bound differently by another launch, to ranks whose compilers would otherwise finish
+                # first; the borrower compiles the owner's metadata.
+                restored, missing = {}, []
+                try:
+                    for index, (name, variant, forward) in enumerate(work):
+                        with _guard_code_cache(self.root / 'guards'):
+                            bound, path = self._restore(forward, name=f"{name}.{variant}", signature=signatures[name],
+                                                        deferred=materialize is not None,
+                                                        before_run=None if before_run is None else lambda name=name: before_run(name))
+                        if bound is None:
+                            missing.append(index)
+                        else:
+                            restored[index] = bound, path
                 except Exception as failure:
                     error = error or f"{type(failure).__name__}: {failure}"
-            mailed = [None] * len(ranks)
-            dist.all_gather_object(mailed, sent, group=group)
-            borrowed = [job for jobs in mailed for borrower, job in jobs if borrower == share]
-            try:
-                if error is not None:
-                    raise RuntimeError(error)
-                if compiler is None and (borrowed or any(index not in {i for _, i in loans} for index in missing)
-                                         if not coordinator.spans_hosts else missing):
-                    raise RuntimeError(unavailable)
-                pending = []
+                demand = [None] * len(ranks)
+                dist.all_gather_object(demand, (len(missing), 0 if compiler is None else compiler.workers), group=group)
+                if not coordinator.spans_hosts and any(workers for _, workers in demand):
+                    assigned = _balance_compilations([count for count, _ in demand], [workers for _, workers in demand])
+                    loans = [(borrower, missing[index]) for borrower, forwards in enumerate(assigned)
+                             for owner, index in forwards if owner == share and borrower != share]
+                    lent = {work[index][:2] for _, index in loans}
+                    try:
+                        from .forward_metadata import dumps
 
-                def finish():
-                    name, variant, bound, path = _completed(pending)
-                    if bound.pending is not None:
-                        bound.pending.result()
-                    elif materialize is None:
-                        # Restored and bound to this rank's own forward already.
-                        selected[name] = bound
-                    if name is not None:
-                        # Each forward's path, and whether this launch compiled it rather than restoring it.
-                        paths[name, variant] = str(path), bound.pending is not None
-                        stage.update(advance=1)
-
-                for index, (name, variant, forward) in enumerate(work):
-                    if (name, variant) in lent:
-                        continue
-                    if index in restored:
-                        bound, path = restored[index]
-                    else:
-                        path = self._path(forward, name=f"{name}.{variant}", signature=signatures[name])
-                        bound = BoundForward(None, forward, False, compiler.submit(forward, path))
-                    pending.append((name, variant, bound, path))
-                    if compiler is not None and len(pending) >= compiler.workers:
-                        finish()
-                for job in borrowed:
-                    with open(job, 'rb') as file:
-                        payload, path = pickle.load(file)
-                    os.unlink(job)
-                    future = compiler.submit_payload(payload, Path(path))
-                    pending.append((None, None, BoundForward(None, None, False, future), path))
-                    if len(pending) >= compiler.workers:
-                        finish()
-                while pending:
-                    finish()
-                outcome = paths, None
-            except Exception as failure:
-                outcome = None, f"{type(failure).__name__}: {failure}"
-            outcomes = [None] * len(ranks)
-            dist.all_gather_object(outcomes, outcome, group=group)
-            # Forwards lent to other ranks are complete once every rank reports.
-            stage.update(advance=len(lent))
-        failures = [(index, failure) for index, (_, failure) in zip(ranks, outcomes) if failure is not None]
-        if failures:
-            raise RuntimeError(f"forward compilation failed: {failures}")
-        restored.clear()
-        bound = None
-        paths = {key: value for compiled, _ in outcomes for key, value in compiled.items()}
-        # Ranks on one host compiled into its cache directory; only other hosts lack their shares.
-        if coordinator.spans_hosts:
-            _share_artifacts([sorted({path for path, _ in compiled.values()}) for compiled, _ in outcomes],
-                             group, ranks)
-        error = None
-        try:
-            release_unused()
-            if materialize is not None:
-                materialize()
-            with phase(progress, "Load compiled forwards", total=len(functions) - len(selected)) as stage:
-                for name, forward in functions.items():
-                    if name in selected:
-                        continue
-                    path, compiled = paths[name, getattr(forward, "compilation_variant", "shared")]
-                    with _guard_code_cache(self.root / 'guards'):
-                        selected[name] = self._load(forward, Path(path), required=True,
-                            before_run=None if before_run is None else lambda name=name: before_run(name))
-                    selected[name].cache_hit = not compiled
-                    stage.update(advance=1)
-        except Exception as failure:
-            import traceback
-
-            traceback.print_exc(limit=-40)
-            error = f"{type(failure).__name__}: {failure}"
-        errors = [None] * len(ranks)
-        dist.all_gather_object(errors, error, group=group)
-        if any(errors):
-            raise RuntimeError(f"compiled forward binding failed: {errors}")
-        release_unused()
-        selections = InductorSelections(self.device, coordinator=coordinator,
-                                        lock_gpu_clocks=self.lock_gpu_clocks)
-        failure = None
-        try:
-            for bound in selected.values():
-                selections.register(bound)
-        except Exception as error:
-            failure = f"{type(error).__name__}: {error}"
-        selections._check(failure)
-        with phase(progress, "Warm compiled forwards", total=len(functions)) as stage:
-            for name in functions:
-                coordinator.barrier(f"compiled warmup {name}", ranks)
+                        jobs = self.root / 'lent'
+                        jobs.mkdir(parents=True, exist_ok=True)
+                        for borrower, index in loans:
+                            name, variant, forward = work[index]
+                            path = self._path(forward, name=f"{name}.{variant}", signature=signatures[name])
+                            job = jobs / f"{path.stem}.forward"
+                            with tempfile.NamedTemporaryFile(dir=jobs, suffix='.tmp', delete=False) as file:
+                                pickle.dump((dumps(forward), str(path)), file)
+                            os.replace(file.name, job)
+                            sent.append((borrower, str(job)))
+                            # The borrower compiles it before every rank gathers the outcome below.
+                            paths[name, variant] = str(path), True
+                    except Exception as failure:
+                        error = error or f"{type(failure).__name__}: {failure}"
+                mailed = [None] * len(ranks)
+                dist.all_gather_object(mailed, sent, group=group)
+                borrowed = [job for jobs in mailed for borrower, job in jobs if borrower == share]
                 try:
-                    selections.warm(selected[name], warmup,
-                                    before_run=None if before_run is None else lambda name=name: before_run(name))
-                except Exception as error:
-                    error.add_note(f"Warming compiled forward {name!r}")
-                    raise
-                stage.update(advance=1)
-        published, failure = [], None
-        try:
-            for name, bound in selected.items():
-                selections.freeze(bound)
-                variant = getattr(functions[name], 'compilation_variant', 'shared')
-                if compilers[name, variant] == share:
-                    path, _ = paths[name, variant]
-                    bound.artifact.save_compiled_function(path)
-                    published.append(path)
-        except Exception as error:
-            failure = f"{type(error).__name__}: {error}"
-        selections._check(failure)
-        if coordinator.spans_hosts:
-            _share_artifacts(selections._gather(published), group, ranks)
-        return selected
+                    if error is not None:
+                        raise RuntimeError(error)
+                    if compiler is None and (borrowed or any(index not in {i for _, i in loans} for index in missing)
+                                             if not coordinator.spans_hosts else missing):
+                        raise RuntimeError(unavailable)
+                    pending = []
+
+                    def finish():
+                        name, variant, bound, path = _completed(pending)
+                        if bound.pending is not None:
+                            bound.pending.result()
+                        elif materialize is None:
+                            # Restored and bound to this rank's own forward already.
+                            selected[name] = bound
+                        if name is not None:
+                            # Each forward's path, and whether this launch compiled it rather than restoring it.
+                            paths[name, variant] = str(path), bound.pending is not None
+                            stage.update(advance=1)
+
+                    for index, (name, variant, forward) in enumerate(work):
+                        if (name, variant) in lent:
+                            continue
+                        if index in restored:
+                            bound, path = restored[index]
+                        else:
+                            path = self._path(forward, name=f"{name}.{variant}", signature=signatures[name])
+                            bound = BoundForward(None, forward, False, compiler.submit(forward, path))
+                        pending.append((name, variant, bound, path))
+                        if compiler is not None and len(pending) >= compiler.workers:
+                            finish()
+                    for job in borrowed:
+                        with open(job, 'rb') as file:
+                            payload, path = pickle.load(file)
+                        os.unlink(job)
+                        future = compiler.submit_payload(payload, Path(path))
+                        pending.append((None, None, BoundForward(None, None, False, future), path))
+                        if len(pending) >= compiler.workers:
+                            finish()
+                    while pending:
+                        finish()
+                    outcome = paths, None
+                except Exception as failure:
+                    outcome = None, f"{type(failure).__name__}: {failure}"
+                outcomes = [None] * len(ranks)
+                dist.all_gather_object(outcomes, outcome, group=group)
+                # Forwards lent to other ranks are complete once every rank reports.
+                stage.update(advance=len(lent))
+            failures = [(index, failure) for index, (_, failure) in zip(ranks, outcomes) if failure is not None]
+            if failures:
+                raise RuntimeError(f"forward compilation failed: {failures}")
+            restored.clear()
+            bound = None
+            paths = {key: value for compiled, _ in outcomes for key, value in compiled.items()}
+            # Ranks on one host compiled into its cache directory; only other hosts lack their shares.
+            if coordinator.spans_hosts:
+                _share_artifacts([sorted({path for path, _ in compiled.values()}) for compiled, _ in outcomes],
+                                 group, ranks)
+            error = None
+            try:
+                release_unused()
+                if materialize is not None:
+                    materialize()
+                with phase(progress, "Load compiled forwards", total=len(functions) - len(selected)) as stage:
+                    for name, forward in functions.items():
+                        if name in selected:
+                            continue
+                        path, compiled = paths[name, getattr(forward, "compilation_variant", "shared")]
+                        with _guard_code_cache(self.root / 'guards'):
+                            selected[name] = self._load(forward, Path(path), required=True,
+                                before_run=None if before_run is None else lambda name=name: before_run(name))
+                        selected[name].cache_hit = not compiled
+                        stage.update(advance=1)
+            except Exception as failure:
+                import traceback
+
+                traceback.print_exc(limit=-40)
+                error = f"{type(failure).__name__}: {failure}"
+            errors = [None] * len(ranks)
+            dist.all_gather_object(errors, error, group=group)
+            if any(errors):
+                raise RuntimeError(f"compiled forward binding failed: {errors}")
+            release_unused()
+            selections = InductorSelections(self.device, coordinator=coordinator,
+                                            lock_gpu_clocks=self.lock_gpu_clocks)
+            failure = None
+            try:
+                for bound in selected.values():
+                    selections.register(bound)
+            except Exception as error:
+                failure = f"{type(error).__name__}: {error}"
+            selections._check(failure)
+            with phase(progress, "Warm compiled forwards", total=len(functions)) as stage:
+                for name in functions:
+                    coordinator.barrier(f"compiled warmup {name}", ranks)
+                    try:
+                        selections.warm(selected[name], warmup,
+                                        before_run=None if before_run is None else lambda name=name: before_run(name))
+                    except Exception as error:
+                        error.add_note(f"Warming compiled forward {name!r}")
+                        raise
+                    stage.update(advance=1)
+            published, failure = [], None
+            try:
+                for name, bound in selected.items():
+                    selections.freeze(bound)
+                    variant = getattr(functions[name], 'compilation_variant', 'shared')
+                    if compilers[name, variant] == share:
+                        path, _ = paths[name, variant]
+                        bound.artifact.save_compiled_function(path)
+                        published.append(path)
+            except Exception as error:
+                failure = f"{type(error).__name__}: {error}"
+            selections._check(failure)
+            if coordinator.spans_hosts:
+                _share_artifacts(selections._gather(published), group, ranks)
+            return selected
 
     def _load(self, forward, path, *, required=False, before_run=None):
         with bind_device(self.device, freeze_tuning=self.options.get(
@@ -1006,24 +1009,27 @@ class ForwardCache:
 
     def _warm(self, bound, path, *, name, progress=None, selections=None, warmup=nullcontext,
               before_run=None):
-        def report(operation):
-            if progress is not None:
-                progress.update(f"{name} · {operation}")
+        owners = [bound]
+        with retain_on_failed_drain(self.device, owners, selections, warmup, before_run):
+            def report(operation):
+                if progress is not None:
+                    progress.update(f"{name} · {operation}")
 
-        from .inductor_tuning import InductorSelections
+            from .inductor_tuning import InductorSelections
 
-        if selections is None:
-            selections = InductorSelections(self.device, lock_gpu_clocks=self.lock_gpu_clocks)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        if not hasattr(bound.artifact._artifacts.compiled_fn.artifact, '_flare_graph'):
+            if selections is None:
+                selections = InductorSelections(self.device, lock_gpu_clocks=self.lock_gpu_clocks)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            if not hasattr(bound.artifact._artifacts.compiled_fn.artifact, '_flare_graph'):
+                bound.artifact.save_compiled_function(str(path))
+                cached = bound.cache_hit
+                bound = self._load(bound.owner, path, required=True, before_run=before_run)
+                owners.append(bound)
+                bound.cache_hit = cached
+            report("warming restored forward" if bound.cache_hit else "warming compiled forward")
+            selections.register(bound)
+            selections.warm(bound, warmup, before_run=before_run)
+            selections.freeze(bound)
+            report("saving compiled forward")
             bound.artifact.save_compiled_function(str(path))
-            cached = bound.cache_hit
-            bound = self._load(bound.owner, path, required=True, before_run=before_run)
-            bound.cache_hit = cached
-        report("warming restored forward" if bound.cache_hit else "warming compiled forward")
-        selections.register(bound)
-        selections.warm(bound, warmup, before_run=before_run)
-        selections.freeze(bound)
-        report("saving compiled forward")
-        bound.artifact.save_compiled_function(str(path))
-        return bound
+            return bound
