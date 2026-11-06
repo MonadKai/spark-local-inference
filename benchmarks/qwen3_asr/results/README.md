@@ -144,3 +144,27 @@ handling, exact encoded/body/duration/context limits, long-parent cancellation,
 concurrent slot reuse and internal prompt/token IDs remain separate checks.
 Repeated content and cache hits here are functional observations, not cold
 performance workloads or cache-isolation acceptance.
+
+`legacy-qwen38-native.json` records a real previously published text package
+loaded by the original and candidate Rust binaries. All 70 published payloads
+were independently checked at the recorded immutable revision; both binaries
+verify the publisher signatures. The package was not re-exported or re-signed.
+Each process serves the same three requests twice: English, Mandarin and a
+10,025-token prompt spanning multiple 4096-token prefills. All twelve requests
+naturally stop. Returned prompt/generated token IDs, full messages, terminal
+reasons and token usage match within each process and between the binaries.
+Both actual native PIDs drain and exit with status zero; neither is forced down.
+
+The file contains exact request bodies and raw response bodies, plus binary and
+package identities. Use the publisher profile revision recorded separately in
+the configuration. Run each binary against the unchanged package with
+`--verify-weights --max-concurrency 1 --mtp-draft-tokens 0 --kv-cache-limit concurrency
+--memory-limit 48GiB --embedding-table-storage ram --prefix-cache-memory 0
+--prefix-cache-disk-limit 0`, submitting the recorded request order twice.
+The legal package sampling defaults remain unchanged; seed zero does not turn
+that distribution into greedy sampling. Ignore response IDs/timestamps when
+comparing the actual token arrays and logical usage counts.
+
+This finite compatibility result uses earlier binaries, not a final clean-source
+build. It does not qualify every old model, vision, MTP, concurrent old-model
+execution, complete old-model numerical behavior or serving performance.
