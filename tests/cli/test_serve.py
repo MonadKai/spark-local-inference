@@ -184,6 +184,32 @@ def test_export_server_options_match_package_contract(tmp_path, budget):
     ParseDict(options, ServingContract())
 
 
+@pytest.mark.parametrize("recipe", recipes(), ids=lambda recipe: recipe.name)
+def test_export_body_capacity_preserves_derived_defaults_and_serializes_explicit_bytes(tmp_path, recipe):
+    from google.protobuf.json_format import ParseDict
+    from ignition.preparation.runtime_package_pb2 import ServingContract
+
+    config = tmp_path / "config.toml"
+    config.write_text("")
+    model = ResolvedModel(recipe, recipe.checkpoints[0])
+    plan = types.SimpleNamespace(recipe=recipe, checkpoint=model.checkpoint, reserve_bytes=0,
+        concurrency=recipe.concurrency, max_images=recipe.max_images)
+    options = serve._server_options(Configuration.load(config), model, plan)
+    expected = (recipe.max_body_bytes if recipe.max_body_bytes is not None else
+        recipe.max_images * recipe.image_bytes + recipe.context * serve._BODY_BYTES_PER_TOKEN)
+    options.pop("api_key")
+    assert ParseDict(options, ServingContract()).max_body_bytes == expected
+    # A resource declaration applies independently of recipe identity.
+    plan.recipe = replace(recipe, max_body_bytes=7 * 1024 * 1024)
+    assert serve._server_options(Configuration.load(config), model, plan)["max_body_bytes"] == 7 * 1024 * 1024
+
+
+@pytest.mark.parametrize("capacity", [0, -1, True, 1.5, (256 << 20) + 1])
+def test_invalid_encoded_body_capacity_is_rejected_before_preparation(capacity):
+    with pytest.raises(ValueError, match="max_body_bytes"):
+        replace(resolve("qwen3.8-flash").recipe, max_body_bytes=capacity)
+
+
 @pytest.mark.parametrize(("alias", "served_name"), [
     ("qwen3.8-flash", "Qwen3.8-Flash-Next"),
     ("qwen3.8-27b", "Qwen3.8-27B"),

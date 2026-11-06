@@ -1237,7 +1237,8 @@ Configuration assigns each decision to one owner:
 | Speculation | Recipe default, overridden by `--no-mtp` and the advanced speculation flags |
 | Branch overlap | Recipe declaration, serialized by `--no-stream-overlap` |
 | Weight format, KV precision, page geometry, kernel plans | Checkpoint metadata and recipe preparation |
-| Queue, frontend workers, event capacity, body limit | Concurrency and recipe image limits |
+| Queue, frontend workers, event capacity | Concurrency and recipe image limits |
+| HTTP body limit | Explicit recipe byte capacity, otherwise derived from context tokens and image limits |
 | Compiler workers | Automatic memory-bounded sizing; `[preparation] compile_workers` or `--compile-workers` overrides |
 | Collective selection | `--collective-tuning`, then `[preparation] collective_tuning`, otherwise the recipe default (`static`) |
 | Kernel search effort | `--autotune-effort`, then `[preparation] autotune_effort`, otherwise `default` |
@@ -1287,7 +1288,8 @@ every rank and have no configuration-file key. See
 | Prefill chunk | The recipe's chunk, 4,096 tokens for Qwen, GLM, and DeepSeek; `--prefill-chunk-size` overrides |
 | Speculative catalog and draft counts | Recipe, overridden by `--no-mtp` and the `--mtp-*` flags; the draft count adapts from measured rounds unless fixed |
 | Kernel selections | Autotuned during preparation; cached by checkpoint revision, recipe version, GPU, and settings |
-| HTTP queue, workers, event capacity, body limit | `--max-concurrency` and the recipe's image limits |
+| HTTP queue, workers, event capacity | `--max-concurrency` and the recipe's image limits |
+| HTTP body limit | Explicit recipe byte capacity, otherwise derived from context tokens and image limits |
 | Compile workers | Automatic or explicit host process budget, divided among local ranks and bounded by host RAM and device memory |
 | Sampling defaults | Complete Ignition recipe declaration, manually verified against the model card and exported in typed Protobuf fields |
 | Template defaults | The checkpoint template's own defaults, pending the same mechanism |

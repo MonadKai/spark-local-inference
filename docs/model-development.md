@@ -48,6 +48,11 @@ Performance changes also require [GPU performance work](performance-work.md).
   Runtime assets are the tokenizer and chat template; do not package raw generation,
   tokenizer, processor, or model configuration files. Helios consumes prepared
   settings without per-model sampling policy or config-file interpretation.
+- Declare `Recipe.max_body_bytes` when encoded request capacity cannot be derived
+  from token and image geometry. Export carries this byte capacity through the
+  existing typed serving contract. An omitted declaration preserves the previous
+  token/image derivation; it does not change previously exported packages. Keep
+  encoded file, HTTP entity, decoded samples and model context limits separate.
 
 Ignition obtains upstream chat templates from the user's downloaded Hugging Face
 checkpoint. Bundled `assets/*.patch.json` files contain only message-mark insertion
