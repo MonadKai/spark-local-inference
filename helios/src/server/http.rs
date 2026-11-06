@@ -114,7 +114,7 @@ pub(super) fn decode_body(
     })
 }
 #[cfg(feature = "audio")]
-struct PreparationCancellation(Arc<std::sync::atomic::AtomicBool>);
+pub(super) struct PreparationCancellation(pub(super) Arc<std::sync::atomic::AtomicBool>);
 #[cfg(feature = "audio")]
 impl Drop for PreparationCancellation {
     fn drop(&mut self) { self.0.store(true, Ordering::Release); }

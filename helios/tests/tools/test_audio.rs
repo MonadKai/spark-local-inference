@@ -8,6 +8,14 @@ use std::{fs, io::Write, sync::atomic::AtomicBool};
 
 fn run() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<_> = std::env::args().collect();
+    if args.len() == 5 && args[1] == "fetch" {
+        let settings = serde_json::from_slice(&fs::read(&args[4])?)?;
+        let processor = AudioProcessor::new(settings, 1)?;
+        let bytes = processor.fetch_https(&args[2], std::sync::Arc::new(AtomicBool::new(false)))?;
+        fs::File::create_new(&args[3])?.write_all(&bytes)?;
+        println!("{}", serde_json::json!({"operation":"fetch", "file_bytes":bytes.len()}));
+        return Ok(());
+    }
     if args.len() == 5 && args[1] == "split" {
         let size = fs::metadata(&args[2])?.len();
         if size > 600 * 16000 * 4 || size % 4 != 0 { return Err("invalid split PCM extent".into()); }
@@ -24,7 +32,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
     if args.len() != 4 || !matches!(args[1].as_str(), "decode" | "features") {
-        return Err("usage: test_audio {decode|features} INPUT OUTPUT_F32LE; or split INPUT_F32LE OUTPUT_JSON SETTINGS_JSON".into());
+        return Err("usage: test_audio {decode|features} INPUT OUTPUT_F32LE; or split INPUT_F32LE OUTPUT_JSON SETTINGS_JSON; or fetch HTTPS_URL OUTPUT_AUDIO SETTINGS_JSON".into());
     }
     let cancelled = AtomicBool::new(false);
     let size = fs::metadata(&args[2])?.len();

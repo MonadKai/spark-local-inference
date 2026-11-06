@@ -315,6 +315,69 @@ pub struct FrontendContract {
     pub image_tokens: Option<ImageTokenLayout>,
     pub audio_preparation: Option<AudioPreparationKind>,
     pub audio_tokens: Option<AudioTokenLayout>,
+    pub transcription: Option<TranscriptionFormat>,
+}
+
+#[derive(Clone, Debug)]
+#[cfg_attr(any(feature = "frontend", feature = "runtime-package"), derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(any(feature = "frontend", feature = "runtime-package"), serde(deny_unknown_fields))]
+pub struct TranscriptionFormat {
+    pub context_prefix: String,
+    pub context_suffix: String,
+    pub audio_prefix: String,
+    pub audio_suffix: String,
+    pub assistant_prefix: String,
+    pub language_prefix: String,
+    pub text_delimiter: String,
+    pub languages: Vec<TranscriptionLanguage>,
+    pub default_separator: String,
+    pub sanitization: ControlMarkerSyntax,
+}
+
+#[derive(Clone, Debug)]
+#[cfg_attr(any(feature = "frontend", feature = "runtime-package"), derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(any(feature = "frontend", feature = "runtime-package"), serde(deny_unknown_fields))]
+pub struct TranscriptionLanguage {
+    pub code: String,
+    pub label: String,
+    pub chunk_separator: String,
+}
+
+#[derive(Clone, Debug)]
+#[cfg_attr(any(feature = "frontend", feature = "runtime-package"), derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(any(feature = "frontend", feature = "runtime-package"), serde(deny_unknown_fields))]
+pub struct ControlMarkerSyntax {
+    pub prefix: String,
+    pub suffix: String,
+    pub excluded_body_character: String,
+}
+
+impl TranscriptionFormat {
+    pub(crate) fn validate(&self) -> Result<()> {
+        let required = [&self.context_prefix, &self.context_suffix, &self.audio_prefix,
+            &self.audio_suffix, &self.assistant_prefix, &self.language_prefix, &self.text_delimiter,
+            &self.sanitization.prefix, &self.sanitization.suffix];
+        let separator = self.sanitization.excluded_body_character.chars().next();
+        let control_shape = separator.is_some_and(|separator|
+            self.sanitization.prefix.ends_with(separator) && self.sanitization.suffix.starts_with(separator)
+            && self.sanitization.prefix.chars().filter(|&ch| ch == separator).count() == 1
+            && self.sanitization.suffix.chars().filter(|&ch| ch == separator).count() == 1);
+        if required.iter().any(|field| field.is_empty() || field.len() > 4096)
+            || self.default_separator.len() > 16
+            || self.sanitization.excluded_body_character.chars().count() != 1
+            || !control_shape
+            || self.languages.is_empty() || self.languages.len() > 256 {
+            return Err("invalid prepared transcription syntax".into());
+        }
+        let mut codes = std::collections::HashSet::new();
+        if self.languages.iter().any(|language| language.code.is_empty() || language.code.len() > 16
+            || !language.code.bytes().all(|byte| byte.is_ascii_lowercase())
+            || !codes.insert(&language.code) || language.label.is_empty() || language.label.len() > 128
+            || language.chunk_separator.len() > 16) {
+            return Err("invalid prepared transcription languages".into());
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -402,6 +465,9 @@ impl PreparedContract {
             || self.audio.is_some() != self.graphs.iter().any(|graph| graph.kind == GraphOperation::AudioEncode)
         {
             return Err("audio processing, storage and encoder graphs must agree".into());
+        }
+        if self.frontend.transcription.is_some() && self.audio.is_none() {
+            return Err("transcription syntax requires prepared audio inputs".into());
         }
         if let Some(audio) = &self.audio {
             audio.validate(manifest)?;
@@ -767,6 +833,7 @@ impl StateView {
 
 impl FrontendContract {
     fn validate(&self) -> Result<()> {
+        if let Some(format) = &self.transcription { format.validate()?; }
         if self.assistant_marker.is_empty() || self.message_end_markers.iter().any(String::is_empty)
         {
             return Err("assistant envelope requires nonempty delimiters".into());

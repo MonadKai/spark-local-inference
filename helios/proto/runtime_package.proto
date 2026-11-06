@@ -448,6 +448,36 @@ message FrontendContract {
   ImageTokenLayout image_tokens = 10;
   optional AudioPreparationKind audio_preparation = 11;
   AudioTokenLayout audio_tokens = 12;
+  TranscriptionFormat transcription = 13;
+}
+// Fixed prompt/output syntax. These fields never select model computation or
+// scheduling, sampling, cache, graph or completion policy.
+message TranscriptionFormat {
+  string context_prefix = 1;
+  string context_suffix = 2;
+  string audio_prefix = 3;
+  string audio_suffix = 4;
+  string assistant_prefix = 5;
+  string language_prefix = 6;
+  string text_delimiter = 7;
+  repeated TranscriptionLanguage languages = 8;
+  string default_separator = 9;
+  ControlMarkerSyntax sanitization = 10;
+}
+message TranscriptionLanguage {
+  string code = 1;
+  string label = 2;
+  string chunk_separator = 3;
+}
+// Each round removes leftmost nonoverlapping complete markers simultaneously,
+// then does the same for text_delimiter, until stable. The body is nonempty
+// and excludes one Unicode character. Prefix ends with that character exactly
+// once; suffix starts with it exactly once. This finite syntax permits bounded
+// seam-based processing; it is data, not an executable regular expression.
+message ControlMarkerSyntax {
+  string prefix = 1;
+  string suffix = 2;
+  string excluded_body_character = 3;
 }
 enum AudioPreparationKind {
   AUDIO_PREPARATION_UNSPECIFIED = 0;

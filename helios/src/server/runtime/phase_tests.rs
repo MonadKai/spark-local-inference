@@ -15,9 +15,14 @@ use crate::{
 use sha2::{Digest, Sha256};
 use std::ops::ControlFlow;
 use std::sync::atomic::AtomicUsize;
+use std::time::Duration;
 
 #[path = "response_lifecycle_tests.rs"]
 mod response_lifecycle_tests;
+
+#[cfg(feature = "audio")]
+#[path = "transcription_tests.rs"]
+mod transcription_tests;
 
 struct Fixture {
     config: ModelConfig,
@@ -69,6 +74,11 @@ impl Fixture {
     }
 
     fn with_template(template: &[u8], special_tokens: &[&str], text_tokens: &[&str]) -> Self {
+        Self::with_template_settings(template, special_tokens, text_tokens, None)
+    }
+
+    fn with_template_settings(template: &[u8], special_tokens: &[&str], text_tokens: &[&str],
+        settings: Option<&crate::frontend::FrontendSettings>) -> Self {
         static SERIAL: AtomicUsize = AtomicUsize::new(0);
         let directory = std::env::temp_dir().join(format!(
             "flare-worker-phase-{}-{}",
@@ -106,18 +116,18 @@ impl Fixture {
                 sha256: format!("{:x}", Sha256::digest(bytes)),
             }
         };
-        let frontend = Frontend::load(
-            FrontendAssets {
+        let assets = FrontendAssets {
                 tokenizer: asset(
                     "tokenizer.json",
                     tokenizer.to_string(false).unwrap().as_bytes(),
                 ),
                 tokens: Default::default(),
                 chat_template: Some(asset("chat.jinja", template)),
-            },
-            Default::default(),
-        )
-        .unwrap();
+            };
+        let frontend = match settings {
+            Some(settings) => Frontend::load_with_settings(assets, Default::default(), settings),
+            None => Frontend::load(assets, Default::default()),
+        }.unwrap();
         std::fs::remove_dir_all(directory).unwrap();
         Self {
             config: ModelConfig {
@@ -240,6 +250,7 @@ impl Fixture {
         (
             Incoming {
                 _capacity: None,
+                queue_capacity: None,
                 arrival_ns: super::super::observation::monotonic_ns(),
                 publications: Default::default(),
                 prompt: Self::prompt_for(tokens, limit, data),
@@ -3081,6 +3092,7 @@ fn group_runtime(
             config: Arc::new(fixture.config.clone()),
             event_capacity: 16,
             capacity: Arc::new(tokio::sync::Semaphore::new(capacity)),
+            queue_capacity: Arc::new(tokio::sync::Semaphore::new(2)),
             thread: Mutex::new(None),
             shutdown: Mutex::new(None),
             finished: Arc::new((Mutex::new(false), Condvar::new())),
@@ -3089,6 +3101,86 @@ fn group_runtime(
         },
         receiver,
     )
+}
+
+fn queued_prompt() -> Prompt {
+    Fixture::prompt_for(vec![0], 2, PromptData {
+        positions: vec![[0; 3]], vision_token_indices: vec![-1], ..Default::default()
+    })
+}
+
+#[tokio::test]
+async fn cancelling_a_queue_waiter_releases_its_host_credit_without_enqueueing() {
+    let fixture = Fixture::new();
+    let (runtime, receiver) = group_runtime(&fixture, 3);
+    let first = runtime.generate(queued_prompt()).unwrap();
+    let second = runtime.generate(queued_prompt()).unwrap();
+    {
+        let waiting = runtime.generate_when_available(queued_prompt());
+        tokio::pin!(waiting);
+        assert!(tokio::time::timeout(Duration::from_millis(10), &mut waiting).await.is_err());
+        assert_eq!(runtime.capacity.available_permits(), 0);
+        assert_eq!(runtime.queue_capacity.available_permits(), 0);
+    }
+    assert_eq!(runtime.capacity.available_permits(), 1);
+    assert_eq!(receiver.try_recv().unwrap().len(), 1);
+    assert_eq!(receiver.try_recv().unwrap().len(), 1);
+    assert!(receiver.try_recv().is_err());
+    drop((first, second));
+    assert_eq!(runtime.capacity.available_permits(), 3);
+    assert_eq!(runtime.queue_capacity.available_permits(), 2);
+}
+
+#[tokio::test]
+async fn asynchronous_queue_waiters_are_fifo_and_receive_releases_only_message_credit() {
+    let fixture = Fixture::new();
+    let (runtime, receiver) = group_runtime(&fixture, 5);
+    let first = runtime.generate(queued_prompt()).unwrap();
+    let second = runtime.generate(queued_prompt()).unwrap();
+    let third = runtime.generate_when_available(queued_prompt());
+    let fourth = runtime.generate_when_available(queued_prompt());
+    tokio::pin!(third, fourth);
+    for waiting in [&mut third, &mut fourth] {
+        assert!(tokio::time::timeout(Duration::from_millis(10), waiting).await.is_err());
+    }
+    assert_eq!(runtime.capacity.available_permits(), 1);
+    let mut worker = fixture.worker(receiver);
+    let message = worker.receiver.try_recv().unwrap();
+    worker.enqueue(message);
+    // The first waiter owns the returned queue credit even before being polled.
+    assert!(tokio::time::timeout(Duration::from_millis(10), &mut fourth).await.is_err());
+    let third = third.await.unwrap();
+    assert_eq!(runtime.capacity.available_permits(), 1);
+    assert_eq!(worker.pending.len(), 1);
+    let message = worker.receiver.try_recv().unwrap();
+    worker.enqueue(message);
+    let fourth = tokio::time::timeout(Duration::from_secs(1), fourth).await.unwrap().unwrap();
+    assert_eq!(runtime.capacity.available_permits(), 1);
+    let third_message = worker.receiver.try_recv().unwrap();
+    assert!(Arc::ptr_eq(&third_message[0].cancelled, &third.cancelled));
+    let fourth_message = worker.receiver.try_recv().unwrap();
+    assert!(Arc::ptr_eq(&fourth_message[0].cancelled, &fourth.cancelled));
+    drop((third_message, fourth_message, worker, first, second, third, fourth));
+    assert_eq!(runtime.capacity.available_permits(), 5);
+    assert_eq!(runtime.queue_capacity.available_permits(), 2);
+}
+
+#[tokio::test]
+async fn closing_admission_wakes_both_request_and_message_capacity_waiters() {
+    for queue_wait in [false, true] {
+        let fixture = Fixture::new();
+        let (runtime, receiver) = group_runtime(&fixture, if queue_wait { 3 } else { 1 });
+        let first = runtime.generate(queued_prompt()).unwrap();
+        let second = queue_wait.then(|| runtime.generate(queued_prompt()).unwrap());
+        let waiting = runtime.generate_when_available(queued_prompt());
+        tokio::pin!(waiting);
+        assert!(tokio::time::timeout(Duration::from_millis(10), &mut waiting).await.is_err());
+        runtime.request_stop();
+        let failure = tokio::time::timeout(Duration::from_secs(1), waiting).await.unwrap().err().unwrap();
+        assert!(matches!(failure, Error::Admission(AdmissionError::Unavailable(_))));
+        assert_eq!(receiver.try_iter().count(), if queue_wait { 2 } else { 1 });
+        drop((first, second));
+    }
 }
 #[test]
 fn unread_responses_finish_and_release_model_resources_but_retain_admission_capacity() {
@@ -3569,6 +3661,13 @@ fn http_state_for(
         &[],
     )
     .unwrap();
+    #[cfg(feature = "audio")]
+    let audio = fixture.frontend.audio_settings().map(|settings|
+        Arc::new(crate::frontend::audio::AudioProcessor::new(settings.clone(), 1).unwrap()));
+    #[cfg(feature = "audio")]
+    let transcription = fixture.config.contract.frontend.transcription.as_ref().map(|format|
+        Arc::new(crate::frontend::transcription::Renderer::new(&fixture.frontend, format,
+            fixture.config.contract.frontend.audio_tokens.as_ref().unwrap()).unwrap()));
     let model = Arc::new(ModelRuntime {
         sender,
         stop: Arc::new(AtomicBool::new(false)),
@@ -3576,6 +3675,7 @@ fn http_state_for(
         config: Arc::new(fixture.config),
         event_capacity: 64,
         capacity: Arc::new(Semaphore::new(4)),
+        queue_capacity: Arc::new(Semaphore::new(4)),
         thread: Mutex::new(None),
         shutdown: Mutex::new(Some(Shutdown {
             drained: true,
@@ -3587,7 +3687,9 @@ fn http_state_for(
     });
     Arc::new(HttpState {
         #[cfg(feature = "audio")]
-        audio: None,
+        audio,
+        #[cfg(feature = "audio")]
+        transcription,
         model,
         frontend: Arc::new(fixture.frontend),
         images: None,

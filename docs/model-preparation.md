@@ -110,10 +110,12 @@ Heliopause, and applies the bundled patches before exiting. It updates `uv.lock`
 when the declared dependency resolves differently.
 
 Build dependencies include a C/C++ compiler, CMake, Ninja, pkg-config, Protobuf's
-`protoc`, OpenSSL headers, Python headers, and liburing headers. On Ubuntu:
+`protoc`, OpenSSL headers, Python headers, and liburing headers. Linux Flare and
+Heliopause also link FFmpeg's format, codec, utility and resampling libraries for
+native audio preparation. On Ubuntu:
 
 ```sh
-sudo apt-get install build-essential cmake ninja-build pkg-config protobuf-compiler libssl-dev python3-dev liburing-dev
+sudo apt-get install build-essential cmake ninja-build pkg-config protobuf-compiler libssl-dev python3-dev liburing-dev libavformat-dev libavcodec-dev libavutil-dev libswresample-dev
 ```
 
 Windows native builds also require Perl for the bundled static OpenSSL build,

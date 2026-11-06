@@ -297,7 +297,10 @@ unsafe impl Send for LogMelPlan {}
 pub struct AudioProcessor {
     settings: super::AudioSettings,
     plans: std::sync::Mutex<Vec<LogMelPlan>>,
+    fetcher: fetch::Fetcher,
 }
+
+mod fetch;
 
 struct PlanLease<'a> {
     pool: &'a std::sync::Mutex<Vec<LogMelPlan>>,
@@ -319,7 +322,11 @@ impl AudioProcessor {
             return Err(invalid("audio preparation requires between 1 and 64 workers"));
         }
         let plans = (0..workers).map(|_| LogMelPlan::new()).collect::<Result<Vec<_>>>()?;
-        Ok(Self { settings, plans: std::sync::Mutex::new(plans) })
+        Ok(Self { settings, plans: std::sync::Mutex::new(plans), fetcher: fetch::Fetcher::new(workers) })
+    }
+
+    pub fn fetch_https(&self, url: &str, cancelled: std::sync::Arc<AtomicBool>) -> Result<Vec<u8>> {
+        self.fetcher.fetch(url, self.settings.max_file_bytes, cancelled)
     }
 
     pub fn decode(&self, bytes: &[u8], cancelled: &AtomicBool) -> Result<Vec<f32>> {

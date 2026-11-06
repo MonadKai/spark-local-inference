@@ -11,7 +11,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from ignition.preparation.frontend import annotated_template_asset
+from ignition.preparation.frontend import annotated_template_asset, template_source
 
 
 def main():
@@ -30,7 +30,7 @@ def main():
         source = patch["source"]
         path = hf_hub_download(source["repository"], source["filename"],
                                revision=source["revision"], cache_dir=args.hub_cache)
-        original = Path(path).read_bytes()
+        original = template_source(Path(path), source)
         if recipe == "step5":
             from ignition.recipes.step5.frontend import template_asset
 

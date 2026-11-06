@@ -122,22 +122,13 @@ pub struct Generation {
 /// A buffered group starts consuming output after one choice is admitted;
 /// other choices may still be waiting for model capacity.
 pub(super) async fn await_admission(generations: &mut [Generation]) -> Result<()> {
-    use std::{future::Future, pin::Pin, task::Poll};
+    use std::task::Poll;
     std::future::poll_fn(|cx| {
         let mut admitted = generations.is_empty();
         for generation in generations.iter_mut() {
-            if let Some(error) = generation
-                .failure
-                .lock()
-                .unwrap_or_else(|e| e.into_inner())
-                .clone()
-            {
-                return Poll::Ready(Err(error));
-            }
-            match Pin::new(&mut generation.admission).poll(cx) {
-                Poll::Ready(Ok(Ok(()))) => admitted = true,
-                Poll::Ready(Ok(Err(error))) => return Poll::Ready(Err(error)),
-                Poll::Ready(Err(_)) => return Poll::Ready(Err(generation.failure())),
+            match generation.poll_admission(cx) {
+                Poll::Ready(Ok(())) => admitted = true,
+                Poll::Ready(Err(error)) => return Poll::Ready(Err(error)),
                 Poll::Pending => {}
             }
         }
@@ -151,6 +142,17 @@ pub(super) async fn await_admission(generations: &mut [Generation]) -> Result<()
 }
 
 impl Generation {
+    pub(super) fn poll_admission(&mut self, cx: &mut std::task::Context<'_>) -> std::task::Poll<Result<()>> {
+        use std::{future::Future, pin::Pin, task::Poll};
+        if let Some(error) = self.failure.lock().unwrap_or_else(|e| e.into_inner()).clone() {
+            return Poll::Ready(Err(error));
+        }
+        match Pin::new(&mut self.admission).poll(cx) {
+            Poll::Ready(Ok(result)) => Poll::Ready(result),
+            Poll::Ready(Err(_)) => Poll::Ready(Err(self.failure())),
+            Poll::Pending => Poll::Pending,
+        }
+    }
     pub(super) async fn wait_for_first_token(&mut self) -> Result<()> {
         (&mut self.first_token)
             .await
@@ -178,6 +180,9 @@ impl Drop for Generation {
 
 struct Incoming {
     _capacity: Option<Arc<tokio::sync::OwnedSemaphorePermit>>,
+    // One permit per queued message, shared by its members until the worker
+    // receives them. Response readers do not retain this queue reservation.
+    queue_capacity: Option<Arc<tokio::sync::OwnedSemaphorePermit>>,
     arrival_ns: u64,
     publications: std::cell::Cell<u64>,
     prompt: Prompt,
@@ -433,11 +438,23 @@ pub struct ModelRuntime {
     config: Arc<ModelConfig>,
     event_capacity: usize,
     capacity: Arc<tokio::sync::Semaphore>,
+    queue_capacity: Arc<tokio::sync::Semaphore>,
     thread: Mutex<Option<JoinHandle<Shutdown>>>,
     shutdown: Mutex<Option<Shutdown>>,
     finished: Arc<(Mutex<bool>, Condvar)>,
     metrics: Arc<super::metrics::Metrics>,
     input_store: Option<flare_selene::input::InputStore>,
+}
+
+struct CloseAdmission {
+    requests: Arc<tokio::sync::Semaphore>,
+    messages: Arc<tokio::sync::Semaphore>,
+}
+impl Drop for CloseAdmission {
+    fn drop(&mut self) {
+        self.requests.close();
+        self.messages.close();
+    }
 }
 
 impl ModelRuntime {
@@ -461,6 +478,9 @@ impl ModelRuntime {
         let capacity = Arc::new(tokio::sync::Semaphore::new(
             queue_capacity + config.limits.max_active,
         ));
+        let message_capacity = Arc::new(tokio::sync::Semaphore::new(queue_capacity));
+        let worker_capacity = capacity.clone();
+        let worker_message_capacity = message_capacity.clone();
         let input_store = manifest
             .offload
             .as_ref()
@@ -494,6 +514,7 @@ impl ModelRuntime {
         let thread = thread::Builder::new()
             .name("flare-model".into())
             .spawn(move || {
+                let _admission = CloseAdmission { requests: worker_capacity, messages: worker_message_capacity };
                 if matches!(peers, Some(crate::execution::RankPeers::Processes(_)))
                     && manifest.offload.as_ref().is_some_and(|binding| !binding.sharded())
                 {
@@ -691,6 +712,7 @@ impl ModelRuntime {
                 event_capacity,
                 input_store,
                 capacity,
+                queue_capacity: message_capacity,
                 thread: Mutex::new(Some(thread)),
                 shutdown: Mutex::new(None),
                 finished,
@@ -720,6 +742,8 @@ impl ModelRuntime {
     }
     pub(super) fn request_stop(&self) {
         self.stop.store(true, Ordering::Release);
+        self.capacity.close();
+        self.queue_capacity.close();
     }
     pub fn config(&self) -> &ModelConfig {
         &self.config
@@ -740,6 +764,18 @@ impl ModelRuntime {
     }
     pub fn generate(&self, prompt: Prompt) -> Result<Generation> {
         self.enqueue(prompt, None)
+    }
+
+    /// Wait for bounded host and queue capacity without occupying a GPU slot.
+    /// Dropping this future releases any acquired reservation before enqueue.
+    pub(super) async fn generate_when_available(&self, prompt: Prompt) -> Result<Generation> {
+        if !self.healthy() {
+            return Err(Error::admission(AdmissionError::Unavailable, "prepared model runtime is unavailable"));
+        }
+        let unavailable = |_| Error::admission(AdmissionError::Unavailable, "native generation admission is closed");
+        let capacity = Arc::new(self.capacity.clone().acquire_owned().await.map_err(unavailable)?);
+        let queue = Arc::new(self.queue_capacity.clone().acquire_owned().await.map_err(unavailable)?);
+        self.enqueue_reserved(vec![prompt], None, capacity, queue).map(|mut group| group.remove(0))
     }
 
     pub(super) fn generate_observed(&self, prompt: Prompt, timestamps: bool) -> Result<Generation> {
@@ -785,6 +821,18 @@ impl ModelRuntime {
                     )
                 })?,
         );
+        let queue = Arc::new(self.queue_capacity.clone().try_acquire_owned().map_err(|_| {
+            Error::admission(AdmissionError::Capacity, "native request queue is full")
+        })?);
+        self.enqueue_reserved(prompts, observation, capacity, queue)
+    }
+
+    fn enqueue_reserved(&self, prompts: Vec<Prompt>, observation: Option<bool>,
+        capacity: Arc<tokio::sync::OwnedSemaphorePermit>, queue: Arc<tokio::sync::OwnedSemaphorePermit>)
+        -> Result<Vec<Generation>> {
+        if !self.healthy() {
+            return Err(Error::admission(AdmissionError::Unavailable, "prepared model runtime is unavailable"));
+        }
         let mut incoming_group = Vec::with_capacity(prompts.len());
         let mut generations = Vec::with_capacity(prompts.len());
         for prompt in prompts {
@@ -813,6 +861,7 @@ impl ModelRuntime {
             let failure = Arc::new(Mutex::new(None));
             let incoming = Incoming {
                 _capacity: Some(capacity.clone()),
+                queue_capacity: Some(queue.clone()),
                 arrival_ns: super::observation::monotonic_ns(),
                 publications: Default::default(),
                 prompt_score_end: if prompt.prompt_logprobs { prompt.tokens.len() } else { 0 },
@@ -871,7 +920,7 @@ impl ModelRuntime {
         {
             return shutdown;
         }
-        self.stop.store(true, Ordering::Release);
+        self.request_stop();
         let shutdown = thread
             .take()
             .map(|thread| {
@@ -1117,6 +1166,7 @@ impl<'a> Worker<'a> {
     /// Queue arriving requests, starting each one's pool lookup so its answer is
     /// ready by admission.
     fn enqueue(&mut self, mut requests: Vec<Incoming>) {
+        for incoming in &mut requests { incoming.queue_capacity.take(); }
         self.begin_pool_lookups(&mut requests);
         self.pending.extend(requests);
     }
@@ -2995,6 +3045,7 @@ mod tests {
         let failure = Arc::new(Mutex::new(None));
         let incoming = Incoming {
             _capacity: None,
+            queue_capacity: None,
             arrival_ns: super::super::observation::monotonic_ns(),
             publications: Default::default(),
             prompt: Prompt {

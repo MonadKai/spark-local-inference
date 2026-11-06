@@ -135,6 +135,31 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         }
         counts.insert(section.into(), Value::from(cases.len()));
     }
+    if let Some(cases) = fixture.get("transcription_cases") {
+        let format = serde_json::from_value(fixture["transcription_format"].clone())?;
+        let tokens = serde_json::from_value(fixture["audio_tokens"].clone())?;
+        let renderer = flare_helios::frontend::transcription::Renderer::new(&frontend, &format, &tokens)?;
+        let cases = cases.as_array().ok_or("transcription cases must be an array")?;
+        for case in cases {
+            let name = case["name"].as_str().ok_or("transcription case needs a name")?;
+            let language = case["language"].as_str();
+            let rendered = renderer.render(&frontend, case["context"].as_str().unwrap(), language,
+                &std::sync::atomic::AtomicBool::new(false))?;
+            if rendered.text != case["rendered"].as_str().unwrap()
+                || serde_json::to_value(&rendered.token_ids)? != case["token_ids"] {
+                return Err(format!("{name}: transcription bytes or token IDs differ").into());
+            }
+            if renderer.separator(language)? != case["separator"].as_str().unwrap() {
+                return Err(format!("{name}: transcription chunk separator differs").into());
+            }
+            let cleaned: Vec<_> = case["raw_chunks"].as_array().unwrap().iter()
+                .map(|raw| renderer.clean_output(raw.as_str().unwrap())).collect();
+            if cleaned.join(renderer.separator(language)?) != case["text"].as_str().unwrap() {
+                return Err(format!("{name}: transcription cleanup or ordered join differs").into());
+            }
+        }
+        counts.insert("transcription_cases".into(), Value::from(cases.len()));
+    }
     let configured = Frontend::load(
         FrontendAssets {
             tokenizer: asset("tokenizer.json")?,

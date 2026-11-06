@@ -80,6 +80,7 @@ fn completion_fixture(tokens_below_vocabulary: bool) -> CompletionFixture {
                 image_tokens: None,
                 audio_preparation: None,
                 audio_tokens: None,
+                transcription: None,
             },
         },
         identity: [0; 32],

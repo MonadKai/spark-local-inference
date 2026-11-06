@@ -8,6 +8,7 @@
 
 mod deepseek;
 mod boundaries;
+pub mod transcription;
 mod templates;
 #[cfg(feature = "images")]
 pub mod images;

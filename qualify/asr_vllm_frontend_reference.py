@@ -30,7 +30,7 @@ def main():
         raise ValueError("vLLM version differs from the frozen baseline")
     installed = Path(vllm.__file__).parent
     for name in ["model_executor/models/qwen3_asr.py", "model_executor/models/whisper_utils.py",
-        "config/speech_to_text.py", "entrypoints/speech_to_text/base/serving.py"]:
+        "model_executor/models/interfaces.py", "config/speech_to_text.py", "entrypoints/speech_to_text/base/serving.py"]:
         if (installed / name).read_bytes() != (args.vllm_source / "vllm" / name).read_bytes():
             raise ValueError(f"installed vLLM frontend differs from supplied reference: {name}")
     config = ModelConfig(model=args.checkpoint, tokenizer=args.checkpoint, trust_remote_code=False,
@@ -40,6 +40,16 @@ def main():
             or config.hf_config.thinker_config.text_config.hidden_size != 2048:
         raise ValueError("vLLM did not retain the original nested ASR configuration")
     cls = reference.Qwen3ASRForConditionalGeneration
+    accepted_languages = {code: cls.supported_languages.get(code, code)
+        for code in sorted(set(cls.supported_languages) | set(cls.get_other_languages()))}
+    rejected_languages = []
+    for language in ["", "EN", "ZH", "English", "Chinese", "auto", "en-US", "zh_cn", "unknown"]:
+        try:
+            cls.validate_language(language)
+        except ValueError as error:
+            rejected_languages.append(dict(language=language, error_type=type(error).__name__, message=str(error)))
+        else:
+            raise ValueError(f"expected invalid language was accepted: {language!r}")
     observed = []
     original_encode = reference.cached_encode
 
@@ -57,7 +67,8 @@ def main():
     reference.cached_encode = record_encode
     try:
         for index, context in enumerate(contexts):
-            for language in [None, *sorted(cls.supported_languages)]:
+            for language in [None, *accepted_languages]:
+                assert cls.validate_language(language) == language
                 params = SpeechToTextParams(audio=np.zeros(201, dtype=np.float32),
                     stt_config=SpeechToTextConfig(), model_config=config, language=language,
                     task_type="transcribe", request_prompt=context)
@@ -75,11 +86,12 @@ def main():
     result = dict(expected_vllm_revision="98dff2a81d747d1dba01a47f939f48c3526d4206",
         source_revision_verified_by_this_check=False, critical_installed_frontend_files_equal=True,
         scope="CPU frontend only; enforce_eager avoids model setup and is not a GPU baseline configuration",
-        cases=cases, languages=cls.supported_languages, model_forward_executed=False)
+        cases=cases, languages=accepted_languages, natively_supported_languages=cls.supported_languages,
+        rejected_languages=rejected_languages, model_forward_executed=False)
     with args.output.open("x") as output:
         json.dump(result, output, ensure_ascii=False, indent=2)
         output.write("\n")
-    print(json.dumps(dict(cases=len(cases), languages=len(cls.supported_languages), model_forward_executed=False)))
+    print(json.dumps(dict(cases=len(cases), languages=len(accepted_languages), model_forward_executed=False)))
 
 
 if __name__ == "__main__":

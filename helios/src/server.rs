@@ -8,6 +8,8 @@
 
 mod config;
 mod audio;
+#[cfg(feature = "audio")]
+mod transcription;
 mod dashboard;
 mod http;
 mod inference;
@@ -105,6 +107,8 @@ struct HttpState {
     images: Option<Arc<ImageProcessor>>,
     #[cfg(feature = "audio")]
     audio: Option<Arc<crate::frontend::audio::AudioProcessor>>,
+    #[cfg(feature = "audio")]
+    transcription: Option<Arc<crate::frontend::transcription::Renderer>>,
     grammar: Arc<crate::grammar::GrammarCompiler>,
     frontend_slots: Arc<Semaphore>,
     ingress_slots: Arc<Semaphore>,
@@ -202,10 +206,19 @@ impl Server {
         if model.contract.audio.is_some() != frontend.audio_settings().is_some() {
             return Err("audio settings must match prepared feature storage".into());
         }
+        if model.contract.audio.as_ref().zip(frontend.audio_settings())
+            .is_some_and(|(capacity, settings)| capacity.mel_bins != settings.mel_bins as usize) {
+            return Err("audio settings and encoder storage require the same Mel-bin count".into());
+        }
         #[cfg(feature = "audio")]
         let audio = frontend.audio_settings().cloned()
             .map(|settings| crate::frontend::audio::AudioProcessor::new(settings, config.frontend_workers))
             .transpose()?.map(Arc::new);
+        #[cfg(feature = "audio")]
+        let transcription = model.contract.frontend.transcription.as_ref().map(|format| {
+            crate::frontend::transcription::Renderer::new(&frontend, format,
+                model.contract.frontend.audio_tokens.as_ref().ok_or("transcription requires audio markers")?)
+        }).transpose()?.map(Arc::new);
         let delimiters =
             crate::model::reasoning_delimiter_tokens(&frontend, &model.contract.frontend)?;
         config.validate_thinking_budget(&frontend, &model)?;
@@ -240,6 +253,8 @@ impl Server {
             images: images.map(Arc::new),
             #[cfg(feature = "audio")]
             audio,
+            #[cfg(feature = "audio")]
+            transcription,
             grammar,
             frontend_slots: Arc::new(Semaphore::new(config.frontend_workers)),
             ingress_slots: Arc::new(Semaphore::new(ingress_capacity)),
@@ -423,7 +438,7 @@ impl Drop for Server {
 /// Routes generation and model discovery behind API-key authentication; health
 /// and metrics expose no request content and stay unauthenticated.
 fn router(state: Arc<HttpState>, served_names: &[String], max_body_bytes: usize) -> Router {
-    Router::new()
+    let router = Router::new()
         .merge(models::router(
             state.model.config(),
             served_names,
@@ -436,6 +451,11 @@ fn router(state: Arc<HttpState>, served_names: &[String], max_body_bytes: usize)
         .route("/v1/responses", post(http::generate).get(http::no_websocket).layer(middleware::from_fn_with_state(state.clone(), admit_http)))
         .route("/v1/systemone", post(protocol::decisions::generate).layer(middleware::from_fn_with_state(state.clone(), admit_http)))
         .route("/v1/decisions", post(protocol::decisions::generate).layer(middleware::from_fn_with_state(state.clone(), admit_http)))
+        ;
+    #[cfg(feature = "audio")]
+    let router = router.route("/v1/audio/transcriptions", post(transcription::generate)
+        .layer(middleware::from_fn_with_state(state.clone(), admit_http)));
+    router
         .route_layer(middleware::from_fn_with_state(state.clone(), authorize))
         .route("/health", get(health))
         .route("/metrics", get(metrics))

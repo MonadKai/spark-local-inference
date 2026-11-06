@@ -47,7 +47,7 @@ pub(super) fn validate_chat_body(body: &serde_json::Value) -> Result<()> {
 #[cfg(feature = "audio")]
 pub(super) fn prepare_chat_audio(frontend: &crate::frontend::Frontend,
     processor: Option<&crate::frontend::audio::AudioProcessor>, config: &crate::model::ModelConfig,
-    request: &Request, cancelled: &std::sync::atomic::AtomicBool)
+    request: &Request, cancelled: &std::sync::Arc<std::sync::atomic::AtomicBool>)
     -> Result<Option<(std::sync::Arc<crate::frontend::audio::PreparedAudio>, [u8; 32])>> {
     use super::inference::{AudioSource, Role};
     use base64::Engine;
@@ -74,6 +74,13 @@ pub(super) fn prepare_chat_audio(frontend: &crate::frontend::Frontend,
         return Err(super::inference::unsupported("audio user turn must contain exactly one audio input"));
     };
     let maximum = frontend.audio_settings().ok_or("prepared audio settings are missing")?.max_file_bytes;
+    if let AudioSource::Url(url) = source {
+        if !url.starts_with("data:") {
+            let bytes = processor.fetch_https(url, cancelled.clone())?;
+            let pcm = processor.decode(&bytes, cancelled)?;
+            return Ok(Some(processor.prepare_pcm(&pcm, capacity, cancelled)?));
+        }
+    }
     let data = match source {
         AudioSource::Base64 { data, format } => {
             if !["wav", "mp3"].contains(&format.as_str()) { return Err("input_audio format must be wav or mp3".into()); }

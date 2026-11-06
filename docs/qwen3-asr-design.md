@@ -240,6 +240,45 @@ also needs an explicit compatibility/determinism decision. These are observed
 vLLM API ranges, not author recommendations. The proposal does not grant a
 general exception for other recipes or alter the repository rule.
 
+## Native API input boundaries
+
+The implementation remains unregistered and requires real HTTP/model
+qualification. Transcription declares the pinned endpoint's 100 accepted
+Whisper language codes. Its 57 model-supported codes use the published language
+labels; the other 43 use the literal code in the prompt, matching the reference
+validator and constructor. This is syntax compatibility, not a quality claim for
+those languages. Empty strings, uppercase codes, language names and locale
+aliases are rejected rather than normalized silently.
+
+Public audio fetching accepts HTTPS port 443 with ordinary certificate and SNI
+verification, URLs up to 4096 bytes, and no credentials or fragment. It ignores
+proxy environment settings. Every resolved connection address must be public;
+mixed public/nonpublic answers are rejected together. The connector consumes
+that checked address list without another lookup. Special-use, documentation,
+NAT64 and transition ranges are conservatively excluded. Redirects are limited
+to three hops, statuses 301/302/303/307/308, with URL and destination validation
+on each hop; the final response must be 200.
+
+Fetching requests identity encoding, but accepts ureq's transparent gzip
+delivery. The 25 MiB limit applies to the resulting encoded audio file, before
+FFmpeg decoding. The HTTP entity reader has a separate 32 MiB plus one-byte
+probe allowance before gzip decoding. A cumulative 32 MiB TCP budget includes
+TLS and HTTP framing across all hops; the failing read can receive at most one
+additional 16 KiB buffer. These are different domains, so a file below 25 MiB
+can still exceed a transport budget. Decoded PCM has the independent 600-second
+limit. These are downstream input limits, not universal vLLM defaults.
+
+One absolute 30-second fetch deadline spans redirects. DNS waiters check
+cancellation at intervals up to 50 ms; blocked network operations use steps of
+at most two seconds and recheck cancellation/deadline after I/O. An OS lookup
+cannot be cancelled: its worker reservation remains held until that lookup
+actually exits, even after its HTTP waiter has gone. Lookup capacity is bounded
+by the configured frontend worker count; late results cannot enter the model.
+A real TCP disconnect test cancels admitted and pending transcription children
+through the HTTP listener and returns host/frontend reservations. This uses
+controlled native queue inputs, not a GPU model. Public redirect chains and
+model-backed HTTP cancellation/draining remain separate qualification gates.
+
 ## Qualification boundaries
 
 Native audio decoding and resampling, identical-PCM Log-Mel comparisons, and

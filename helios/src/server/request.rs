@@ -97,7 +97,7 @@ pub(super) fn prepare_inference_cached(
 ) -> Result<PreparedInference> {
     prepare_inference_with_audio_cached(frontend, processor, compiler, config, request, index,
         count_only, input_store, #[cfg(feature = "audio")] None,
-        #[cfg(feature = "audio")] &std::sync::atomic::AtomicBool::new(false))
+        #[cfg(feature = "audio")] &std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)))
 }
 
 pub(super) fn prepare_inference_with_audio_cached(
@@ -110,7 +110,7 @@ pub(super) fn prepare_inference_with_audio_cached(
     count_only: bool,
     input_store: Option<&flare_selene::input::InputStore>,
     #[cfg(feature = "audio")] audio_processor: Option<&crate::frontend::audio::AudioProcessor>,
-    #[cfg(feature = "audio")] cancelled: &std::sync::atomic::AtomicBool,
+    #[cfg(feature = "audio")] cancelled: &std::sync::Arc<std::sync::atomic::AtomicBool>,
 ) -> Result<PreparedInference> {
     use super::inference::{Constraint, Input, RawPrompt, ToolChoice};
     let opts = &request.options;
@@ -316,17 +316,7 @@ pub(super) fn prepare_inference_with_audio_cached(
     let crate::model::PreparedInput {
         tokens, token_expansions, data, conditioning, conditioned_inputs,
     } = prepared_input;
-    let mut expansions = token_expansions.iter().peekable();
-    let mut additional = 0;
-    for boundary in &mut message_boundaries {
-        let original = *boundary;
-        while let Some((index, count)) = expansions.peek() {
-            if *index >= original { break; }
-            additional += count;
-            expansions.next();
-        }
-        *boundary += additional;
-    }
+    expand_boundaries(&mut message_boundaries, &token_expansions);
     if !rendered.image_checkpoint_hints.is_empty() {
         for &index in &rendered.image_checkpoint_hints {
             let image = conditioned_inputs
@@ -454,7 +444,21 @@ pub(super) fn thinking_budget_close(
     })
 }
 
-fn output_limit(
+pub(super) fn expand_boundaries(boundaries: &mut [usize], token_expansions: &[(usize, usize)]) {
+    let mut expansions = token_expansions.iter().peekable();
+    let mut additional = 0;
+    for boundary in boundaries {
+        let original = *boundary;
+        while let Some((index, count)) = expansions.peek() {
+            if *index >= original { break; }
+            additional += count;
+            expansions.next();
+        }
+        *boundary += additional;
+    }
+}
+
+pub(super) fn output_limit(
     object: &Map<String, Value>,
     configured: u32,
     prompt: usize,
