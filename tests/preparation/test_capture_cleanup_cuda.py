@@ -95,6 +95,18 @@ def test_failed_drain_retains_real_graph_after_exception_disposal():
     assert result.returncode == 0, result.stdout + result.stderr
 
 
+@pytest.mark.parametrize("stage", ["warmup", "serialize"])
+def test_raw_compile_retains_real_artifact_and_detects_unprotected_control(tmp_path, stage):
+    for protected in (True, False):
+        result = subprocess.run([sys.executable, str(Path(__file__).resolve()),
+            "raw-compile", stage, str(tmp_path / (stage + str(protected))), str(int(protected))],
+            capture_output=True, text=True, timeout=180)
+        if protected:
+            assert result.returncode == 0, result.stdout + result.stderr
+        else:
+            assert result.returncode != 0 and "raw compilation lost undrained owners" in result.stderr, result.stdout + result.stderr
+
+
 def _failed_drain_control():
     import gc
     import traceback
@@ -159,6 +171,89 @@ def _failed_drain_control():
     assert len(references) == 1 and references[0]() is not None and not resets
 
 
+def _raw_compile_control(stage, root, protected):
+    import gc
+    import traceback
+    import weakref
+    from contextlib import nullcontext
+    from unittest.mock import patch
+    from torch import _inductor
+    from ignition.preparation import compilation, failure
+    from ignition.preparation.module_images import ModuleImages
+
+    synchronize, compile_artifact = torch.cuda.synchronize, _inductor.standalone_compile
+    references, invoked = [], []
+    armed = False
+
+    class Owner:
+        pass
+
+    class Artifact:
+        def __init__(self, actual):
+            self.actual = actual
+            references.append(weakref.ref(self))
+
+        def __call__(self, *inputs):
+            nonlocal armed
+            result = self.actual(*inputs)
+            invoked.append("warmup")
+            if stage == "warmup":
+                armed = True
+                raise ValueError("planned raw warmup failure")
+            return result
+
+        def serialize(self):
+            nonlocal armed
+            invoked.append("serialize")
+            armed = True
+            raise ValueError("planned raw serialization failure")
+
+    def fence(*args, **kwargs):
+        if armed:
+            raise RuntimeError("unconfirmed raw compiler fence")
+        return synchronize(*args, **kwargs)
+
+    @torch.no_grad()
+    def run():
+        source, output = torch.ones(32, device="cuda"), torch.empty(32, device="cuda")
+        owner, control = Owner(), Owner()
+        references.extend((weakref.ref(owner), weakref.ref(control)))
+
+        def forward():
+            assert owner is not None
+            output.copy_(source + 3)
+
+        scope = nullcontext() if protected else patch.object(failure, "retain_on_failed_drain", lambda *a: nullcontext())
+        with patch.object(compilation, "DEFAULT_CACHE_ROOT", Path(root)), \
+                patch.object(_inductor, "standalone_compile", lambda *a, **k: Artifact(compile_artifact(*a, **k))), \
+                patch.object(torch.cuda, "synchronize", fence), scope:
+            try:
+                compilation.compile_forward(forward)
+            except ValueError as error:
+                return error, output
+        raise AssertionError("planned raw compiler fault did not run")
+
+    with ModuleImages():
+        torch.cuda.set_device(0)
+        error, output = run()
+        # The independent real fence makes the deliberately unprotected red
+        # control safe before disposal. It does not release retained owners.
+        synchronize()
+        assert output.cpu().eq(4).all()
+        retained = failure.resources_retained(error)
+        traceback.clear_frames(error.__traceback__)
+        error.__traceback__ = error.__cause__ = error.__context__ = None
+        error.__dict__.clear()
+        del error
+        gc.collect()
+        assert invoked == (["warmup"] if stage == "warmup" else ["warmup", "serialize"])
+        assert references[1]() is None  # Uncaptured control is collected.
+        assert retained and references[0]() is not None and references[2]() is not None, "raw compilation lost undrained owners"
+
+
 if __name__ == "__main__":
-    assert sys.argv[1:] == ["failed-drain"]
-    _failed_drain_control()
+    if sys.argv[1:] == ["failed-drain"]:
+        _failed_drain_control()
+    else:
+        assert len(sys.argv) == 5 and sys.argv[1] == "raw-compile" and sys.argv[2] in ("warmup", "serialize")
+        _raw_compile_control(sys.argv[2], sys.argv[3], bool(int(sys.argv[4])))

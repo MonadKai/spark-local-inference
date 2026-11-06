@@ -253,6 +253,55 @@ def peer_retention(failed_exchange=None):
     assert reference() is not None
 
 
+def raw_compile_failure(stage):
+    """The raw compiler warms before its artifact reaches the caller."""
+    import tempfile
+    from torch import _inductor
+    from torch._inductor import codecache
+    from ignition.preparation import compilation
+
+    references, invoked = [], []
+
+    class Artifact(Owner):
+        def __call__(self, *inputs):
+            invoked.append("warmup")
+            if stage == "warmup":
+                raise ValueError("planned raw warmup failure")
+            return ()
+
+        def serialize(self):
+            invoked.append("serialize")
+            raise ValueError("planned raw serialization failure")
+
+    def run(root):
+        artifact, owner, call = Artifact(), Owner(), Owner()
+        references.extend((weakref.ref(artifact), weakref.ref(owner), weakref.ref(call)))
+        graph = torch.fx.Graph()
+        graph.output(())
+        module = torch.fx.GraphModule({}, graph)
+        with patch.object(compilation, "DEFAULT_CACHE_ROOT", Path(root)), \
+                patch.object(compilation, "_compiler_recursion", lambda module: nullcontext()), \
+                patch.object(compilation, "_artifact_kernel_table", lambda: nullcontext()), \
+                patch.object(_inductor, "standalone_compile", lambda *a, **k: artifact), \
+                patch.object(codecache, "torch_key", lambda: b"raw-compile-control"), \
+                patch.object(torch.cuda, "get_device_capability", lambda: (12, 1)), \
+                patch.object(torch.cuda, "get_device_name", lambda: "fault-control"), \
+                patch.object(torch.cuda, "current_device", lambda: 0), \
+                patch.object(torch.cuda, "synchronize", side_effect=RuntimeError("unconfirmed fence")):
+            try:
+                compilation._compile_module(module, {0: call}, owner, None)
+            except ValueError as error:
+                assert resources_retained(error)
+                return error
+        pytest.fail("raw compiler failure did not propagate")
+
+    with tempfile.TemporaryDirectory() as root:
+        error = run(root)
+    discard(error)
+    assert invoked == (["warmup"] if stage == "warmup" else ["warmup", "serialize"])
+    assert all(reference() is not None for reference in references)
+
+
 SCENARIOS = {
     "native": native_reference,
     "group": grouped_failure,
@@ -263,6 +312,8 @@ SCENARIOS = {
     "peer": peer_retention,
     "first_gather_failure": lambda: peer_retention(1),
     "second_gather_failure": lambda: peer_retention(2),
+    "raw_compile_warmup": lambda: raw_compile_failure("warmup"),
+    "raw_compile_serialize": lambda: raw_compile_failure("serialize"),
 }
 
 

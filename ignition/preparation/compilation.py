@@ -306,19 +306,24 @@ def _compile_module(module, calls, owner, output_tree):
         with _compiler_recursion(module):
             artifact = standalone_compile(module, inputs, dynamic_shapes='from_example_inputs',
                 options={'config_patches': _OPTIONS}, aot=True, donate_graph_module=True)
-    token = _INVOCATIONS.set(calls)
-    try:
-        # Warm caller-owned state on both paths so TP ranks issue equal collectives.
-        artifact(*inputs)
-    finally:
-        _INVOCATIONS.reset(token)
-    if not cache_hit:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with _artifact_kernel_table():
-            serialized = artifact.serialize()
-        from torch._inductor.codecache import write_atomic
-        write_atomic(path, pickle.dumps((torch.device('cuda', torch.cuda.current_device()), serialized)))
-    return CompiledForward(artifact, inputs, calls, owner, output_tree, cache_hit)
+    from .failure import retain_on_failed_drain
+
+    # This API executes GPU work before its artifact reaches the caller. Keep
+    # that artifact and all invocation owners across warmup/serialization faults.
+    with retain_on_failed_drain(torch.cuda.current_device(), artifact, inputs, calls, owner, module):
+        token = _INVOCATIONS.set(calls)
+        try:
+            # Warm caller-owned state on both paths so TP ranks issue equal collectives.
+            artifact(*inputs)
+        finally:
+            _INVOCATIONS.reset(token)
+        if not cache_hit:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with _artifact_kernel_table():
+                serialized = artifact.serialize()
+            from torch._inductor.codecache import write_atomic
+            write_atomic(path, pickle.dumps((torch.device('cuda', torch.cuda.current_device()), serialized)))
+        return CompiledForward(artifact, inputs, calls, owner, output_tree, cache_hit)
 
 
 class ForwardTracer:
