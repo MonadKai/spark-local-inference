@@ -88,6 +88,29 @@ completions, and duplicate or out-of-order completion rejection. Retained plans
 exercise commit rejection with a full window or pending feedback barrier. Rejected
 operations preserve the test's observed state.
 
+`scheduler_audio_matches_lifecycle_model` adds cold-start and decode-start audio
+fixtures with two request slots and one feature arena. Cold start uses the
+default policy. Decode start is seeded through real scheduler operations under
+a policy configured before admission with equal token prices and zero delivery
+age price; the policy remains fixed throughout that fixture. Uniform synthetic
+microsecond graph costs are for ownership exploration, not serving fairness.
+Both fixtures retain depth 12, four further submissions and two generations.
+The worker's immediate admission/input-binding sequence is one exploration
+turn. A failed arena binding emits separate admission and cancellation edges;
+the intermediate state is asserted but is not a concurrent exploration point.
+
+The audio test retains the 14-field TLA projection and checks each transition
+against the original `Lifecycle` relation. Additional bounded Rust assertions
+check the complete disjoint free/live/retiring audio-arena partition, stable
+request generations and increasing scheduler revisions, exact retirement fences,
+zero-token encoder completion and one-job
+retirement, and arena retention through subsequent text work. The visited key
+includes audio owners, free arenas, encoder queues, readiness and conditioned
+windows. The TLA model does not include arena fields; its pass does not prove
+these new Rust assertions, physical GPU reads or executor drain. The mutation
+runner additionally removes audio ownership transfer/return and encoder-job
+retirement, and shortens the audio retirement fence.
+
 ## Response ownership
 
 `ResponseLifecycle.tla` checks three reusable response cells, two host admission
@@ -132,6 +155,40 @@ Response mutations remove either producer or reader permit ownership, undercount
 a generation group's admission, shrink the queue below its promised budget, and
 release a model reservation when only its producer has retired. Each fault must
 fail the corresponding Rust assertion or TLA+ admission invariant.
+
+## Asynchronous admission credits
+
+`AdmissionWaiters.tla` complements the response ownership model with one ordinary
+generation and one asynchronous single-choice waiter. Host capacity one and two
+are checked separately; message capacity is one. A waiter can be waiting for
+host admission, holding host admission while waiting for message capacity, or
+holding a credit already assigned by a semaphore before its future is polled.
+The model distinguishes these assignments from free credits. Message ownership
+ends at `Worker::enqueue`; producer and response reader share host ownership.
+Cancellation and both runtime-stop and worker-exit closure retain every credit
+until the corresponding owner actually releases it.
+
+`admission_waiter_tests::admission_waiters_match_credit_model` drives the actual
+`generate`, `generate_when_available`, `Worker::enqueue`, destructors,
+`request_stop` and `CloseAdmission`. It observes both semaphore availabilities,
+producer location, reader ownership and cancellation. A polled pending future's
+stage is inferred from the observed host balance, not by inspecting Tokio's
+internal state. With one waiter, otherwise unaccounted semaphore credits identify
+its assigned credit uniquely; assertions reject any residual when no eligible
+waiter exists. Allowed-edge checks and mutation controls additionally test that
+this inferred accounting follows the production operations.
+The thirteen-integer projection is checked against every observed model edge.
+The native exploration also exercises each capacity through 100 reuse cycles.
+There is no lifetime admission-count cutoff in the abstract model.
+
+This is a bounded host protocol check. It does not prove Tokio internals,
+multiple-waiter fairness, HTTP disconnect propagation, or CUDA drain. Existing
+FIFO and transcription parent tests exercise additional host paths; physical
+GPU ownership and mixed-service latency still require native execution.
+Mutation calibration loses each assigned credit, omits held-host return,
+leaks the real waiting host reservation, retains worker message credit, and
+omits each production message-pool close. The runner restores source before
+rechecking real transitions.
 
 ## Rank coordination
 

@@ -20,6 +20,9 @@ use std::time::Duration;
 #[path = "response_lifecycle_tests.rs"]
 mod response_lifecycle_tests;
 
+#[path = "admission_waiter_tests.rs"]
+mod admission_waiter_tests;
+
 #[cfg(feature = "audio")]
 #[path = "transcription_tests.rs"]
 mod transcription_tests;

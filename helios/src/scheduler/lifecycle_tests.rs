@@ -17,6 +17,20 @@ struct Fixture {
     scheduler: RequestScheduler,
     fence_origin: u64,
     last_plan: Option<ScheduledPlan>,
+    kind: FixtureKind,
+    rejected_admission: Option<Projection>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum FixtureKind { Text, AudioStart, AudioDecode }
+
+fn fixture_spec(kind: FixtureKind, slot: usize, generation: u64) -> RequestSpec {
+    let mut spec = request_spec(slot, generation);
+    if kind != FixtureKind::Text {
+        spec.prompt.resize(120, 7);
+        spec.conditioning.push(ConditioningEvent { position: 1, identity: [generation as u8; 32] });
+    }
+    spec
 }
 
 fn request_spec(slot: usize, generation: u64) -> RequestSpec {
@@ -35,7 +49,7 @@ fn completion_records(scheduler: &RequestScheduler, fence: Fence) -> Vec<Complet
         let kind = submission.lane_kind(row);
         let transfer = matches!(
             kind,
-            GraphKind::Init | GraphKind::Restore | GraphKind::Snapshot
+            GraphKind::Init | GraphKind::Restore | GraphKind::Snapshot | GraphKind::AudioEncode
         );
         assert!(!matches!(
             kind,
@@ -62,12 +76,28 @@ fn completion_records(scheduler: &RequestScheduler, fence: Fence) -> Vec<Complet
 
 impl Fixture {
     fn new() -> Self {
-        let mut scheduler = tests::scheduler(2, 64, 16);
+        Self::new_kind(FixtureKind::Text)
+    }
+
+    fn new_kind(kind: FixtureKind) -> Self {
+        let mut scheduler = if kind == FixtureKind::Text { tests::scheduler(2, 64, 16) }
+                            else { audio_tests::scheduler(1) };
+        if kind == FixtureKind::AudioDecode {
+            // Seed a valid ownership state with the public policy API. Uniform
+            // synthetic microsecond costs do not model serving fairness.
+            scheduler.configure_policy(PolicyConfig { output_token_value: 1., token_fairness: 0.,
+                delivery_fairness: 0., decode_age_price: 0., ..Default::default() }).unwrap();
+        }
         for slot in 0..2 {
-            assert_eq!(
-                scheduler.admit(request_spec(slot, 1)).unwrap().slot as usize,
-                slot
-            );
+            let handle = scheduler.admit(fixture_spec(kind, slot, 1)).unwrap();
+            assert_eq!(handle.slot as usize, slot);
+            if kind != FixtureKind::Text && slot == 0 {
+                scheduler.set_conditioned_inputs(handle, &[audio_tests::input()]).unwrap();
+                scheduler.conditioned_inputs_ready(handle, true).unwrap();
+            }
+        }
+        if kind == FixtureKind::AudioStart {
+            return Self { scheduler, fence_origin: 0, last_plan: None, kind, rejected_admission: None };
         }
         for _ in 0..16 {
             if scheduler
@@ -81,6 +111,7 @@ impl Fixture {
                     scheduler,
                     fence_origin,
                     last_plan: None,
+                    kind, rejected_admission: None,
                 };
             }
             let plan = scheduler
@@ -89,22 +120,31 @@ impl Fixture {
             let fence = Fence(scheduler.submitted.0 + 1);
             scheduler.commit(&plan, fence).unwrap();
             let records = completion_records(&scheduler, fence);
-            scheduler
-                .complete(fence, &records, Default::default())
+            let mut timing = crate::execution::ExecutionTiming::default();
+            if kind != FixtureKind::Text {
+                scheduler.advance_to(scheduler.now_ns + plan.estimated_duration_ns()).unwrap();
+                timing.gpu_ns[0] = Some(plan.estimated_duration_ns());
+                timing.wall_ns = plan.estimated_duration_ns();
+            }
+            let generated = scheduler
+                .complete(fence, &records, timing)
                 .unwrap();
+            if kind != FixtureKind::Text {
+                for token in generated { scheduler.published_output(token.request, fence).unwrap(); }
+            }
         }
-        panic!("scheduler warmup did not reach two decode requests");
-    }
-
-    fn logical_fence(&self, fence: Fence) -> u64 {
-        fence.0.saturating_sub(self.fence_origin)
+        panic!("scheduler warmup did not reach two decode requests: {kind:?}");
     }
 
     fn projection(&self) -> Projection {
-        let s = &self.scheduler;
+        Self::project(&self.scheduler, self.fence_origin)
+    }
+
+    fn project(s: &RequestScheduler, origin: u64) -> Projection {
+        let logical = |fence: Fence| fence.0.saturating_sub(origin);
         let mut result = [0; 14];
-        result[0] = self.logical_fence(s.submitted);
-        result[1] = self.logical_fence(s.completed);
+        result[0] = logical(s.submitted);
+        result[1] = logical(s.completed);
         for (index, slot) in s.slots.iter().enumerate() {
             result[2 + index] = if slot.request.is_some() {
                 1
@@ -124,11 +164,11 @@ impl Fixture {
                         .find(|retired| retired.slot == index)
                         .map(|retired| retired.through)
                 })
-                .map_or(0, |fence| self.logical_fence(fence));
+                .map_or(0, logical);
         }
         for (index, (fence, submission)) in s.submissions.iter().enumerate() {
             assert!(index < 2);
-            result[8 + index] = self.logical_fence(*fence);
+            result[8 + index] = logical(*fence);
             result[10 + index] = submission
                 .lanes
                 .iter()
@@ -139,7 +179,10 @@ impl Fixture {
     }
 
     fn state_key(&self) -> String {
-        let s = &self.scheduler;
+        Self::scheduler_key(&self.scheduler, self.fence_origin)
+    }
+
+    fn scheduler_key(s: &RequestScheduler, fence_origin: u64) -> String {
         let live = s
             .slots
             .iter()
@@ -153,6 +196,8 @@ impl Fixture {
                         request.generated_tokens,
                         request.scheduled_consumed,
                         request.pending,
+                        (request.audio_slot, &request.encoder_jobs, request.conditioned_inputs_ready,
+                         &request.conditioned_windows, &request.conditioned_features, request.window_restore),
                         (
                             request.private_pages.clone(),
                             request.reserved_pages.clone(),
@@ -179,23 +224,28 @@ impl Fixture {
                     retired.through,
                     &retired.pages,
                     retired.snapshots,
+                    retired.audio_slot,
                 )
             })
             .collect::<Vec<_>>();
         format!(
-            "{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}",
-            self.projection(),
+            "{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}",
+            Self::project(s, fence_origin),
             live,
             submitted,
             retired,
             s.stats(),
             s.free_pages,
-            s.free_snapshots
+            s.free_snapshots,
+            s.free_audio_slots
         )
     }
 
     fn assert_ownership(&self) {
-        let s = &self.scheduler;
+        Self::assert_scheduler_ownership(&self.scheduler);
+    }
+
+    fn assert_scheduler_ownership(s: &RequestScheduler) {
         for (fence, submission) in &s.submissions {
             for lane in &submission.lanes {
                 let slot = &s.slots[lane.request.slot as usize];
@@ -216,6 +266,9 @@ impl Fixture {
         }
         let mut pages = s.free_pages.iter().copied().collect::<HashSet<_>>();
         let mut snapshots = s.free_snapshots.iter().copied().collect::<HashSet<_>>();
+        let capacity = s.capabilities.audio.as_ref().map_or(0, |audio| audio.feature_slots);
+        let mut arenas = s.free_audio_slots.iter().copied().collect::<HashSet<_>>();
+        assert!(arenas.iter().all(|arena| *arena < capacity));
         for (index, slot) in s.slots.iter().enumerate() {
             assert!(!(slot.retiring && slot.request.is_some()));
             assert_eq!(
@@ -223,6 +276,9 @@ impl Fixture {
                 s.retired.iter().any(|retired| retired.slot == index)
             );
             if let Some(request) = &slot.request {
+                if let Some(arena) = request.audio_slot {
+                    assert!(arena < capacity && arenas.insert(arena), "live audio arena aliases free or owned storage");
+                }
                 assert_eq!(request.handle.generation, slot.generation);
                 assert_eq!(
                     request.pending,
@@ -257,6 +313,9 @@ impl Fixture {
             }
         }
         for retired in &s.retired {
+            if let Some(arena) = retired.audio_slot {
+                assert!(arena < capacity && arenas.insert(arena), "retired audio arena became reusable before its fence");
+            }
             assert!(
                 retired.through > s.completed,
                 "completed retirement still reserves a slot"
@@ -274,6 +333,7 @@ impl Fixture {
                 );
             }
         }
+        assert_eq!(arenas.len(), capacity, "audio arena ownership was lost");
     }
 
     fn actions(&self) -> Vec<Action> {
@@ -317,15 +377,33 @@ impl Fixture {
     }
 
     fn apply(&mut self, action: Action) {
+        self.rejected_admission = None;
         let before = self.state_key();
         let s = &mut self.scheduler;
         match action[0] {
             1 => {
                 let slot = action[1] as usize;
                 let handle = s
-                    .admit(request_spec(slot, s.slots[slot].generation + 1))
+                    .admit(fixture_spec(self.kind, slot, s.slots[slot].generation + 1))
                     .unwrap();
                 assert_eq!(handle.slot as usize, slot);
+                if self.kind != FixtureKind::Text {
+                    let mid = Self::project(s, self.fence_origin);
+                    let before_binding = Self::scheduler_key(s, self.fence_origin);
+                    // The single worker binds input immediately after admission.
+                    // Failed binding cancels in the same worker turn; its two
+                    // observable ownership transitions are checked separately.
+                    if let Err(error) = s.set_conditioned_inputs(handle, &[audio_tests::input()]) {
+                        assert!(matches!(error, crate::Error::Admission(crate::AdmissionError::Capacity(_))));
+                        assert_eq!(Self::scheduler_key(s, self.fence_origin), before_binding,
+                            "failed audio binding changed resource ownership or input state");
+                        Self::assert_scheduler_ownership(s);
+                        s.cancel(handle).unwrap();
+                        self.rejected_admission = Some(mid);
+                    } else {
+                        s.conditioned_inputs_ready(handle, true).unwrap();
+                    }
+                }
             }
             2 => {
                 let plan = s.plan().unwrap();
@@ -352,11 +430,26 @@ impl Fixture {
                             retired.through,
                             retired.pages.clone(),
                             retired.snapshots,
+                            retired.audio_slot,
                         )
                     })
                     .collect::<Vec<_>>();
-                s.complete(fence, &records, Default::default()).unwrap();
-                for (slot, through, pages, snapshots) in protected {
+                let audio = (s.submissions[&fence].kind == GraphKind::AudioEncode).then(|| {
+                    let lane = &s.submissions[&fence].lanes[0];
+                    s.request(lane.request).ok().map(|request| (request.handle, request.consumed_tokens,
+                        request.generated_tokens, request.scheduled_consumed, request.encoder_jobs.len(), request.audio_slot, request.epoch))
+                }).flatten();
+                let generated = s.complete(fence, &records, Default::default()).unwrap();
+                if let Some((handle, consumed, emitted, scheduled, jobs, arena, epoch)) = audio {
+                    let live = s.request(handle).unwrap();
+                    assert!(generated.is_empty(), "audio encoding emitted a token");
+                    assert_eq!((live.consumed_tokens, live.generated_tokens, live.scheduled_consumed), (consumed, emitted, scheduled));
+                    assert_eq!(live.audio_slot, arena, "audio encoding released features before text prefill");
+                    assert_eq!(live.handle, handle, "audio completion changed the request generation");
+                    assert!(live.epoch > epoch, "audio completion did not invalidate prior scheduler plans");
+                    assert_eq!(live.encoder_jobs.len() + 1, jobs, "audio completion did not retire exactly one encoder job");
+                }
+                for (slot, through, pages, snapshots, arena) in protected {
                     let retired = s
                         .retired
                         .iter()
@@ -368,6 +461,7 @@ impl Fixture {
                         (retired.through, &retired.pages, retired.snapshots),
                         (through, &pages, snapshots)
                     );
+                    assert_eq!(retired.audio_slot, arena, "first completion lost a later frame's audio arena");
                     assert!(
                         pages.iter().all(|page| !s.free_pages.contains(page)),
                         "first completion released pages referenced by a later frame"
@@ -386,6 +480,7 @@ impl Fixture {
                 let request = s.slots[slot].request.as_ref().unwrap();
                 let handle = request.handle;
                 let through = request.last_use;
+                let arena = request.audio_slot;
                 let pages = request
                     .private_pages
                     .iter()
@@ -410,6 +505,7 @@ impl Fixture {
                         "cancel shortened the last-use fence"
                     );
                     assert_eq!(retired.pages, pages, "cancel lost private page ownership");
+                    assert_eq!(retired.audio_slot, arena, "cancel lost audio arena ownership");
                     assert_eq!(
                         retired.snapshots, snapshots,
                         "cancel lost snapshot ownership"
@@ -506,6 +602,7 @@ struct Coverage {
     feedback_barrier: bool,
     full_window_rejection: bool,
     feedback_rejection: bool,
+    audio_rejections: bool,
 }
 
 fn check_rejections(fixture: &mut Fixture, coverage: &mut Coverage) {
@@ -540,8 +637,35 @@ fn check_rejections(fixture: &mut Fixture, coverage: &mut Coverage) {
         );
         coverage.out_of_order = true;
     }
-    if let Some((fence, _)) = s.submissions.first_key_value() {
+    if let Some((fence, submission)) = s.submissions.first_key_value() {
         let fence = *fence;
+        if submission.kind == GraphKind::AudioEncode {
+            let slot = submission.lanes[0].request.slot as usize;
+            if s.slots[slot].request.is_some() {
+                for control in 0..6 {
+                    let mut invalid = completion_records(s, fence);
+                    let record = &mut invalid[slot];
+                    match control {
+                        0 => record.submission_sequence += 1,
+                        1 => record.consumed_tokens += 1,
+                        2 => record.generated_tokens += 1,
+                        3 => record.token_id = 99,
+                        4 => {
+                            let mut vector = crate::execution::TokenVector::default();
+                            vector.emitted_count = 1;
+                            vector.tokens[0] = 99;
+                            record.token_id = 99;
+                            record.vector = Some(vector);
+                        }
+                        5 => record.status = 2,
+                        _ => unreachable!(),
+                    }
+                    assert!(s.complete(fence, &invalid, Default::default()).is_err(),
+                        "audio encoder accepted invalid completion metadata");
+                }
+                coverage.audio_rejections = true;
+            }
+        }
         let mut records = completion_records(s, fence);
         coverage.partially_valid_completion |=
             records.iter().filter(|record| record.status != 0).count() > 1;
@@ -709,4 +833,81 @@ fn scheduler_matches_lifecycle_model() {
         visited.len(),
         edges.len()
     );
+}
+
+#[test]
+fn scheduler_audio_matches_lifecycle_model() {
+    let mut edges = BTreeSet::new();
+    let mut coverage = Coverage::default();
+    let (mut initial_cancel, mut encoder_cancel, mut between_encoders, mut encoded_cancel) = (false, false, false, false);
+    let (mut prefill_cancel, mut arena_pressure, mut reused_arena, mut total_states) = (false, false, false, 0usize);
+    for kind in [FixtureKind::AudioStart, FixtureKind::AudioDecode] {
+        let mut pending = VecDeque::from([Vec::<Action>::new()]);
+        let mut visited = HashSet::new();
+        while let Some(path) = pending.pop_front() {
+            let mut fixture = Fixture::new_kind(kind);
+            for action in &path { fixture.apply(*action); }
+            if !visited.insert(fixture.state_key()) { continue; }
+            fixture.assert_ownership();
+            check_rejections(&mut fixture, &mut coverage);
+            if path.len() == MAX_DEPTH { continue; }
+            let before = fixture.projection();
+            for action in fixture.actions() {
+                let mut candidate = Fixture::new_kind(kind);
+                for previous in &path { candidate.apply(*previous); }
+                let stale_plan = (action[0] == 4).then(|| candidate.scheduler.plan()).flatten()
+                    .filter(|plan| plan.lanes.iter().any(|lane| lane.request.slot as u64 == action[1]));
+                if action[0] == 4 {
+                    let live = candidate.scheduler.slots[action[1] as usize].request.as_ref().unwrap();
+                    if live.audio_slot.is_some() {
+                        initial_cancel |= live.phase == RequestPhase::Initialize;
+                        encoder_cancel |= live.phase == RequestPhase::AudioEncode && live.pending != 0;
+                        between_encoders |= live.phase == RequestPhase::AudioEncode && live.pending == 0 && live.encoder_jobs.len() == 1;
+                        encoded_cancel |= live.phase == RequestPhase::Prefill && live.pending == 0;
+                        prefill_cancel |= live.phase == RequestPhase::Prefill && live.pending != 0;
+                        coverage.cancel_two_pending |= live.phase == RequestPhase::Decode && live.pending == 2;
+                    }
+                }
+                candidate.apply(action);
+                let after = candidate.projection();
+                if let Some(mid) = candidate.rejected_admission {
+                    arena_pressure = true;
+                    edges.insert((before, action, mid));
+                    edges.insert((mid, [4, action[1], 0], after));
+                } else {
+                    edges.insert((before, action, after));
+                    if action[0] == 1 {
+                        let live = candidate.scheduler.slots[action[1] as usize].request.as_ref().unwrap();
+                        reused_arena |= live.handle.generation == 2 && live.audio_slot.is_some();
+                    }
+                }
+                if let Some(plan) = stale_plan {
+                    let state = candidate.state_key();
+                    assert!(candidate.scheduler.commit(&plan, Fence(candidate.scheduler.submitted.0 + 1)).is_err(),
+                        "cancelled audio request plan accepted");
+                    assert_eq!(candidate.state_key(), state);
+                    coverage.stale_plan = true;
+                }
+                coverage.first_completion_retains_slot |= action[0] == 3 && before[2..4].contains(&2) && after[2..4].contains(&2);
+                coverage.uncertain_drain |= action[0] == 5 && before[8] != 0;
+                coverage.feedback_barrier |= action[0] == 2 && action[2] == 1;
+                let mut successor = path.clone();
+                successor.push(action);
+                pending.push_back(successor);
+            }
+        }
+        total_states += visited.len();
+    }
+    assert!(initial_cancel && encoder_cancel && between_encoders && encoded_cancel && prefill_cancel,
+        "missing audio phase cancellation: {initial_cancel} {encoder_cancel} {between_encoders} {encoded_cancel} {prefill_cancel}");
+    assert!(arena_pressure && reused_arena && coverage.audio_rejections,
+        "missing audio capacity/reuse/completion controls: {arena_pressure} {reused_arena} {coverage:?}");
+    assert!(coverage.two_pending && coverage.cancel_two_pending && coverage.first_completion_retains_slot
+        && coverage.stale_handle && coverage.stale_plan && coverage.stale_completion && coverage.out_of_order
+        && coverage.duplicate_completion && coverage.uncertain_drain && coverage.feedback_barrier
+        && coverage.full_window_rejection && coverage.feedback_rejection, "missing shared lifecycle checks: {coverage:?}");
+    for (before, action, after) in &edges {
+        println!("LIFECYCLE_EDGE [{before:?}, {action:?}, {after:?}]");
+    }
+    println!("AUDIO_LIFECYCLE_COVERAGE states={total_states} edges={} depth={MAX_DEPTH} {coverage:?}", edges.len());
 }
