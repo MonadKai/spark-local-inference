@@ -3,7 +3,8 @@
 
 """Prepare deterministic ASR qualification/development inputs before inference.
 
-The caller supplies verified official LibriSpeech and AISHELL-1 extractions.
+The caller supplies official LibriSpeech and AISHELL-1 extractions, with their
+actual acquisition and verification scope recorded through --source-details.
 Selection never reads hypotheses: first 16 sorted speakers, eight duration
 quantiles per speaker, with utterance ID breaking duration ties.
 """
@@ -14,12 +15,17 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
+import tempfile
 import wave
 
 
 def select(rows):
     speakers = defaultdict(list)
+    identities = set()
     for row in rows:
+        if row["id"] in identities:
+            raise ValueError(f"duplicate candidate utterance: {row['id']}")
+        identities.add(row["id"])
         speakers[row["speaker"]].append(row)
     if len(speakers) < 16:
         raise ValueError("corpus needs 16 speakers")
@@ -36,14 +42,27 @@ def select(rows):
 
 def source_samples(path):
     value = json.loads(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries",
-        "stream=sample_rate,duration_ts,time_base,channels", "-of", "json", str(path)]))
+        "stream=sample_rate,duration_ts,time_base,channels", "-of", "json", str(path)], timeout=30))
     streams = value["streams"]
     if len(streams) != 1 or streams[0].get("sample_rate") != "16000" or streams[0].get("channels") != 1:
         raise ValueError(f"official source is not mono 16 kHz: {path}")
     stream = streams[0]
     if stream["time_base"] != "1/16000" or stream["duration_ts"] <= 200:
         raise ValueError(f"invalid source sample extent: {path}")
-    return stream["duration_ts"]
+    expected = stream["duration_ts"]
+    if expected > 600 * 16000:
+        raise ValueError(f"source exceeds the bounded decode extent: {path}")
+    # Duration metadata alone can change the quantile selection without any
+    # recognizer result. Decode every candidate before ranking, not just the
+    # selected files; the temporary PCM stream bounds resident memory.
+    with tempfile.TemporaryFile() as decoded:
+        subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-xerror", "-threads", "1", "-i", str(path),
+            "-map", "0:a:0", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", "-threads", "1", "-f", "s16le",
+            "-fs", str((600 * 16000 + 1) * 2), "pipe:1"], stdout=decoded, check=True, timeout=60)
+        count = decoded.tell()
+    if count != expected * 2:
+        raise ValueError(f"decoded source sample count differs from its metadata: {path}")
+    return expected
 
 
 def english_rows(root):
@@ -66,14 +85,17 @@ def chinese_rows(root, split):
         if identity in transcripts:
             raise ValueError(f"duplicate AISHELL transcript: {identity}")
         transcripts[identity] = text
-    rows = []
+    rows, unlabeled = [], []
     speakers = sorted(p for p in (root / "wav" / split).iterdir() if p.is_dir())[:16]
     for speaker in speakers:
         for source in sorted(speaker.glob("*.wav")):
             identity = source.stem
+            if identity not in transcripts:
+                unlabeled.append(identity)
+                continue
             rows.append(dict(id="zh-" + identity, language="zh", speaker=speaker.name,
                 text=transcripts[identity], source=source, source_id=identity, samples=source_samples(source)))
-    return rows
+    return rows, unlabeled
 
 
 def main():
@@ -82,18 +104,21 @@ def main():
     parser.add_argument("--aishell", type=Path, required=True, help="data_aishell root with transcript/ and unpacked wav/")
     parser.add_argument("--split", choices=("qualification", "development"), required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--source-details", type=Path, help="actual acquisition revisions/checks for each language; data only")
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     pcm = args.output / "pcm"
     pcm.mkdir()
     english = "test-clean" if args.split == "qualification" else "dev-clean"
     chinese = "test" if args.split == "qualification" else "dev"
-    selected = select(english_rows(args.librispeech / english)) + select(chinese_rows(args.aishell, chinese))
+    chinese_candidates, unlabeled = chinese_rows(args.aishell, chinese)
+    selected = select(english_rows(args.librispeech / english)) + select(chinese_candidates)
     output = []
     for row in selected:
         target = pcm / (row["id"] + ".wav")
-        subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-n", "-i", str(row["source"]),
-            "-map", "0:a:0", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", str(target)], check=True)
+        subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-xerror", "-n", "-threads", "1", "-i", str(row["source"]),
+            "-map", "0:a:0", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", "-threads", "1",
+            "-fs", str(600 * 16000 * 2 + 65536), str(target)], check=True, timeout=60)
         with wave.open(str(target)) as decoded:
             if (decoded.getnchannels(), decoded.getsampwidth(), decoded.getframerate(), decoded.getnframes()) != (
                     1, 2, 16000, row["samples"]):
@@ -101,18 +126,27 @@ def main():
             samples = decoded.readframes(decoded.getnframes())
         output.append({key: value for key, value in row.items() if key != "source"} | {
             "path": target.relative_to(args.output).as_posix(), "pcm_s16le_sha256": hashlib.sha256(samples).hexdigest()})
-    manifest = dict(split=args.split, selection="first 16 numeric English/lexical Chinese speakers; "
+    manifest = dict(split=args.split, excluded_without_reference={"zh": unlabeled},
+        selection="labeled candidates only; first 16 numeric English/lexical Chinese speakers; "
         "8 round(i*(n-1)/7) quantiles sorted by exact source samples then ID; i=0..7", utterances=output,
         sources={"en": {"dataset": "OpenSLR/12 LibriSpeech", "split": english,
-            "archive_md5": "32fa31d27d2e1cad72775fee3f4849a9" if english == "test-clean" else "42e2234ba48799c1f50f24a7926300a1",
+            "publisher_expected_archive_md5": "32fa31d27d2e1cad72775fee3f4849a9" if english == "test-clean" else "42e2234ba48799c1f50f24a7926300a1",
             "license": "CC BY 4.0", "source": "https://www.openslr.org/12/"},
             "zh": {"dataset": "OpenSLR/33 AISHELL-1", "split": chinese,
-                "archive_md5": "2f494334227864a8a8fec932999db9d8", "license": "Apache-2.0",
+                "publisher_expected_archive_md5": "2f494334227864a8a8fec932999db9d8", "license": "Apache-2.0",
                 "source": "https://www.openslr.org/33/"}},
         decode={"program": subprocess.check_output(["ffmpeg", "-version"], text=True).splitlines()[0],
             "format": "mono 16000 Hz PCM16 WAV; source has same channels/rate; no duration trimming"},
         request={"temperature": 0, "seed": 0, "max_model_len": 8192,
             "context": "", "language": "utterance.language", "max_completion_tokens": 1024})
+    if args.source_details:
+        details = json.loads(args.source_details.read_text())
+        if not isinstance(details, dict) or set(details) != {"en", "zh"}:
+            raise ValueError("source details require English and Chinese acquisition descriptions")
+        for language, value in details.items():
+            if not isinstance(value, dict):
+                raise ValueError("source acquisition details must be JSON objects")
+            manifest["sources"][language]["acquisition"] = value
     with (args.output / "manifest.json").open("x") as file:
         json.dump(manifest, file, ensure_ascii=False, indent=2)
         file.write("\n")
