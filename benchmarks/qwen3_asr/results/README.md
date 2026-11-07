@@ -250,8 +250,9 @@ API container exits 0 and its task container is removed after the complete
 cohort has drained. The default abort/zero-timeout shutdown force-kills the
 EngineCore worker; this is not a graceful worker-teardown check. Its image has no
 repository digest; the actual local image ID and installed selected-source
-checks are explicit. Encoder CUDA Graphs remain unavailable for this model in
-the pinned implementation; decoder graphs, compilation and batching are active.
+checks are explicit. Encoder compilation and encoder CUDA Graphs were disabled
+in this run; their availability and deployment tuning remain open. Decoder
+graphs, compilation and batching are active.
 
 Paired descriptive long scores versus the earlier native package are retained
 per crop and in aggregate. Native/reference English WER is .323510/.326785,

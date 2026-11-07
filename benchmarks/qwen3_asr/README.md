@@ -166,3 +166,30 @@ For vLLM, HTTP success leaves tokens and complete-ASR throughput unknown until
 the independent engine observer reconciles every planned chunk and official
 counter. The client always leaves overall performance qualification false;
 the frozen block comparison and all model/lifecycle gates remain separate.
+
+[The decoder-reduction native observation](results/native-recognition-reduction.json)
+retains a fresh exported package served independently by Rust after Python exited:
+256/256 primary requests stop naturally; two development inputs each match
+across five repetitions. All fixed quality margins pass against canonical and both the historical
+and rebuilt vLLM references. English WER is 70/2875, English CER 94/15411 and
+Mandarin CER 35/1861. This uses modified-worktree model wiring, with actual terminal
+counts and no raw generated IDs; it is not final clean-source qualification.
+
+[The rebuilt vLLM observation](results/vllm-recognition-rebuilt.json) binds a new
+actual image and manifest digest to 256 primary plus nine long requests. All
+356 chunks stop naturally; 11,318 actual tokens reconcile with official counters,
+and every unique media identifier is associated with successful encoder dispatch.
+Prefill/decode compile and graphs are enabled with capacities through 4096;
+encoder compilation and encoder CUDA Graphs were disabled in this run; their
+availability and deployment tuning remain open. Raw
+responses, actual token IDs, counters and two historical primary output
+differences remain. The image and expanded graph configuration both differ from
+the historical run; no single cause is assigned. Sampling after engine cloning
+and actual prompt IDs were not recorded in this run. API-container normal exit
+is reported separately from any worker-shutdown inference.
+
+These are finite recognition/reference observations with uncalibrated collector
+overhead. Complete state and full-prefill numerical gates, native batch/slot and
+cancel/cache qualification, API/old-package gates, observer calibration and
+the frozen sustained comparisons remain outstanding. Neither file establishes
+a serving-performance gain or a vLLM win.
