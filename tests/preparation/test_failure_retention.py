@@ -302,6 +302,59 @@ def raw_compile_failure(stage):
     assert all(reference() is not None for reference in references)
 
 
+def projection_fixture_session(retained):
+    import importlib.util
+    from b12x import preparation
+
+    path = Path(__file__).resolve().parents[2] / "helios/tests/canonical_projection_package_fixture.py"
+    spec = importlib.util.spec_from_file_location("projection_package_failure_fixture", path)
+    fixture = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(fixture)
+
+    events, references = [], []
+
+    class Session(Owner):
+        def __init__(self, **kwargs):
+            references.append(weakref.ref(self))
+
+        def close(self):
+            events.append("close")
+
+    class Graph(Owner):
+        def reset(self):
+            events.append("reset")
+
+    def run():
+        graph, owner = Graph(), Owner()
+        references.extend((weakref.ref(graph), weakref.ref(owner)))
+        owners, graphs = [owner], {"decode": graph}
+        primary = RuntimeError("already unconfirmed projection drain")
+        if retained:
+            retain_undrained(primary, owner)
+        with patch.object(preparation, "PreparationSession", Session), \
+                patch.object(torch.cuda, "synchronize", lambda *a: events.append("fence")):
+            try:
+                with fixture.prepared_session("cuda:0", owners, graphs):
+                    events.append("export")
+                    if retained:
+                        raise primary
+            except RuntimeError as error:
+                assert retained and resources_retained(error)
+                return error
+        assert not retained
+        return None
+
+    error = run()
+    if retained:
+        discard(error)
+        assert events == ["export"]
+        assert all(reference() is not None for reference in references)
+    else:
+        gc.collect()
+        assert events == ["export", "fence", "reset", "close"]
+        assert all(reference() is None for reference in references)
+
+
 SCENARIOS = {
     "native": native_reference,
     "group": grouped_failure,
@@ -314,6 +367,8 @@ SCENARIOS = {
     "second_gather_failure": lambda: peer_retention(2),
     "raw_compile_warmup": lambda: raw_compile_failure("warmup"),
     "raw_compile_serialize": lambda: raw_compile_failure("serialize"),
+    "projection_fixture_retained": lambda: projection_fixture_session(True),
+    "projection_fixture_normal": lambda: projection_fixture_session(False),
 }
 
 

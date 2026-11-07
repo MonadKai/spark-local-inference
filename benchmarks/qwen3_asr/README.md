@@ -121,3 +121,30 @@ SDK source; that source's revision identity is an external precondition, not
 proved by this helper. It loads no model weights and executes no model forward.
 Decoded IDs reconstruct renderer bytes; they are not a direct observation of
 the native renderer's allocated string.
+
+[Fixed-reduction component observations](results/reduction-projection-components.json)
+retain all six declared tuning candidates. Each candidate matches all 784 frozen
+decoder operators, four cached-head observations and 1,582 mixed-row observations
+byte-for-byte, with five replays per fixed case. The eight selected inputs have
+only seven distinct layer-zero QKV vectors; this is retained rather than changing
+samples. Every candidate's prefill-first head differs from its frozen reference,
+and its prototype head timing regresses. The existing head path is retained.
+
+The reusable mechanism declares one b12x tuning catalog, compiles before capture,
+and computes eight physical rows in one kernel using fixed FP32 accumulation
+chains and one terminal BF16 conversion. Its normal-input precision checks reuse
+the frozen independent FP64 interval envelope on fixed output channels; separate
+controls classify subnormal, overflow and nonfinite values. Guard corruption,
+wrong BF16 output, invalid indexing/count/alignment and alias controls must fail.
+The changed paths pass 18 focused CUDA/native tests and 27 CPU controls; three new
+and five re-exported prior-path fixtures each replay independently in Rust five
+times after preparation exits. The prior-path fixtures are not historical-package
+compatibility evidence. Actual compiler targets, registers, spills and SM121
+observations are retained in the raw measurements.
+
+The timing records describe the earlier prototype before its final inactive-row
+safety mask, under a fixed eight-row physical capacity. They guide candidate
+selection; the prepared component itself and complete ASR service need separate
+latency measurements. Neither these component observations nor unchanged head
+selection establish complete-model admission, native ASR, recognition quality,
+cache/lifecycle completion or a vLLM serving-performance win.
