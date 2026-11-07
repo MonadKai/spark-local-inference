@@ -30,6 +30,14 @@ Failed or truncated requests remain in the result set and invalidate admission.
 A separate development split is used for tuning. These finite-set gates do not
 establish quality in every language.
 
+[The current native recognition result](results/native-recognition-current.json)
+retains all 256 responses and both complete paired quality comparisons for a
+modified-worktree arithmetic-baseline export served by Rust after Python exited.
+Its frozen-set quality gates pass. Larger text-prefill numerical failures remain
+open; this result establishes neither final-source support nor comparative
+performance. Actual generated counts come from server headers; raw token IDs
+were not observed in that run.
+
 Independent CPU reference tools in `qualify/asr_*_reference.py` check original
 SDK/canonical tensor loading, slow tokenizer behavior and actual vLLM frontend
 semantics. Their supplied model/source content identities must be established

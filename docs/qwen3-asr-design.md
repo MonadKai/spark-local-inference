@@ -373,6 +373,20 @@ thresholds from two independent references before candidate inference and
 records their separate repeatability requirements. These are acceptance gates;
 they do not establish a passing candidate or recognition quality.
 
+A fresh exported arithmetic-baseline package subsequently completed all 256
+frozen qualification requests in an independent Rust process after its preparer
+exited. Every response stopped naturally; none failed or truncated. English WER
+was 70/2875, English CER 94/15411 and Chinese CER 35/1861. Both frozen canonical
+and vLLM comparisons pass the unchanged point budgets and paired bootstrap
+gates. Against vLLM, the English WER degradation was 0.0003478261 with upper
+95% bound 0.0010183299; Chinese CER degradation and its upper bound were zero.
+The complete responses, configuration and both score objects are in
+[the ordinary recognition result](../benchmarks/qwen3_asr/results/native-recognition-current.json).
+This is a modified-worktree arithmetic baseline, not final source or performance
+acceptance. Raw generated token IDs were not observed in this run. The separate
+largest text-prefill diagnostic still fails scalar logit gates on two development
+inputs; the recognition result does not waive that capacity requirement.
+
 The current integration candidate uses an arithmetic baseline for decoder
 projections. Decode metadata and pointwise computation have eight physical rows,
 but each layer projection issues eight separate M=1 ATen matrix products through
