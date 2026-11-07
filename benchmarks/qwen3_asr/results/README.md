@@ -110,6 +110,25 @@ full scalar numerical acceptance, concurrent determinism, cache/lifecycle
 acceptance, other API transports, long meeting-speech quality or a throughput
 advantage over vLLM.
 
+`native-concurrency.json` retains a separate finite development schedule:
+eight fixed mixed-language inputs, client concurrency 1/2/4/8, forward/reverse
+submission order and two repetitions, followed by eight concurrent requests
+after a parent disconnect. All 144 responses naturally stopped and matched
+their B1 response bodies, usage and actual token-count headers. The disconnect
+occurred with eight active and one pending child; the observed cancelled count
+then increased by nine, and active/pending/retiring gauges became zero. The
+native process subsequently drained on SIGTERM and exited zero.
+
+The client requires an increasing cancellation count and empty ownership gauges;
+it does not independently require a nine-child delta in every future run.
+The raw metrics establish that specific delta here. Client concurrency and
+submission order do not establish actual GPU batch rows or physical slot IDs.
+Native token IDs and teacher logits were not observed. The unchanged earlier
+package and dirty binary exclude this run from final candidate qualification.
+The failed initial attempt is retained with all eight successful baseline
+responses and its incorrect JSON-metric-key error. Neither attempt is a
+performance measurement or a complete lifecycle/cache qualification.
+
 `native-recognition-repeat.json` reloads the identical repaired package and
 binary after review tightened the collector: PCM validation, WAV hashing and
 multipart upload now use one immutable byte object. The prior collector opened
