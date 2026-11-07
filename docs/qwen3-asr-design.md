@@ -363,16 +363,30 @@ thresholds from two independent references before candidate inference and
 records their separate repeatability requirements. These are acceptance gates;
 they do not establish a passing candidate or recognition quality.
 
-The ASR decoder prepares its small-row unquantized projections with eight
-physical GEMM rows, including the first-token and cached-resume vocabulary
-projection. Logical graph capacities remain 1/2/4/8. A shared prepared component
-clears padded input scratch, copies the logical rows, runs one cross-row GEMM,
-and copies only the logical output rows. Admission, live-row validation,
-sampling and completion retain their declared logical capacities.
-The recipe's memory report records this physical geometry. This addresses a
-measured source of shape-dependent BF16 projection results; it does not by
-itself establish attention determinism, scalar accuracy or a performance gain.
-Autotuning remains responsible for choosing legal b12x plans for that geometry.
+The current integration candidate uses an arithmetic baseline for decoder
+projections. Decode metadata and pointwise computation have eight physical rows,
+but each layer projection issues eight separate M=1 ATen matrix products through
+`PreparedRowwiseProjection`. This is not a cross-row GEMM optimization. Only the
+vocabulary projection, including the first prefill token and cached-hidden
+resume, uses one eight-row ATen matrix product. Logical graph capacities remain
+1/2/4/8; admission, state publication, sampling and completion retain those
+logical capacities. A report of eight physical rows alone does not describe the
+layer projection's actual M=1 calls. Qualified cross-row b12x replacements and
+their complete-step performance measurements remain required.
+
+Prefill captures the 64..4096 token catalog. Its fixed subrow projection extents
+19/27/32 all execute and select represented BF16 outputs by device count. Encoder
+projections likewise execute the regular 104-row and small 13-row geometries;
+`conv_out` also executes a 512-row geometry for measured whole-input classes.
+These choices address arithmetic differences, not reduced GPU work. Their
+unused branches must not be credited as execution savings.
+
+Request attention selects the original request's split count and partition
+geometry using an immutable device lookup. The current baseline executes every
+prepared call group, using zero key length for unselected groups, then selects
+the result by bits. It preserves the real GQA shortcut and right-aligned causal
+rows without native model policy. Its launch, copying and scratch costs require
+measurement and optimization; the catalog itself is not a performance gain.
 
 Projection padding alone did not remove cross-capacity differences in captured
 decoder histories. The current candidate also prepares decode arithmetic,
