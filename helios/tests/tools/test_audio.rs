@@ -72,6 +72,11 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
 fn main() {
     if let Err(error) = run() {
         eprintln!("{error}");
+        let mut source = error.source();
+        while let Some(cause) = source {
+            eprintln!("caused by: {cause:?}");
+            source = cause.source();
+        }
         std::process::exit(1);
     }
 }

@@ -161,7 +161,8 @@ impl Fetcher {
             let agent = ureq::Agent::with_parts(config, connector,
                 PublicResolver { slots: self.slots.clone(), budget: budget.clone() });
             let mut response = agent.get(url.as_str()).header("Accept-Encoding", "identity").call()
-                .map_err(|_| invalid("audio HTTPS fetch failed"))?;
+                .map_err(|error| crate::Error::frontend(crate::FrontendError::Input(
+                    crate::Failure::caused_by("audio HTTPS fetch failed", error))))?;
             if cancelled.load(Ordering::Acquire) { return Err(invalid("audio fetch cancelled")); }
             let status = response.status().as_u16();
             if [301, 302, 303, 307, 308].contains(&status) {
