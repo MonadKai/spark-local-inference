@@ -97,3 +97,29 @@ def test_preparation_exception_is_retained_and_propagated_unchanged():
     assert caught.value is failure
     assert observations.prepare_calls == observations.errors["prepare_exception"] == 1
     assert not observations.pending and not observations.prepared
+
+
+def test_cold_cohort_requires_one_execution_per_observed_item_not_just_identity():
+    store = EncoderObservations(2)
+    for _ in range(2):
+        inputs = [("audio", object()), ("audio", object())]
+        store.prepare((["a", "b"], inputs))
+        identities = store.begin_execute(inputs)
+        store.finish_execute(identities, [object(), object()])
+    assert store.successful_execute_calls == 2
+    assert "cold_encoder_execution_multiplicity" in validate_encoder_cohort(
+        store.snapshot(), ["a", "b"], cache_mode="disabled")
+    assert not validate_encoder_cohort(store.snapshot(), ["a", "b", "a", "b"],
+        cache_mode="disabled")
+    # Allowed reuse may legitimately encode fewer items than HTTP requests.
+    assert not validate_encoder_cohort(store.snapshot(), ["a", "b"] * 3,
+        cache_mode="allowed")
+
+
+@pytest.mark.parametrize("field", ["prepared", "executed"])
+@pytest.mark.parametrize("count", [True, 1.0, 0, -1])
+def test_cohort_rejects_invalid_counts_in_both_dispatch_boundaries(field, count):
+    snapshot = dict(errors={}, pending=[], prepared={"a": 1}, executed={"a": 1})
+    snapshot[field]["a"] = count
+    assert "unassociated_encoder_identity" in validate_encoder_cohort(
+        snapshot, ["a"], cache_mode="allowed")

@@ -111,7 +111,8 @@ def validate_encoder_cohort(snapshot, expected_identifiers, *, cache_mode):
     """Check actual successful encoder dispatches after the HTTP cohort drains."""
     if cache_mode not in ("disabled", "allowed"):
         raise ValueError("explicit cache condition required")
-    expected = set(expected_identifiers)
+    expected_counts = Counter(expected_identifiers)
+    expected = set(expected_counts)
     if not expected:
         raise ValueError("externally observed audio identifiers required")
     errors = []
@@ -120,11 +121,14 @@ def validate_encoder_cohort(snapshot, expected_identifiers, *, cache_mode):
     prepared, executed = snapshot["prepared"], snapshot["executed"]
     if prepared != executed:
         errors.append("incomplete_encoder_dispatch")
-    if not set(executed).issubset(expected) or any(type(count) is not int or count <= 0
-            for count in executed.values()):
+    if any(not set(boundary).issubset(expected) or any(
+            type(count) is not int or count <= 0 for count in boundary.values())
+            for boundary in (prepared, executed)):
         errors.append("unassociated_encoder_identity")
     if cache_mode == "disabled" and set(executed) != expected:
         errors.append("cold_encoder_execution_missing")
+    if cache_mode == "disabled" and (prepared != expected_counts or executed != expected_counts):
+        errors.append("cold_encoder_execution_multiplicity")
     return errors
 
 
