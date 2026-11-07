@@ -695,6 +695,62 @@ fn cancellation_waits_for_both_submissions_and_reused_slot_rejects_old_epoch() {
 }
 
 #[test]
+fn execution_error_keeps_storage_until_the_last_submitted_decode_completes() {
+    for page_tokens in [64, 256] {
+        let mut scheduler = scheduler_with_geometry(1, 4, 2, page_tokens, 4);
+        let old = scheduler.admit(spec(4, 8)).unwrap();
+        init(&mut scheduler, 1);
+        let prefill = scheduler.plan().unwrap();
+        scheduler.commit(&prefill, Fence(2)).unwrap();
+        scheduler
+            .complete(Fence(2), &records(old, 2, 4, 1, 77, 1), Default::default())
+            .unwrap();
+        retain_prompt(&mut scheduler, 3);
+        scheduler.take_publications();
+        let publications = scheduler.stats().snapshot_publications;
+        for fence in [4, 5] {
+            let step = scheduler.plan().unwrap();
+            assert_eq!(step.kind, GraphKind::Decode);
+            scheduler.commit(&step, Fence(fence)).unwrap();
+        }
+        let pages = scheduler.free_page_count();
+        let snapshots = scheduler.free_snapshot_count();
+        let mut error = records(old, 4, 4, 1, -1, 3);
+        error[old.slot as usize].error_code = 1;
+        assert!(scheduler.complete(Fence(4), &error, Default::default()).unwrap().is_empty());
+        let request = scheduler.request(old).unwrap();
+        assert_eq!((request.consumed_tokens, request.generated_tokens), (4, 1));
+        assert_eq!(request.error_code, Some(1));
+        assert_eq!(request.phase, RequestPhase::Finishing);
+        assert!(!request.terminal_snapshot_ready);
+        assert!(scheduler.take_publications().is_empty());
+        assert_eq!(scheduler.stats().snapshot_publications, publications);
+        assert!(scheduler.finish(old).is_err());
+        scheduler.cancel(old).unwrap();
+        assert_eq!(scheduler.stats().retiring_slots, 1);
+        assert_eq!(scheduler.free_page_count(), pages);
+        assert_eq!(scheduler.free_snapshot_count(), snapshots);
+        assert!(scheduler.admit(spec(4, 8)).is_err());
+        error[old.slot as usize].submission_sequence = 5;
+        assert!(scheduler.complete(Fence(5), &error, Default::default()).unwrap().is_empty());
+        assert_eq!(scheduler.stats().retiring_slots, 0);
+        assert_eq!(scheduler.free_page_count(), 4);
+        assert_eq!(scheduler.stats().snapshot_publications, publications);
+        let reused = scheduler.admit(spec(4, 8)).unwrap();
+        assert_eq!(reused.slot, old.slot);
+        assert!(reused.generation > old.generation);
+        let step = scheduler.plan().unwrap();
+        scheduler.commit(&step, Fence(6)).unwrap();
+        error[old.slot as usize].submission_sequence = 6;
+        assert!(scheduler.complete(Fence(6), &error, Default::default()).is_err());
+        let valid = state_records(&scheduler, &step, 6);
+        scheduler.complete(Fence(6), &valid, Default::default()).unwrap();
+        assert_eq!(scheduler.request(reused).unwrap().error_code, None);
+        scheduler.cancel(reused).unwrap();
+    }
+}
+
+#[test]
 fn terminal_snapshot_reclaims_unused_output_reservations_after_gpu_completion() {
     let mut scheduler = scheduler(1, 16, 1);
     scheduler.share_snapshot_pages(&[8..16]).unwrap();

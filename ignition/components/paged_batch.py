@@ -244,3 +244,31 @@ class PreparedBatch:
 
     def finish(self):
         self.token_state.consume()
+
+
+    def execution_validation(self, errors):
+        """Map current request-row faults to shared rank validation storage."""
+        b, r = self.inputs, self.requests
+        slots = b.row_slot_ids[:self.rows].long()
+        safe = slots.clamp(0, r.capacity - 1)
+        resident = (self.row_ids < b.live_rows) & (slots >= 0) & (slots < r.capacity)
+        resident &= b.row_generations[:self.rows] == r.generation[safe]
+        present = resident & (r.status[safe] == RUNNING)
+        bad = present & (errors != 0)
+        self.present.copy_(((self.slot_ids[:, None] == slots[None, :]) & present[None, :]).any(1))
+        self.validation_input.zero_()
+        self.validation_input[0, :r.capacity].copy_(
+            ((self.slot_ids[:, None] == slots[None, :]) & bad[None, :]).any(1))
+        self.validation_input[0, r.capacity:2 * r.capacity].copy_(self.present)
+        return self.validation_input
+
+    def fail_execution(self, totals):
+        """Reject failed executions before hidden publication and consumption."""
+        r = self.requests
+        participants = totals[0, r.capacity:2 * r.capacity]
+        bad = self.present & ((totals[0, :r.capacity] > 0)
+            | ((participants > 0) & (participants < self.shard.world_size)))
+        bad &= r.status == RUNNING
+        r.status.copy_(torch.where(bad, ERROR, r.status))
+        r.error_code.copy_(torch.where(bad, 1, r.error_code))
+        self.token_state.gather()

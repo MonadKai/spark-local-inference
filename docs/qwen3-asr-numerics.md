@@ -84,6 +84,12 @@ different arithmetic configurations cannot share host prefix records.
 | Text MLP/residual | Separate gate/up BF16 outputs; FP32 SiLU evaluation then BF16; multiply with up then BF16; down BF16; residual addition BF16 |
 | Final head | Final RMSNorm/hidden BF16; LM head result **BF16**; only then FP32 sampling scores |
 
+Contiguous encoder linears use the canonical
+[ATen addmm bias epilogue](https://github.com/pytorch/pytorch/blob/5c4886908584029761b579af026dcfb627c84070/aten/src/ATen/native/Linear.cpp#L97-L115),
+with one BF16 linear/bias output. They do not introduce a separate pre-bias BF16
+node. An independent FP64 matrix-product-plus-bias check is an end-value sanity
+check; it does not prove the compiled intermediate nodes by itself.
+
 The compiler preserves intermediate precision casts and native mean, LayerNorm,
 exact GELU and FP32 sigmoid boundaries. This is a required implementation
 mechanism, not runtime numerical evidence by itself.
@@ -187,6 +193,27 @@ encoder arithmetic, ASR recognition, asynchronous request lifetime, performance
 or compatibility with every previously published package. Full model stage and
 teacher-logit scalar gates remain separate.
 
+## Whole-input encoder geometry
+
+The whole encoder-input length and the current attention-window length are
+distinct typed values. The prepared CNN candidate preserves its BF16 convolution,
+BF16 bias-add and BF16 GELU nodes while selecting measured physical batch
+results from the whole chunk count. A tail with one current chunk does not
+become an original one-chunk convolution. Both fixed graph capacities retain
+the same width masks and preserve the original short-width path.
+
+The singleton linear candidate is selected only when the whole input has one
+encoder feature. An 801-frame clip has 105 features: its last one-feature
+attention window keeps the regular projection result. Both capacities use the
+whole-input feature count, including a legal small input in the larger bucket.
+All declared projection products execute; their byte-preserving selection is
+described in [canonical projections](canonical-projections.md).
+
+These are numerical candidates requiring the unchanged stage, complete-model,
+capacity-transition and native-package gates. Window padding still need not
+reproduce every original flattened linear shape. No numerical, recognition or
+performance acceptance follows from a local convolution or singleton control.
+
 ## Paged causal attention component
 
 `PreparedPagedFlashAttention` captures ATen flash attention over BF16 paged K/V
@@ -210,12 +237,11 @@ addresses output by batch and row rather than cumulative packed-query offsets.
 Its varlen setup does not populate the dense output batch stride. Multiple
 requests can therefore write overlapping rows; promoting a one-row GQA launch
 to two also makes its dense row bound exceed a one-row output allocation.
-The component excludes multi-split candidates for multi-request catalogs and
-semantic one-query decode. One-request prefill retains automatic selection:
-its physical output covers the declared query capacity and starts at offset
-zero. This is a correctness restriction on eligible geometries, not a measured
-performance choice. Automatic prefill selection still needs the component and
-full-model numerical gates.
+The component uses a single split throughout its catalog. In addition to the
+packed-row restriction, automatic splitting changes the represented BF16 result
+at 122/123 live prefill queries on SM121; the frozen square-SDPA controls agree
+exactly with one split. This component's uniform arithmetic is not the current
+ASR request-independent attention path described below, or a performance choice.
 
 The upstream varlen interface documents exact packed query storage. Flare's
 fixed-capacity query tails and conservative GQA launch are a separately tested
@@ -250,3 +276,45 @@ the 8192-token endpoint and required-page rejection. These component gates do
 not establish complete ASR scalar, quality, asynchronous lifecycle or serving
 performance acceptance. Existing recipes and historical packages retain their
 own prepared page geometry and operations.
+
+## Request-independent attention and execution errors
+
+`PreparedRequestFlashAttention` preserves each request's original FA2 split and
+partition geometry through a preparation-time catalog of fixed calls. One-query
+GQA uses the native Q16/KV8 shortcut rather than repeating KV heads. General
+queries use right-aligned physical padding and explicit valid query rows, so
+every split partial is written before combination. Device metadata selects
+represented BF16 output bits; all catalog calls execute, including unselected
+ones with zero used keys. This is an arithmetic baseline with substantial
+launch/storage cost, not an optimized attention implementation.
+
+The catalog reproduces the pinned float32 occupancy heuristic. Local tests
+cover B1/2/4/8, holes and reversed rows, actual cached lengths through 8192,
+query/key asymmetry, nonfinite operands, malformed lengths/pages, recovery and
+allocation stability. Three synthetic packages replay after preparation exits.
+These checks do not qualify every general-query geometry near context 8192.
+
+The component clears and writes global/per-row execution errors on every
+replay. Shared `PreparedGeneration` optionally reduces current-generation row
+errors before publishing hidden state, consuming tokens or sampling. Failed
+rows retain consumed/generated counters, RNG, pending token, histogram and saved
+hidden state; already written private KV is not rolled back. Existing consumers
+without an error operand retain their previous computation. Draft-context writes
+are explicitly rejected with this operand until their failure semantics are
+integrated. The tests' scaled four-rank reduction input is a mapping control,
+not execution of a distributed collective.
+
+Real attention fault tests cover sampling and nonsampling prefill/decode,
+reversed request slots, stale generations and preserved prior errors. A separate
+signed synthetic package runs through Rust after its preparer exits: token
+operands trigger prefill/decode attention faults, HTTP 500 and SSE error frames,
+no failed-state checkpoint publication, valid-prefix reuse and request-slot
+recovery. Concurrent HTTP arrivals also preserve a healthy request; they do not
+prove the two requests shared one B2 GPU graph. The native process drains after
+SIGTERM. CPU scheduler tests separately hold a failed slot's storage until its
+last submitted decode completes and reject a late completion after reuse.
+
+The focused 75-test CUDA/native selection and this native error fixture pass.
+Earlier failed fault-injection and fixture-start attempts remain retained. These
+results are component/lifecycle evidence, not final ASR quality, whole-change
+qualification, every recipe's execution, or comparative serving performance.

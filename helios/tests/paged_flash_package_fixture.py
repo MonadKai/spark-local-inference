@@ -29,12 +29,13 @@ class _Forward:
 
 
 @torch.no_grad()
-def prepare(root, mode, count):
+def prepare(root, mode, count, arithmetic="paged"):
     from b12x.preparation import PreparationSession
     from fixed_package_fixture import allocation_reference
     from fixture_frontend import server_config
     from signing import publisher
     from ignition.components.paged_flash import PreparedPagedFlashAttention
+    from ignition.components.request_flash import PreparedRequestFlashAttention
     from ignition.preparation.capture import capture_forwards
     from ignition.preparation.execution import GraphSignature, PreparedExecution
     from ignition.preparation.module_images import ModuleImages
@@ -83,7 +84,9 @@ def prepare(root, mode, count):
                         pages[0, :2].copy_(torch.tensor([0, 1], device="cuda", dtype=torch.int32))
                         k[:2].view(512, 8, 128)[:257].zero_()
                         v[:2].view(512, 8, 128)[:257].fill_(2)
-                    operation = PreparedPagedFlashAttention(q, k, v, pages, lengths, cu, cu_key, output,
+                    attention_type = {"paged": PreparedPagedFlashAttention,
+                        "request": PreparedRequestFlashAttention}[arithmetic]
+                    operation = attention_type(q, k, v, pages, lengths, cu, cu_key, output,
                         max_query=1 if mode == "decode" else capacity)
                     retained.append(operation)
                     forward = _Forward(operation)
@@ -131,6 +134,7 @@ if __name__ == "__main__":
     parser.add_argument("directory", type=Path)
     parser.add_argument("--mode", choices=("decode", "prefill"), required=True)
     parser.add_argument("--count", type=int, required=True)
+    parser.add_argument("--arithmetic", choices=("paged", "request"), default="paged")
     args = parser.parse_args()
     if args.count not in ((0, 2) if args.mode == "decode" else (13,)):
         parser.error("use decode count 0/2 or prefill count 13")
@@ -138,4 +142,4 @@ if __name__ == "__main__":
     import sys
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from helios.tests.paged_flash_package_fixture import prepare as prepare_importable
-    prepare_importable(args.directory, args.mode, args.count)
+    prepare_importable(args.directory, args.mode, args.count, args.arithmetic)

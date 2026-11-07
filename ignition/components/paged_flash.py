@@ -45,10 +45,11 @@ class PreparedPagedFlashAttention:
         # define exactly which queries exist.
         self.max_query = max(2, max_query) if query.shape[1] > key.shape[2] else max_query
         # Multi-split combination assumes dense per-request query offsets.
-        # It does not preserve this component's packed holes/short decode
-        # storage. Keep only the single-split candidate for those geometries;
-        # one-request prefill retains the library's automatic selection.
-        self.num_splits = 1 if max_query == 1 or pages.shape[0] > 1 else None
+        # It does not preserve packed holes/short decode storage. Automatic
+        # splitting also changes the represented BF16 prefill result at 122
+        # and 123 live queries on SM121; the frozen square SDPA controls agree
+        # exactly with a single split. Keep one arithmetic across this catalog.
+        self.num_splits = 1
         self.max_key = pages.shape[1] * key.shape[1]
         self.positions = torch.arange(query.shape[0], device=query.device, dtype=torch.int32)
 

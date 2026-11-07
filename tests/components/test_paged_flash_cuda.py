@@ -19,7 +19,8 @@ pytestmark = pytest.mark.skipif(os.environ.get("FLARE_RUN_CUDA_TESTS") != "1",
 
 @torch.no_grad()
 @pytest.mark.parametrize("physical", [1, 2, 4, 8])
-def test_paged_flash_decode_permutations_retirement_and_poisoned_storage(physical):
+def test_paged_flash_decode_permutations_retirement_and_poisoned_storage(
+        physical, attention_type=PreparedPagedFlashAttention):
     owners, graphs = [], []
     with retain_on_failed_drain(0, owners, graphs), ModuleImages() as images:
         owners.append(images)
@@ -35,12 +36,12 @@ def test_paged_flash_decode_permutations_retirement_and_poisoned_storage(physica
         output = guard[16:-16].view_as(q)
         pages, lengths = allocate((physical, 32), torch.int32), allocate((physical,), torch.int32)
         cu, cu_key = allocate((physical + 1,), torch.int32), allocate((physical + 1,), torch.int32)
-        op = PreparedPagedFlashAttention(q, k, v, pages, lengths, cu, cu_key, output, max_query=1)
+        op = attention_type(q, k, v, pages, lengths, cu, cu_key, output, max_query=1)
         owners.append(op)
         with pytest.raises(ValueError, match="alias"):
-            PreparedPagedFlashAttention(q, k, v, pages, lengths, cu, cu_key, q, max_query=1)
+            attention_type(q, k, v, pages, lengths, cu, cu_key, q, max_query=1)
         with pytest.raises(ValueError, match="metadata"):
-            PreparedPagedFlashAttention(q, k, v, pages, lengths.cpu(), cu, cu_key, output, max_query=1)
+            attention_type(q, k, v, pages, lengths.cpu(), cu, cu_key, output, max_query=1)
         def forward():
             cu_key[:1].zero_()
             torch.cumsum(lengths, dim=0, dtype=torch.int32, out=cu_key[1:])
@@ -125,7 +126,8 @@ def test_paged_flash_decode_permutations_retirement_and_poisoned_storage(physica
 
 @pytest.mark.parametrize("capacity", [128, 4096])
 @torch.no_grad()
-def test_paged_flash_prefill_prefix_causal_alignment_and_page_boundaries(capacity):
+def test_paged_flash_prefill_prefix_causal_alignment_and_page_boundaries(
+        capacity, attention_type=PreparedPagedFlashAttention):
     from torch.nn.attention.bias import causal_lower_right
 
     owners, graphs = [], []
@@ -143,7 +145,7 @@ def test_paged_flash_prefill_prefix_causal_alignment_and_page_boundaries(capacit
         output = guard[16:-16].view_as(q)
         pages, lengths = allocate((1, 32), torch.int32), allocate((1,), torch.int32)
         cu, cu_key = allocate((2,), torch.int32), allocate((2,), torch.int32)
-        op = PreparedPagedFlashAttention(q, k, v, pages, lengths, cu, cu_key, output, max_query=capacity)
+        op = attention_type(q, k, v, pages, lengths, cu, cu_key, output, max_query=capacity)
         owners.append(op)
         def forward():
             cu_key[:1].zero_()
@@ -305,7 +307,7 @@ def test_paged_flash_exact_packed_queries_and_split_combine_failure_control():
 
 
 @pytest.mark.parametrize("mode,count", [("decode", 0), ("decode", 2), ("prefill", 13)])
-def test_paged_flash_package_replays_without_python(tmp_path, mode, count):
+def test_paged_flash_package_replays_without_python(tmp_path, mode, count, arithmetic="paged"):
     from pathlib import Path
     import subprocess
     import sys
@@ -316,7 +318,8 @@ def test_paged_flash_package_replays_without_python(tmp_path, mode, count):
         cwd=root, check=True, timeout=300)
     package = tmp_path / "paged-flash"
     preparation = subprocess.run([sys.executable, "-m", "helios.tests.paged_flash_package_fixture", str(package),
-        "--mode", mode, "--count", str(count)], cwd=root, text=True, capture_output=True, timeout=900)
+        "--mode", mode, "--count", str(count), "--arithmetic", arithmetic],
+        cwd=root, text=True, capture_output=True, timeout=900)
     assert preparation.returncode == 0, preparation.stdout + preparation.stderr
     target = Path(os.environ.get("CARGO_TARGET_DIR", str(root / "helios/target")))
     replay = subprocess.run([str(target / "debug/test_fixed_runtime_package"), str(package), "--replays", "5"],

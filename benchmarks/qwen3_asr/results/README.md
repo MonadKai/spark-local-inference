@@ -262,3 +262,15 @@ reliable P95 or all-language quality. The native side uses the previously
 identified modified-worktree binary and unchanged package from
 `native-prefix-reuse.json`, not the new projection candidate. Instrumentation
 overhead, sustained performance and final clean-source qualification remain open.
+
+`request-attention-sm121.json` retains independent actual-GQA and right-aligned
+prefill operand observations, including the split/partition controls that reject
+uniform or repeated-KV arithmetic. This is component diagnosis, not serving
+performance. `shared-generation-errors-sm121.json` retains seven native fixture
+attempts and the successful Rust HTTP/SSE metric/body observations. Six earlier
+attempts fail during fixture construction/startup; none establishes native ERROR
+handling. The final attempt exports real fault-producing attention computation,
+exits Python, verifies the signed package and stored weights in Rust, checks
+failed-state publication/prefix reuse/slot recovery and drains cleanly. Concurrent
+HTTP arrival does not establish a shared B2 GPU graph. Full ASR qualification and
+comparative performance remain separate gates.
