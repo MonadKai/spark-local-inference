@@ -275,3 +275,15 @@ exits Python, verifies the signed package and stored weights in Rust, checks
 failed-state publication/prefix reuse/slot recovery and drains cleanly. Concurrent
 HTTP arrival does not establish a shared B2 GPU graph. Full ASR qualification and
 comparative performance remain separate gates.
+
+`vllm-encoder-availability.json` records actual encoder compile/graph flags off
+and on in the rebuilt pinned image, with two development inputs repeated five
+times per configuration. Each run has ten natural stops and 70 actual tokens;
+the off/on token arrays match. With both flags true, the model still fails the
+official encoder-graph protocol check, its runner has no encoder graph manager,
+and the audio tower has no official vLLM compile wrapper. A decoder wrapper is
+present as a positive control. Startup succeeds, so this is a limitation of the
+observed native model path, not a failed-startup claim or a universal claim about
+other encoder implementations. This small trial has no official-counter or
+performance calibration claim; deployment backend and partial-batch tuning
+remain open. Both task containers exit normally and are removed.
