@@ -33,9 +33,9 @@ establish quality in every language.
 [The current native recognition result](results/native-recognition-current.json)
 retains all 256 responses and both complete paired quality comparisons for a
 modified-worktree arithmetic-baseline export served by Rust after Python exited.
-Its frozen-set quality gates pass. Larger text-prefill numerical failures remain
-open; this result establishes neither final-source support nor comparative
-performance. Actual generated counts come from server headers; raw token IDs
+Its frozen-set quality gates pass. Earlier larger-text-prefill numerical failures
+remain recorded separately; this result establishes neither final-source support
+nor comparative performance. Actual generated counts come from server headers; raw token IDs
 were not observed in that run.
 
 Independent CPU reference tools in `qualify/asr_*_reference.py` check original
@@ -94,3 +94,30 @@ reconcile official generated-token/terminal counters and record actual cache and
 compile conditions before using a cohort for performance. Successful dispatch
 is not a GPU busy timer. `results/long-speech-observer.json` is a finite actual
 integration/long-quality observation with performance qualification false.
+
+`python -m qualify.asr_native_observation` submits eight frozen development
+inputs under sequential, reversed, concurrent and partially occupied HTTP
+schedules, then checks raw prompt IDs, raw generated IDs, EOS, text and usage.
+Every generation/refusal attempt is saved before submission, and every response
+before comparison, including failed siblings.
+The ordinary collector controls deliberately exercise transport, response,
+comparison, EOS, prompt and refusal failures; they do not substitute for model execution.
+
+[The raw schedule observation](results/native-chat-schedules.json) retains
+83 generation responses and four expected refusals. The [run configuration](results/native-chat-schedules-run.json)
+binds the actual modified-worktree binary and exported package. Of 871 actual
+generated tokens, 788 IDs were observed in 75 responses; eight observation-disabled
+controls account for the remaining tokens. HTTP concurrency does not prove the
+actual GPU batch or request slot. Worker timestamps include CPU completion and
+delivery, and cannot establish pure GPU TTFT or word timestamps. This finite
+automatic-language, empty-context diagnostic is separate from forced-language
+quality, cancellation, cache, capacity and performance qualification.
+
+`python -m qualify.asr_sdk_native_prompts` runs the original SDK prompt builder
+and processor in an isolated CPU environment. [Its comparison](results/native-chat-sdk-prompts.json)
+matches the same eight observed native prompt-ID sequences and reconstructed
+UTF-8 expansions. It checks installed Python bytes against the supplied pinned
+SDK source; that source's revision identity is an external precondition, not
+proved by this helper. It loads no model weights and executes no model forward.
+Decoded IDs reconstruct renderer bytes; they are not a direct observation of
+the native renderer's allocated string.
