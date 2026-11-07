@@ -198,3 +198,14 @@ comparing the actual token arrays and logical usage counts.
 This finite compatibility result uses earlier binaries, not a final clean-source
 build. It does not qualify every old model, vision, MTP, concurrent old-model
 execution, complete old-model numerical behavior or serving performance.
+
+The official [Qwen3.8-Flash-Next GB10 package](https://huggingface.co/local-inference-lab/Qwen3.8-Flash-Next-FLARE/tree/cd5b82260c6922d629b0d97d66d16bc4658ed2c2)
+has four real VISION graphs in its range-read metadata, with 256/1024/4096/16384
+feature capacities, SM121 and one rank. Its 106,886,249,924-byte payload was not
+fully acquired, signature-verified or loaded. The metadata declares envelope
+version 4; both the unchanged historical source and this branch require version
+6 in their archive/protection readers. This static inspection identifies an
+existing format limitation, not an executed load failure or a new regression.
+The metadata signer's match to the fixed public publisher profile does not
+verify the missing payload. The smaller 27B package above has no VISION graphs;
+its successful text replay cannot qualify old VISION loading or execution.
