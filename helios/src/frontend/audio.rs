@@ -41,6 +41,7 @@ pub struct PreparedAudio {
 pub struct AudioWindowBuffers {
     pub mel: Vec<f32>,
     pub frames: i32,
+    pub total_input_frames: i32,
     pub convolution_width: i32,
     pub gather_indices: Vec<i32>,
     pub cumulative_lengths: [i32; 2],
@@ -155,6 +156,7 @@ impl PreparedAudio {
         }
         let integer = |value| i32::try_from(value).map_err(|_| invalid("audio metadata exceeds Int32"));
         Ok(AudioWindowBuffers { mel, frames: integer(window.frames.len())?,
+            total_input_frames: integer(self.frames)?,
             convolution_width: integer(self.convolution_width)?, gather_indices,
             cumulative_lengths: [0, integer(destination)?], feature_count: integer(destination)?,
             feature_offset: integer(window.features.start)? })

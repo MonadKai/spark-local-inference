@@ -71,7 +71,7 @@ contract_enum!(ImageLayoutKind { Qwen = 1, Mimo = 2, Deepseek = 3, Moonvit = 4, 
 contract_enum!(AudioPreparationKind { CenteredSlaneyLogMel = 1 });
 contract_enum!(AudioSamplePadding { Unpadded = 1, HopMultiple = 2 });
 contract_enum!(RequestSeedSyntax { Signed64Optional = 1 });
-contract_enum!(AudioTensorKind { LogMel = 1, ValidFrames = 2, ConvolutionWidth = 3, GatherIndices = 4, CumulativeLengths = 5, FeatureCount = 6, FeatureOffset = 7 });
+contract_enum!(AudioTensorKind { LogMel = 1, ValidFrames = 2, ConvolutionWidth = 3, GatherIndices = 4, CumulativeLengths = 5, FeatureCount = 6, FeatureOffset = 7, TotalInputFrames = 8 });
 contract_enum!(GraphOperation { Init = 1, Restore = 2, Snapshot = 3, Prefill = 4, Decode = 5, Resume = 6, Vision = 7, Speculative = 8, Mixed = 9, ScoredPrefill = 12, AudioEncode = 14 });
 
 impl TryFrom<GraphKind> for GraphOperation {
@@ -488,7 +488,11 @@ impl PreparedContract {
                         AudioTensorKind::ConvolutionWidth, AudioTensorKind::GatherIndices,
                         AudioTensorKind::CumulativeLengths, AudioTensorKind::FeatureCount, AudioTensorKind::FeatureOffset];
                     let identities = [ValueSource::RequestSlot, ValueSource::RequestGeneration, ValueSource::AudioFeatureSlot];
-                    if graph.inputs.len() != tensors.len() + identities.len()
+                    let total_input_frames = graph.inputs.iter().filter(|input|
+                        input.source == ValueSource::AudioTensor
+                            && input.audio_tensor == Some(AudioTensorKind::TotalInputFrames)).count();
+                    if total_input_frames > 1
+                        || graph.inputs.len() != tensors.len() + identities.len() + total_input_frames
                         || tensors.iter().any(|kind| graph.inputs.iter().filter(|input|
                             input.source == ValueSource::AudioTensor && input.audio_tensor == Some(*kind)).count() != 1)
                         || identities.iter().any(|source| graph.inputs.iter().filter(|input| input.source == *source).count() != 1) {

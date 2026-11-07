@@ -143,6 +143,30 @@ New audio metadata is inert when absent. No raw processor/config JSON is a
 runtime asset. Decoder prefill uses typed feature indices and generation checks;
 audio preparation identifiers cannot select scheduler/cache policy.
 
+### Whole encoder-input length
+
+Convolution batch geometry belongs to the complete normalized model input,
+whereas `AUDIO_VALID_FRAMES` describes one attention window. For example, a
+150-frame input and the 150-frame tail of a 950-frame input both have convolution
+width 100, but their original convolution batches contain two and ten chunks.
+Adding a 200-frame graph alone cannot distinguish these cases; the shared
+scheduler may also legally choose the existing 800-frame graph.
+
+The next additive input is `AUDIO_TOTAL_INPUT_FRAMES`, an int32 scalar containing
+`PreparedAudio.frames`. It means the complete encoder input after any service
+split, not the parent transcription's duration. Native packing copies that
+existing value; it does not select a convolution algorithm. Ignition validates
+the whole-input feature bound, window length and 800-frame-aligned feature
+offset before publishing features. It can then use measured convolution
+geometry without confusing a short input with a long tail.
+
+This is an optional binding for package validation: retain the seven existing
+required audio bindings and their old layout semantics. The extra scalar does
+not by itself qualify any convolution geometry. Old captured graphs do not read this
+new value and must load and serve without re-export. New graphs declare the
+additional buffer explicitly. The operation, attention-window size, completion,
+generation ownership and shared graph-selection policy stay unchanged.
+
 The added transcription field 13 declares prompt/output syntax, language labels,
 joining and control-marker removal. Its finite marker grammar requires the
 excluded body character exactly once at the end of the prefix and at the start

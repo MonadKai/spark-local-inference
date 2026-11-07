@@ -716,6 +716,17 @@ mod tests {
         assert_eq!(contract.graphs.last().unwrap().kind, crate::model::contract::GraphOperation::AudioEncode);
         assert_eq!(contract.graphs.last().unwrap().inputs[0].audio_tensor,
             Some(crate::model::contract::AudioTensorKind::LogMel));
+        let mut extended = value.clone();
+        extended.graphs.last_mut().unwrap().inputs.push(wire::ValueBinding {
+            buffer: "total_frames".into(), source: 41, indexing: 1,
+            audio_tensor: Some(8), ..Default::default() });
+        let restored = wire::ModelContract::decode(extended.encode_to_vec().as_slice()).unwrap();
+        assert_eq!(restored, extended);
+        assert_eq!(restored.vision, legacy.vision);
+        let extended_contract: crate::model::contract::PreparedContract =
+            serde_json::from_value(serde_json::to_value(restored).unwrap()).unwrap();
+        assert_eq!(extended_contract.graphs.last().unwrap().inputs[1].audio_tensor,
+            Some(crate::model::contract::AudioTensorKind::TotalInputFrames));
         for kind in [0, 999] {
             let mut bad = value.graphs.last().unwrap().inputs[0].clone(); bad.audio_tensor = Some(kind);
             assert!(serde_json::from_value::<crate::model::contract::ValueBinding>(serde_json::to_value(bad).unwrap()).is_err());

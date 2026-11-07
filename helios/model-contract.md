@@ -202,6 +202,11 @@ valid frames, global convolution width, gather indices, cumulative attention
 lengths, feature count and feature offset. Request slot/generation and the chosen
 feature slot are separate typed inputs. These values are uploaded through the
 shared execution transport; no runtime frontend callback executes model code.
+An optional `TotalInputFrames` Int32 scalar contains the complete encoder-input
+length after service splitting, independently of the current window's valid
+frames. It lets captured computation distinguish a short whole input from a
+short tail. Older graphs retain their seven audio tensor bindings; validation
+and packing do not add this scalar to an existing package.
 The graph owns convolution, attention, projector and feature publication. Its
 state accesses declare the arena writes and generation/count reads and writes;
 text prefill declares the corresponding reads. `AudioFeatureIndex` identifies

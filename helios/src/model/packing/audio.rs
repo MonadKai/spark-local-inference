@@ -48,6 +48,7 @@ impl Inputs {
                         continue;
                     }
                     AudioTensorKind::ValidFrames => std::slice::from_ref(&values.frames),
+                    AudioTensorKind::TotalInputFrames => std::slice::from_ref(&values.total_input_frames),
                     AudioTensorKind::ConvolutionWidth => std::slice::from_ref(&values.convolution_width),
                     AudioTensorKind::GatherIndices => &values.gather_indices,
                     AudioTensorKind::CumulativeLengths => &values.cumulative_lengths,
@@ -81,6 +82,10 @@ mod tests {
     }
 
     fn fixture() -> (ModelConfig, ExecutionManifest) {
+        fixture_with_total_input_frames(false)
+    }
+
+    fn fixture_with_total_input_frames(include_total: bool) -> (ModelConfig, ExecutionManifest) {
         let mut config = crate::model::tests::config();
         let mut manifest = crate::model::testing::manifest(&config);
         let view = |name: &str, stride| StateView { buffer: name.into(), offset: 0, stride, nbytes: stride };
@@ -108,7 +113,8 @@ mod tests {
             let mut inputs = vec![];
             for kind in [AudioTensorKind::LogMel, AudioTensorKind::ValidFrames, AudioTensorKind::ConvolutionWidth,
                          AudioTensorKind::GatherIndices, AudioTensorKind::CumulativeLengths,
-                         AudioTensorKind::FeatureCount, AudioTensorKind::FeatureOffset] {
+                         AudioTensorKind::FeatureCount, AudioTensorKind::FeatureOffset].into_iter()
+                .chain(include_total.then_some(AudioTensorKind::TotalInputFrames)) {
                 let name = format!("audio{frames}_{kind:?}");
                 let (dtype, shape) = audio.tensor_layout(kind, frames).unwrap();
                 buffer(&mut manifest, &name, dtype, shape);
@@ -146,6 +152,71 @@ mod tests {
             }
         }
         (config, manifest)
+    }
+
+    #[test]
+    fn optional_total_input_frames_preserves_old_layout_and_distinguishes_short_tails() {
+        for include_total in [false, true] {
+            let (config, manifest) = fixture_with_total_input_frames(include_total);
+            config.contract.validate(&manifest).unwrap();
+            let mut inputs = Inputs::new(&config, &manifest).unwrap();
+            let handle = RequestHandle { slot: 2, generation: 7 };
+            for (frames, window, capacity) in [(150, 0, 800), (950, 1, 800),
+                                               (801, 1, 100), (801, 1, 800),
+                                               (99, 0, 100), (99, 0, 800)] {
+                let audio = PreparedAudio::new(vec![0.; 128 * frames], frames,
+                    config.contract.audio.as_ref().unwrap()).unwrap();
+                let step = ScheduledStep { kind: GraphKind::AudioEncode, batch_capacity: 1,
+                    token_capacity: capacity, draft_tokens: 0, packed_token_capacity: 0,
+                    mixed: None, requires_feedback: true,
+                    lanes: vec![ScheduledLane { request: handle, start_position: 0, tokens: 0 }] };
+                inputs.pack_audio(&step, &config, handle, 0, &audio, window).unwrap();
+                let uploads = inputs.uploads();
+                let total = uploads.iter().find(|upload|
+                    upload.buffer == format!("audio{capacity}_TotalInputFrames"));
+                if include_total {
+                    assert_eq!(i32::from_le_bytes(total.unwrap().bytes.try_into().unwrap()), frames as i32);
+                } else {
+                    assert!(total.is_none(), "old graphs must not acquire a new binding");
+                }
+                let valid = uploads.iter().find(|upload|
+                    upload.buffer == format!("audio{capacity}_ValidFrames")).unwrap();
+                assert_eq!(i32::from_le_bytes(valid.bytes.try_into().unwrap()),
+                    (frames - window * 800).min(800) as i32);
+            }
+        }
+    }
+
+    #[test]
+    fn total_input_frames_does_not_make_required_inputs_or_layout_checks_optional() {
+        let (config, manifest) = fixture_with_total_input_frames(true);
+        config.contract.validate(&manifest).unwrap();
+        let index = config.contract.graphs.iter().position(|graph|
+            graph.kind == GraphOperation::AudioEncode).unwrap();
+        let total = config.contract.graphs[index].inputs.iter().position(|input|
+            input.audio_tensor == Some(AudioTensorKind::TotalInputFrames)).unwrap();
+        let mut duplicate = config.clone();
+        duplicate.contract.graphs[index].inputs.push(config.contract.graphs[index].inputs[total].clone());
+        assert!(duplicate.contract.validate(&manifest).is_err());
+        for required in 0..config.contract.graphs[index].inputs.len() {
+            if required == total { continue; }
+            let mut missing = config.clone();
+            missing.contract.graphs[index].inputs.remove(required);
+            assert!(missing.contract.validate(&manifest).is_err());
+        }
+        let name = &config.contract.graphs[index].inputs[total].buffer;
+        let mut wrong_dtype = manifest.clone();
+        wrong_dtype.buffers.iter_mut().find(|buffer| &buffer.name == name).unwrap().dtype = Dtype::Float32;
+        let error = Inputs::new(&config, &wrong_dtype).err().expect("wrong dtype must fail input-plan construction");
+        assert!(error.to_string().contains("audio tensor type, extent or offsets"));
+        let mut wrong_shape = manifest.clone();
+        let buffer = wrong_shape.buffers.iter_mut().find(|buffer| &buffer.name == name).unwrap();
+        buffer.shape = vec![2];
+        buffer.nbytes = 8;
+        for input in wrong_shape.graphs.iter_mut().flat_map(|graph| &mut graph.input_bindings)
+            .filter(|input| &input.buffer_name == name) { input.nbytes = 8; }
+        let error = Inputs::new(&config, &wrong_shape).err().expect("wrong shape must fail input-plan construction");
+        assert!(error.to_string().contains("audio tensor type, extent or offsets"));
     }
 
     #[test]
