@@ -12,6 +12,7 @@ use std::{
     io::{Read, Write},
     path::{Path, PathBuf},
     sync::{Arc, Mutex, Weak, mpsc},
+    task::Poll,
     time::Duration,
 };
 
@@ -206,8 +207,21 @@ enum Job {
     Get(InputKey, bool),
     Put(InputKey, Arc<PreparedInputRecord>, Reservation),
 }
-struct InputLookup {
+/// One bounded host-record lookup. Drop it to cancel this waiter's interest.
+pub struct InputLookup {
     receiver: mpsc::Receiver<Option<Arc<PreparedInputRecord>>>,
+}
+impl InputLookup {
+    /// Poll without waiting for the input worker or disk. Consume a ready result
+    /// once, then drop the lookup; worker exit has the same miss semantics as
+    /// `InputStore::get_blocking`.
+    pub fn poll(&self) -> Poll<Option<Arc<PreparedInputRecord>>> {
+        match self.receiver.try_recv() {
+            Ok(record) => Poll::Ready(record),
+            Err(mpsc::TryRecvError::Empty) => Poll::Pending,
+            Err(mpsc::TryRecvError::Disconnected) => Poll::Ready(None),
+        }
+    }
 }
 struct Owner {
     source_stripes: [Mutex<()>; 64],
@@ -317,7 +331,7 @@ impl InputStore {
     }
 
     /// Queue saturation and I/O failures are cache misses; callers retain original inputs.
-    fn lookup(&self, key: InputKey, payload: bool) -> Option<InputLookup> {
+    pub fn lookup(&self, key: InputKey, payload: bool) -> Option<InputLookup> {
         let (reply, receiver) = mpsc::sync_channel(1);
         let mut waiters = self.owner.waiters.lock().unwrap();
         if let Some(existing) = waiters.get_mut(&(key, payload)) {
@@ -1172,6 +1186,39 @@ mod tests {
         let second = store.lookup([1; 32], true).unwrap();
         drop(canceled);
         assert!(second.receiver.recv().unwrap().is_some());
+    }
+    #[test]
+    fn input_lookup_poll_preserves_pending_ready_and_worker_exit() {
+        let (sender, receiver) = mpsc::sync_channel(1);
+        let lookup = InputLookup { receiver };
+        assert!(matches!(lookup.poll(), Poll::Pending));
+        let input = record(true);
+        sender.send(Some(input.clone())).unwrap();
+        let Poll::Ready(Some(actual)) = lookup.poll() else { panic!("missing ready record") };
+        assert!(Arc::ptr_eq(&actual, &input));
+        let (ending, receiver) = mpsc::sync_channel(1);
+        let disconnected = InputLookup { receiver };
+        drop(ending);
+        assert!(matches!(disconnected.poll(), Poll::Ready(None)));
+    }
+    #[test]
+    fn real_input_store_nonblocking_lookup_reads_records_and_survives_cancel() {
+        let store = InputStore::start(4096, None, DiskBudget::new(0, 0)).unwrap();
+        store.insert([1; 32], record(true));
+        drop(store.lookup([1; 32], true));
+        let lookup = store.lookup([1; 32], true).unwrap();
+        let deadline = std::time::Instant::now() + Duration::from_secs(3);
+        let result = loop {
+            match lookup.poll() {
+                Poll::Ready(value) => break value.unwrap(),
+                Poll::Pending => {
+                    assert!(std::time::Instant::now() < deadline);
+                    std::thread::yield_now();
+                }
+            }
+        };
+        assert_eq!(&*result.metadata, b"geometry");
+        assert_eq!(result.payload.as_ref().unwrap().as_slice(), b"tensor bytes");
     }
     #[test]
     fn memory_and_disk_read_through_after_memory_eviction() {

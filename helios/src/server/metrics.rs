@@ -100,6 +100,16 @@ pub struct Snapshot {
     pub replay_readiness_wait_ns: u64,
     /// Completed graphs with prepared readiness timing outputs.
     pub replay_readiness_samples: u64,
+    pub encoded_input_hits: u64,
+    /// Readback records accepted by the bounded store queue, not disk commits.
+    pub encoded_input_writes: u64,
+    pub encoded_input_skipped: u64,
+    pub encoded_input_upload_bytes: u64,
+    pub encoded_input_readback_bytes: u64,
+    /// Worker wall time for validation, transfer, fence and publication.
+    pub encoded_input_upload_wall_ns: u64,
+    /// Worker wall time for reservation, readback, validation and queueing.
+    pub encoded_input_retention_wall_ns: u64,
     /// Tokens covered by checkpoints returned from GPU prefix lookups.
     pub reused_tokens: u64,
     /// KV pages owned by immutable checkpoints.
@@ -231,6 +241,7 @@ pub(super) struct Metrics {
     replay_gpu_ns: AtomicU64,
     replay_readiness_wait_ns: AtomicU64,
     replay_readiness_samples: AtomicU64,
+    encoded_inputs: [AtomicU64; 7],
     launches: [AtomicU64; 10],
     sampling_launches: [AtomicU64; 5],
     speculative: [Vec<RoundMetrics>; 7],
@@ -297,6 +308,20 @@ pub(super) struct Metrics {
 }
 
 impl Metrics {
+    pub(super) fn encoded_inputs_hit(&self, bytes: usize, elapsed: std::time::Duration) {
+        self.encoded_inputs[0].fetch_add(1, Ordering::Relaxed);
+        self.encoded_inputs[3].fetch_add(bytes as u64, Ordering::Relaxed);
+        self.encoded_inputs[5].fetch_add(elapsed.as_nanos().min(u64::MAX as u128) as u64, Ordering::Relaxed);
+    }
+
+    pub(super) fn encoded_inputs_retained(&self, bytes: usize, elapsed: std::time::Duration) {
+        self.encoded_inputs[1].fetch_add(1, Ordering::Relaxed);
+        self.encoded_inputs[4].fetch_add(bytes as u64, Ordering::Relaxed);
+        self.encoded_inputs[6].fetch_add(elapsed.as_nanos().min(u64::MAX as u128) as u64, Ordering::Relaxed);
+    }
+
+    pub(super) fn encoded_inputs_skip(&self) { self.encoded_inputs[2].fetch_add(1, Ordering::Relaxed); }
+
     pub fn new(total_pages: u32, page_tokens: usize, decode_weight_bytes: u64, token_capacity: usize) -> Self {
         Self {
             total_pages: total_pages as u64,
@@ -341,6 +366,13 @@ impl Metrics {
             replay_gpu_ns: self.replay_gpu_ns.load(Ordering::Relaxed),
             replay_readiness_wait_ns: self.replay_readiness_wait_ns.load(Ordering::Relaxed),
             replay_readiness_samples: self.replay_readiness_samples.load(Ordering::Relaxed),
+            encoded_input_hits: self.encoded_inputs[0].load(Ordering::Relaxed),
+            encoded_input_writes: self.encoded_inputs[1].load(Ordering::Relaxed),
+            encoded_input_skipped: self.encoded_inputs[2].load(Ordering::Relaxed),
+            encoded_input_upload_bytes: self.encoded_inputs[3].load(Ordering::Relaxed),
+            encoded_input_readback_bytes: self.encoded_inputs[4].load(Ordering::Relaxed),
+            encoded_input_upload_wall_ns: self.encoded_inputs[5].load(Ordering::Relaxed),
+            encoded_input_retention_wall_ns: self.encoded_inputs[6].load(Ordering::Relaxed),
             reused_tokens: self.reused_tokens.load(Ordering::Relaxed),
             cached_pages: self.cached_pages.load(Ordering::Relaxed),
             free_pages: self.free_pages.load(Ordering::Relaxed),
@@ -709,6 +741,13 @@ impl Metrics {
             }
         }
         for (name, help, count) in [
+            ("encoded_input_hits_total", "Whole-input prerequisites satisfied by fenced encoded feature uploads.", &self.encoded_inputs[0]),
+            ("encoded_input_writes_total", "Feature readbacks accepted by the bounded retention queue; not disk commits.", &self.encoded_inputs[1]),
+            ("encoded_input_skipped_total", "Encoded retention opportunities skipped after execution or due to resource bounds.", &self.encoded_inputs[2]),
+            ("encoded_input_upload_bytes_total", "Encoded feature payload bytes uploaded for published prerequisites.", &self.encoded_inputs[3]),
+            ("encoded_input_readback_bytes_total", "Feature bytes read back for accepted retention jobs.", &self.encoded_inputs[4]),
+            ("encoded_input_upload_wall_nanoseconds_total", "Worker wall time for feature validation, upload, fence and publication; not GPU busy time.", &self.encoded_inputs[5]),
+            ("encoded_input_retention_wall_nanoseconds_total", "Worker wall time for reservation, readback, validation and queueing; not GPU busy time.", &self.encoded_inputs[6]),
             ("replay_gpu_nanoseconds_total", "Sum of maximum rank-local CUDA durations of completed graphs, including readiness waits.", &self.replay_gpu_ns),
             ("replay_readiness_wait_nanoseconds_total", "Exposed embedding readiness delay measured across ranks; includes RAM and disk delivery.", &self.replay_readiness_wait_ns),
             ("replay_readiness_samples_total", "Completed graphs with prepared readiness timing outputs.", &self.replay_readiness_samples),
@@ -988,6 +1027,22 @@ impl Metrics {
             self.cache_misses.load(Ordering::Relaxed),
         );
         text.push_str("# HELP flare_graph_launches_total Successful native CUDA graph submissions.\n# TYPE flare_graph_launches_total counter\n");
+        text.push_str("# HELP flare_graph_batch_submissions_total Successful graph submissions by catalog index, physical request capacity and scheduled request count; each shared submission counts once.\n# TYPE flare_graph_batch_submissions_total counter\n");
+        text.push_str("# HELP flare_graph_batch_catalog_entries Prepared graph entries covered by submission batch counters.\n# TYPE flare_graph_batch_catalog_entries gauge\n");
+        let _ = writeln!(text, "flare_graph_batch_catalog_entries {}",
+            self.scheduler_trace.batches.get().map_or(0, Vec::len));
+        if let (Some(catalog), Some(batches)) = (self.scheduler_trace.catalog.get(), self.scheduler_trace.batches.get()) {
+            for (index, (label, counts)) in catalog.iter().zip(batches).enumerate() {
+                for (requests, counter) in counts.iter().enumerate() {
+                    let count = counter.load(Ordering::Relaxed);
+                    if count != 0 {
+                        let _ = writeln!(text,
+                            "flare_graph_batch_submissions_total{{graph_index=\"{index}\",capacity=\"{}\",requests=\"{requests}\"}} {count}",
+                            label.batch);
+                    }
+                }
+            }
+        }
         for (kind, count) in [
             "init",
             "restore",

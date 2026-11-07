@@ -163,12 +163,59 @@ capacity remains valid in the store. Cancellation is checked around blocking
 store/plan boundaries; waiting for a store lookup or source guard is not itself
 interruptible.
 
+### Encoded feature retention
+
+The implementation adds a separate BF16 record format keyed by the effective
+authenticated package/deployment producer, actual decoded-PCM/frontend identity,
+feature count and width. Language/context stay in the prompt and prefix-KV key;
+they do not condition this encoder. Generation and slot indices are never stored
+in retained records. Corrupt retained records are invalidated and recomputed;
+nonfinite live graph outputs and CUDA errors fail execution.
+
+The worker polls the existing bounded host store without waiting for disk. A
+late lookup cannot delay normal encoding or replace a partially executed input.
+An eligible hit receives a scheduler ticket for the exact owner, epoch, feature
+slot, original input span, feature range, complete jobs and current window.
+Only one whole input per current window is eligible. A startup-owned pinned slab
+copies payload and current int64 generation/int32 count into declared storage;
+its event must complete before the ticket retires the prerequisite. No graph
+completion, token, RNG or KV progress is fabricated. Revalidation rejects stale
+tickets without changing the epoch. Future conditioned windows keep their jobs.
+
+Readback likewise requires a quiescent executor and checks the actual generation
+and count. CPU serialization is reserved before allocating the retained payload.
+The fixed pinned slab is a separate startup memory charge; graph resources and
+the slab stay owned until confirmed executor drain, including transfer failure.
+Explicit encoded/both modes currently reject multiple ranks because the package
+does not declare replicated or sharded feature transfer semantics.
+
+This path is under qualification. The retained-package
+[native tier controls](../benchmarks/qwen3_asr/results/native-input-cache-tiers.json)
+record four independent Rust servers, unchanged raw tokens across all tiers,
+equal-placeholder/different-audio and context controls, and successful encoded
+uploads with no encoder submissions. HTTP concurrency is not an actual GPU batch
+observation. These finite results use an earlier ASR package and modified native
+source; they do not establish in-flight worker cancellation, eviction/readmission,
+disk retention, final-source quality or independent cache-tier performance.
+
+`qualify/asr_native_input_cache.py` provides the portable collector with explicit
+binary, package, configuration, publisher keys, development PCM and output paths.
+The subsequent [portable run](../benchmarks/qwen3_asr/results/native-input-cache-batches.json)
+again completes all four modes on the earlier ASR package. The newer native
+binary records successful shared submissions with logical request counts 1–8
+and separate physical capacities; counter indices refer to the loaded manifest,
+so no graph-kind mapping from the inspection catalog is asserted. This adds
+actual submission observations without qualifying worker cancellation during
+copies or the new attention package. CPU layout/ticket tests do not establish
+CUDA copy fencing or native request lifetimes.
+
 Ordinary CPU tests cover hits with no FFT plan available, identity isolation,
 corrupt records, short-input rules, capacity rejection and cross-window equality.
-Native HTTP qualification remains required. The current request prefix-reuse
-mode also disables the input store, so it is not an independent cache-layer
-ablation control. Encoder-embedding retention and its lifecycle validation remain
-separate work; CPU feature hits do not establish encoder-cache reuse.
+Native HTTP qualification remains required. When the prepared-input option is
+omitted, request prefix reuse also disables the input store. Explicit
+`--prepared-input-cache` now permits independent tier ablations. Encoder-embedding
+retention and its lifecycle validation remain separate gates; CPU feature hits
+do not establish encoder-cache reuse.
 
 ### Whole encoder-input length
 

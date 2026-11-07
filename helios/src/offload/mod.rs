@@ -101,6 +101,9 @@ pub fn input_staging_bytes(
             .and_then(|elements| elements.checked_mul(4))
             .ok_or("prepared audio input extent overflows")?;
         maximum = maximum.max(bytes);
+        let encoded = (audio.features_per_request as u64).checked_mul(audio.feature_width as u64)
+            .and_then(|elements| elements.checked_mul(2)).ok_or("encoded feature staging overflows")?;
+        maximum = maximum.max(encoded);
     }
     if maximum == 0 {
         Ok(0)
@@ -109,6 +112,14 @@ pub fn input_staging_bytes(
             .checked_add(4096)
             .ok_or_else(|| "prepared input staging extent overflows".into())
     }
+}
+
+/// Additional fixed pinned storage for explicit encoded retention. This is
+/// separate from the CPU store reservation and the frontend processing window.
+pub(crate) fn encoded_staging_bytes(contract: &crate::model::PreparedContract) -> Result<u64> {
+    let audio = contract.audio.as_ref().ok_or("encoded retention lacks a feature storage contract")?;
+    (audio.feature_stride()? as u64).checked_add(12)
+        .ok_or_else(|| "encoded feature pinned staging overflows".into())
 }
 
 #[derive(Clone, Copy)]
@@ -148,6 +159,10 @@ mod input_tests {
             features: view(), generations: view(), counts: view(),
         });
         assert_eq!(input_staging_bytes(&contract, |_| Some(8192)).unwrap(), 8192 * 8 * 128 * 4 + 4096);
+        contract.audio.as_mut().unwrap().feature_width = 4096;
+        assert_eq!(input_staging_bytes(&contract, |_| Some(8192)).unwrap(), 8192 * 4096 * 2 + 4096);
+        assert_eq!(super::encoded_staging_bytes(&contract).unwrap(), 8192 * 4096 * 2 + 12);
+        contract.audio.as_mut().unwrap().feature_width = 2048;
         contract.audio.as_mut().unwrap().features_per_request = usize::MAX;
         assert!(input_staging_bytes(&contract, |_| Some(8192)).is_err());
         let audio = contract.audio.as_mut().unwrap();
@@ -164,5 +179,31 @@ mod input_tests {
         assert_eq!(input_staging_bytes(&contract, |_| None).unwrap(), 128 * 4 + 4096);
         contract.audio = None;
         assert_eq!(input_staging_bytes(&contract, |_| None).unwrap(), 0);
+        assert!(super::encoded_staging_bytes(&contract).is_err());
+    }
+}
+/// Host retention tiers, independent of prefix KV reuse when explicitly set.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "server", derive(serde::Deserialize))]
+#[cfg_attr(feature = "server", serde(rename_all = "lowercase"))]
+pub enum PreparedInputCacheMode { Off, Preprocessed, Encoded, Both }
+
+impl PreparedInputCacheMode {
+    pub fn as_str(self) -> &'static str {
+        match self { Self::Off => "off", Self::Preprocessed => "preprocessed",
+            Self::Encoded => "encoded", Self::Both => "both" }
+    }
+    pub(crate) fn preprocessed(self) -> bool { matches!(self, Self::Preprocessed | Self::Both) }
+    pub(crate) fn encoded(self) -> bool { matches!(self, Self::Encoded | Self::Both) }
+}
+
+impl std::str::FromStr for PreparedInputCacheMode {
+    type Err = String;
+    fn from_str(value: &str) -> std::result::Result<Self, Self::Err> {
+        match value {
+            "off" => Ok(Self::Off), "preprocessed" => Ok(Self::Preprocessed),
+            "encoded" => Ok(Self::Encoded), "both" => Ok(Self::Both),
+            _ => Err("prepared input cache must be off, preprocessed, encoded or both".into()),
+        }
     }
 }

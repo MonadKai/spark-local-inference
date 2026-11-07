@@ -98,6 +98,17 @@ def test_recipe_supplies_concurrency_when_the_file_is_silent(tmp_path):
     assert configuration.max_concurrency("qwen3.8-flash", 4) == Setting(4, "recipe")
 
 
+def test_native_input_cache_modes_remain_valid_in_shared_preparation_config(tmp_path):
+    assert load(tmp_path, "").get("prepared_input_cache.mode") == Setting(None, "default")
+    for mode in ("off", "preprocessed", "encoded", "both"):
+        config = load(tmp_path, f'[prepared_input_cache]\nmode="{mode}"\n[prefix_cache]\nreuse="request"\n')
+        assert config.get("prepared_input_cache.mode") == Setting(mode, "[prepared_input_cache]")
+        assert config.get("prefix_cache.reuse") == Setting("request", "[prefix_cache]")
+    for value in ('"unknown"', '""', 'true', '0'):
+        with pytest.raises(UsageError, match="mode"):
+            load(tmp_path, f'[prepared_input_cache]\nmode={value}\n')
+
+
 def test_image_concurrency_configuration_is_scoped_to_vision_and_flags_win(tmp_path):
     from types import SimpleNamespace
     from ignition.cli.preparation import image_capacity_setting

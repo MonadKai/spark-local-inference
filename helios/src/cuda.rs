@@ -868,9 +868,23 @@ impl Stream {
         device: usize,
         nbytes: usize,
     ) -> Result<()> {
+        unsafe { self.download_at(host, 0, device, nbytes) }
+    }
+
+    /// The pinned destination range remains owned until the stream completes.
+    pub(crate) unsafe fn download_at(
+        &self,
+        host: &PinnedHost,
+        offset: usize,
+        device: usize,
+        nbytes: usize,
+    ) -> Result<()> {
+        if offset.checked_add(nbytes).is_none_or(|end| end > host.nbytes) {
+            return Err("download exceeds its pinned destination".into());
+        }
         self.driver.check("cuMemcpyDtoHAsync_v2", unsafe {
             (self.driver.download)(
-                host.handle as Handle,
+                (host.handle + offset) as Handle,
                 device as u64,
                 nbytes,
                 self.handle as Handle,

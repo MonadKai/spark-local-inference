@@ -377,6 +377,8 @@ struct Resources {
     frames: [Frame; 2],
     engram: Option<crate::engram::Transfers>,
     input_copies: InputCopyBatches,
+    #[cfg(any(feature = "server", test))]
+    features: Option<super::features::FeatureTransfer>,
 }
 
 /// Thread-bound executor over one borrowed prepared model and its CUDA context.
@@ -480,6 +482,8 @@ impl GraphExecutor {
                 frames,
                 engram,
                 input_copies: InputCopyBatches::new(upload_capacity.saturating_add(2)),
+                #[cfg(any(feature = "server", test))]
+                features: None,
             }),
             resolved_uploads: Vec::with_capacity(upload_capacity),
             startup_next: 0,
@@ -606,6 +610,43 @@ impl GraphExecutor {
                 .filter(|frame| frame.pending.is_some())
                 .count()
         })
+    }
+
+    #[cfg(any(feature = "server", test))]
+    pub(crate) fn bind_feature_storage(&mut self, audio: &crate::model::contract::AudioCapacity) -> Result<()> {
+        self.next_fence()?;
+        if self.next_sequence != 1 || self.outstanding() != 0 {
+            return Err("encoded feature storage must be bound before serving starts".into());
+        }
+        let layout = super::features::FeatureStorageLayout::new(audio, &self.manifest)?;
+        let resources = self.resources.as_mut().ok_or("executor is closed")?;
+        if resources.features.is_some() { return Err("encoded feature storage is already bound".into()); }
+        resources.features = Some(super::features::FeatureTransfer::new(layout, &resources.copy)?);
+        Ok(())
+    }
+
+    #[cfg(any(feature = "server", test))]
+    pub(crate) fn load_features(&mut self, owner: crate::scheduler::RequestHandle,
+        slot: usize, count: usize, bytes: &[u8]) -> Result<()> {
+        self.next_fence()?;
+        if self.outstanding() != 0 { return Err("feature upload requires a quiescent executor".into()); }
+        let resources = self.resources.as_mut().ok_or("executor is closed")?;
+        let result = resources.features.as_mut().ok_or("encoded feature storage is not bound")?
+            .load(&resources.copy, owner, slot, count, bytes);
+        if let Err(error) = &result { self.poison = Some(error.clone()); }
+        result
+    }
+
+    #[cfg(any(feature = "server", test))]
+    pub(crate) fn read_features(&mut self, owner: crate::scheduler::RequestHandle,
+        slot: usize, count: usize, destination: &mut [u8]) -> Result<()> {
+        self.next_fence()?;
+        if self.outstanding() != 0 { return Err("feature readback requires a quiescent executor".into()); }
+        let resources = self.resources.as_mut().ok_or("executor is closed")?;
+        let result = resources.features.as_mut().ok_or("encoded feature storage is not bound")?
+            .read(&resources.copy, owner, slot, count, destination);
+        if let Err(error) = &result { self.poison = Some(error.clone()); }
+        result
     }
 
     /// Validate a coordinated submission without touching CUDA or advancing its fence.

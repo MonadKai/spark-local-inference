@@ -786,7 +786,7 @@ impl AudioCapacity {
             .and_then(|value| value.checked_mul(2)).ok_or_else(|| "audio feature extent overflows".into())
     }
 
-    fn validate(&self, manifest: &ExecutionManifest) -> Result<()> {
+    pub(crate) fn validate(&self, manifest: &ExecutionManifest) -> Result<()> {
         use crate::execution::Dtype;
         let stride = self.feature_stride()?;
         for view in [&self.features, &self.generations, &self.counts] { view.validate(manifest)?; }

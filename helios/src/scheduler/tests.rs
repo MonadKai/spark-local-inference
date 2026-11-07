@@ -109,7 +109,7 @@ fn verification_catalog_covers_all_prepared_concurrencies_through_64() {
     assert!(fixed.iter().all(|widths| widths == &[4]));
 }
 
-pub(super) fn scheduler(active: usize, pages: u32, snapshots: u32) -> RequestScheduler {
+pub(crate) fn scheduler(active: usize, pages: u32, snapshots: u32) -> RequestScheduler {
     scheduler_with_geometry(active, pages, snapshots, 64, 4)
 }
 

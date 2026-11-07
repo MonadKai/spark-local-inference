@@ -362,8 +362,11 @@ impl Fixture {
             actions.push([3, 0, 0]);
         }
         for (index, slot) in s.slots.iter().enumerate() {
-            if slot.request.is_some() {
+            if let Some(request) = &slot.request {
                 actions.push([4, index as u64, 0]);
+                if s.conditioned_prerequisite(request.handle).is_ok() {
+                    actions.push([7, index as u64, 0]);
+                }
             }
         }
         if s.slots
@@ -579,6 +582,31 @@ impl Fixture {
                         .all(|snapshot| s.free_snapshots.contains(snapshot)),
                     "confirmed drain lost private snapshots"
                 );
+            }
+            7 => {
+                let handle = s.slots[action[1] as usize].request.as_ref().unwrap().handle;
+                let live = s.request(handle).unwrap();
+                let preserved = (live.handle, live.audio_slot, live.image_slot, live.consumed_tokens,
+                    live.generated_tokens, live.scheduled_consumed, live.reused_prompt_tokens(), live.last_use,
+                    live.pending, live.private_pages.clone(), live.reserved_pages.clone());
+                let epoch = live.epoch;
+                let ownership = (Self::project(s, self.fence_origin), s.stats(), s.free_pages.clone(),
+                    s.free_snapshots.clone(), s.free_audio_slots.clone());
+                let ticket = s.conditioned_prerequisite(handle).unwrap();
+                // The external copy has completed; it creates no graph fence.
+                s.complete_conditioned_prerequisite(ticket).unwrap();
+                let live = s.request(handle).unwrap();
+                assert_eq!(preserved, (live.handle, live.audio_slot, live.image_slot, live.consumed_tokens,
+                    live.generated_tokens, live.scheduled_consumed, live.reused_prompt_tokens(), live.last_use,
+                    live.pending, live.private_pages.clone(), live.reserved_pages.clone()),
+                    "conditioned upload changed request ownership or token state");
+                assert_eq!(ownership, (Self::project(s, self.fence_origin), s.stats(), s.free_pages.clone(),
+                    s.free_snapshots.clone(), s.free_audio_slots.clone()),
+                    "conditioned upload changed shared ownership or graph fences");
+                assert!(live.epoch > epoch, "conditioned upload did not invalidate prior scheduler plans");
+                assert!(live.encoder_jobs.is_empty(), "conditioned upload did not retire its encoder jobs");
+                assert!(matches!(live.phase, RequestPhase::Prefill | RequestPhase::Resume),
+                    "conditioned upload did not advance to text work");
             }
             _ => unreachable!(),
         }
@@ -841,6 +869,8 @@ fn scheduler_audio_matches_lifecycle_model() {
     let mut coverage = Coverage::default();
     let (mut initial_cancel, mut encoder_cancel, mut between_encoders, mut encoded_cancel) = (false, false, false, false);
     let (mut prefill_cancel, mut arena_pressure, mut reused_arena, mut total_states) = (false, false, false, 0usize);
+    let mut conditioned_upload = false;
+    let (mut upload_cancel, mut upload_text, mut upload_reuse, mut upload_failed_drain) = (false, false, false, false);
     for kind in [FixtureKind::AudioStart, FixtureKind::AudioDecode] {
         let mut pending = VecDeque::from([Vec::<Action>::new()]);
         let mut visited = HashSet::new();
@@ -853,8 +883,11 @@ fn scheduler_audio_matches_lifecycle_model() {
             if path.len() == MAX_DEPTH { continue; }
             let before = fixture.projection();
             for action in fixture.actions() {
+                let after_upload = path.iter().any(|previous| previous[0] == 7);
                 let mut candidate = Fixture::new_kind(kind);
                 for previous in &path { candidate.apply(*previous); }
+                upload_text |= after_upload && action[0] == 2 && candidate.scheduler.plan()
+                    .is_some_and(|plan| matches!(plan.kind, GraphKind::Prefill | GraphKind::Decode));
                 let stale_plan = (action[0] == 4).then(|| candidate.scheduler.plan()).flatten()
                     .filter(|plan| plan.lanes.iter().any(|lane| lane.request.slot as u64 == action[1]));
                 if action[0] == 4 {
@@ -869,6 +902,9 @@ fn scheduler_audio_matches_lifecycle_model() {
                     }
                 }
                 candidate.apply(action);
+                conditioned_upload |= action[0] == 7;
+                upload_cancel |= after_upload && action[0] == 4;
+                upload_failed_drain |= after_upload && action[0] == 5;
                 let after = candidate.projection();
                 if let Some(mid) = candidate.rejected_admission {
                     arena_pressure = true;
@@ -879,6 +915,7 @@ fn scheduler_audio_matches_lifecycle_model() {
                     if action[0] == 1 {
                         let live = candidate.scheduler.slots[action[1] as usize].request.as_ref().unwrap();
                         reused_arena |= live.handle.generation == 2 && live.audio_slot.is_some();
+                        upload_reuse |= after_upload && live.handle.generation == 2 && live.audio_slot.is_some();
                     }
                 }
                 if let Some(plan) = stale_plan {
@@ -902,6 +939,9 @@ fn scheduler_audio_matches_lifecycle_model() {
         "missing audio phase cancellation: {initial_cancel} {encoder_cancel} {between_encoders} {encoded_cancel} {prefill_cancel}");
     assert!(arena_pressure && reused_arena && coverage.audio_rejections,
         "missing audio capacity/reuse/completion controls: {arena_pressure} {reused_arena} {coverage:?}");
+    assert!(conditioned_upload, "missing completed feature upload transition");
+    assert!(upload_cancel && upload_text && upload_reuse && upload_failed_drain,
+        "missing upload successor coverage: cancel={upload_cancel} text={upload_text} reuse={upload_reuse} failed_drain={upload_failed_drain}");
     assert!(coverage.two_pending && coverage.cancel_two_pending && coverage.first_completion_retains_slot
         && coverage.stale_handle && coverage.stale_plan && coverage.stale_completion && coverage.out_of_order
         && coverage.duplicate_completion && coverage.uncertain_drain && coverage.feedback_barrier
@@ -910,4 +950,54 @@ fn scheduler_audio_matches_lifecycle_model() {
         println!("LIFECYCLE_EDGE [{before:?}, {action:?}, {after:?}]");
     }
     println!("AUDIO_LIFECYCLE_COVERAGE states={total_states} edges={} depth={MAX_DEPTH} {coverage:?}", edges.len());
+}
+
+fn initialize_prerequisite(fixture: &mut Fixture, handle: RequestHandle) {
+    for _ in 0..8 {
+        if fixture.scheduler.conditioned_prerequisite(handle).is_ok() { return; }
+        let plan = fixture.scheduler.plan().unwrap();
+        // Shared policy may advance another live request before this Init.
+        let mask = plan.lanes.iter().fold(0, |mask, lane| mask | (1 << lane.request.slot));
+        let barrier = u64::from(fixture.scheduler.plan_requires_feedback(&plan));
+        fixture.apply([2, mask, barrier]);
+        fixture.apply([3, 0, 0]);
+    }
+    panic!("initialization did not expose a complete prerequisite");
+}
+
+#[test]
+fn late_prerequisite_ticket_cannot_publish_into_a_reused_slot_and_arena() {
+    let mut fixture = Fixture::new_kind(FixtureKind::AudioStart);
+    fixture.apply([4, 1, 0]);
+    let first = fixture.scheduler.slots[0].request.as_ref().unwrap().handle;
+    initialize_prerequisite(&mut fixture, first);
+    let ticket = fixture.scheduler.conditioned_prerequisite(first).unwrap();
+    let arena = ticket.feature_slot();
+    fixture.apply([4, 0, 0]);
+    fixture.apply([1, 0, 0]);
+    let next = fixture.scheduler.slots[0].request.as_ref().unwrap().handle;
+    assert_eq!(next.slot, first.slot);
+    assert!(next.generation > first.generation);
+    initialize_prerequisite(&mut fixture, next);
+    assert_eq!(fixture.scheduler.conditioned_prerequisite(next).unwrap().feature_slot(), arena);
+    let before = fixture.state_key();
+    assert!(fixture.scheduler.complete_conditioned_prerequisite(ticket).is_err());
+    assert_eq!(fixture.state_key(), before, "late ticket changed a reused request or its arena");
+    let current = fixture.scheduler.conditioned_prerequisite(next).unwrap();
+    fixture.scheduler.complete_conditioned_prerequisite(current).unwrap();
+    fixture.assert_ownership();
+}
+
+#[test]
+fn duplicate_prerequisite_ticket_cannot_advance_the_epoch_twice() {
+    let mut fixture = Fixture::new_kind(FixtureKind::AudioStart);
+    let handle = fixture.scheduler.slots[0].request.as_ref().unwrap().handle;
+    initialize_prerequisite(&mut fixture, handle);
+    let first = fixture.scheduler.conditioned_prerequisite(handle).unwrap();
+    let duplicate = fixture.scheduler.conditioned_prerequisite(handle).unwrap();
+    fixture.scheduler.complete_conditioned_prerequisite(first).unwrap();
+    let before = fixture.state_key();
+    assert!(fixture.scheduler.complete_conditioned_prerequisite(duplicate).is_err());
+    assert_eq!(fixture.state_key(), before, "duplicate ticket changed epochs, jobs or ownership");
+    fixture.assert_ownership();
 }

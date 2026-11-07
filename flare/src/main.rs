@@ -280,6 +280,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(reuse) = args.serving.prefix_cache_reuse {
         config["prefix_cache_reuse"] = reuse.as_str().into();
     }
+    if let Some(mode) = args.serving.prepared_input_cache {
+        config["prepared_input_cache"] = mode.as_str().into();
+    }
     config["scheduler_policy"] = args.scheduler_policy.into();
     if let Some(value) = args.scheduler_terminal_value {
         config["scheduler_terminal_value"] = value.into();

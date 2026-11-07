@@ -563,9 +563,13 @@ impl NativeModel {
         };
         #[cfg(not(feature = "images"))]
         let source_window = 0;
+        let encoded_staging = if options.prepared_input_cache.is_some_and(|mode| mode.encoded()) {
+            crate::offload::encoded_staging_bytes(&contract)?
+        } else { 0 };
         let host_future = offload_host
             .checked_add(input_window)
             .and_then(|bytes| bytes.checked_add(source_window))
+            .and_then(|bytes| bytes.checked_add(encoded_staging))
             .ok_or_else(|| invalid("CPU prepared-input windows overflow host memory"))?;
         let mut available = Vec::new();
         let mut loaded_bytes = Vec::new();

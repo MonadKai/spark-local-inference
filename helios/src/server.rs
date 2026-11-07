@@ -89,6 +89,8 @@ impl std::str::FromStr for PrefixCacheReuse {
     }
 }
 
+pub use crate::offload::PreparedInputCacheMode;
+
 pub struct ServerConfig {
     pub bind: SocketAddr,
     pub queue_capacity: usize,
@@ -109,6 +111,8 @@ pub struct ServerConfig {
     pub capacity_hint: String,
     pub scheduling_policy: crate::scheduler::PolicyConfig,
     pub prefix_cache_reuse: PrefixCacheReuse,
+    /// None retains the historical coupling to prefix-cache reuse.
+    pub prepared_input_cache: Option<PreparedInputCacheMode>,
 }
 impl Default for ServerConfig {
     fn default() -> Self {
@@ -125,6 +129,7 @@ impl Default for ServerConfig {
             capacity_hint: String::new(),
             scheduling_policy: crate::scheduler::PolicyConfig::default(),
             prefix_cache_reuse: PrefixCacheReuse::Shared,
+            prepared_input_cache: None,
         }
     }
 }
@@ -275,6 +280,7 @@ impl Server {
                 peers,
                 config.scheduling_policy,
                 config.prefix_cache_reuse,
+                config.prepared_input_cache,
             )?
         });
         let state = Arc::new(HttpState {
@@ -510,7 +516,7 @@ async fn metrics(State(state): State<Arc<HttpState>>, uri: Uri, headers: HeaderM
         Err(message) => return error(StatusCode::BAD_REQUEST, message),
     };
     let input_metrics = metrics::input_metrics(
-        state.model.input_store().map(|store| store.stats()).unwrap_or_default(),
+        state.model.input_record_stats(),
         state.images.as_ref().map(|processor| processor.preparation_counts()).unwrap_or_default(),
     );
     if format == metrics::Format::Json {

@@ -7,6 +7,8 @@
 //! Fixed-capacity graph execution over two pinned transport frames.
 
 mod manifest;
+#[cfg(any(feature = "server", test, kani))]
+mod features;
 mod parallel;
 mod rank_stream;
 mod ranks;

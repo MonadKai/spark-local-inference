@@ -287,3 +287,28 @@ observed native model path, not a failed-startup claim or a universal claim abou
 other encoder implementations. This small trial has no official-counter or
 performance calibration claim; deployment backend and partial-batch tuning
 remain open. Both task containers exit normally and are removed.
+
+`native-input-cache-tiers.json` retains four native cache-mode cohorts on an
+unchanged earlier ASR package, with 184 successful raw responses and four explicit
+bad-input refusals. The two different development utterances are padded to equal
+sample counts for placeholder isolation; this is not the quality/performance
+corpus. Each mode contains 15 serial and 30 concurrent responses plus recovery
+after a refusal. Encoder-only and combined modes each apply 13 serial hits with
+zero encoder submissions for those hits. Raw IDs, text, prompts and usage match
+the off mode; the context control actually changes prompt IDs. CPU store lookup
+hits and successfully applied uploads are separate counters. The recorded HTTP
+concurrency does not establish GPU batch size. This modified native source and
+earlier package do not qualify the new attention package, in-flight worker
+cancellation, eviction/readmission, disk reuse, final source or performance.
+
+`native-input-cache-batches.json` retains the subsequent portable collector run
+on the same earlier ASR package and a new native binary. Its four modes again
+complete 184 successful requests and four explicit refusals with unchanged raw
+tokens, prompts and usage. Each encoded mode applies 13 serial hits. Successful
+shared graph-submission counters now observe logical request counts 1 through 8
+separately from physical capacities 1/2/4/8, including partial batches. Counter
+indices name the loaded manifest; their mapping to the inspection catalog's graph
+kinds is not asserted. These are submissions, not completions or GPU busy time.
+The new counters supplement the earlier HTTP observations; this remains finite
+functional qualification on modified source, with the same open lifecycle,
+new-attention-package, final-source and performance gates.

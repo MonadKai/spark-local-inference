@@ -3102,6 +3102,7 @@ fn group_runtime(
             finished: Arc::new((Mutex::new(false), Condvar::new())),
             metrics: fixture.metrics.clone(),
             input_store: None,
+            input_records: None,
             prefix_scopes: None,
         },
         receiver,
@@ -3702,6 +3703,7 @@ fn http_state_for(
         finished: Arc::new((Mutex::new(true), Condvar::new())),
         metrics: fixture.metrics,
         input_store: None,
+            input_records: None,
         prefix_scopes: None,
     });
     Arc::new(HttpState {

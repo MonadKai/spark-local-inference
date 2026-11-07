@@ -149,3 +149,112 @@ fn encoder_failure_stops_remaining_work_and_releases_only_after_retirement() {
     assert!(scheduler.request(handle).is_err());
     assert_eq!(scheduler.free_audio_slots.len(), 1);
 }
+
+fn initialized(scheduler: &mut RequestScheduler) -> RequestHandle {
+    let handle = admit(scheduler);
+    let (plan, fence, records) = commit(scheduler);
+    complete(scheduler, &plan, fence, &records);
+    handle
+}
+
+#[test]
+fn retained_input_retires_only_its_prerequisite_without_fabricating_a_completion() {
+    let mut scheduler = scheduler(1);
+    let handle = initialized(&mut scheduler);
+    let plan = scheduler.plan().unwrap();
+    let live = scheduler.request(handle).unwrap();
+    let before = (live.consumed_tokens, live.generated_tokens, live.scheduled_consumed,
+        live.reused_prompt_tokens(), live.last_use, scheduler.submitted, scheduler.completed);
+    let ticket = scheduler.conditioned_prerequisite(handle).unwrap();
+    assert_eq!(ticket.input().token_span, 1..106);
+    assert_ne!(ticket.input().token_span.end, 120); // window includes trailing text
+    assert_eq!(ticket.feature_slot(), 0);
+    scheduler.complete_conditioned_prerequisite(ticket).unwrap();
+    let live = scheduler.request(handle).unwrap();
+    assert_eq!(before, (live.consumed_tokens, live.generated_tokens, live.scheduled_consumed,
+        live.reused_prompt_tokens(), live.last_use, scheduler.submitted, scheduler.completed));
+    assert_eq!(live.phase, RequestPhase::Prefill);
+    assert!(live.encoder_jobs.is_empty());
+    assert_eq!(live.audio_slot, Some(0));
+    assert_eq!(scheduler.plan().unwrap().kind, GraphKind::Prefill);
+    assert!(scheduler.commit(&plan, Fence(scheduler.submitted.0 + 1)).is_err());
+    assert!(scheduler.conditioned_prerequisite(handle).is_err());
+    scheduler.cancel(handle).unwrap();
+    let next = initialized(&mut scheduler);
+    assert_eq!(next.slot, handle.slot);
+    assert!(next.generation > handle.generation);
+    assert!(scheduler.conditioned_prerequisite(handle).is_err());
+    assert_eq!(scheduler.conditioned_prerequisite(next).unwrap().feature_slot(), 0);
+}
+
+#[test]
+fn stale_or_mutated_prerequisites_do_not_change_epochs_jobs_or_plans() {
+    let mut scheduler = scheduler(1);
+    let handle = initialized(&mut scheduler);
+    for mutation in 0..7 {
+        let mut ticket = scheduler.conditioned_prerequisite(handle).unwrap();
+        match mutation {
+            0 => ticket.owner = Arc::new(()),
+            1 => ticket.state.epoch += 1,
+            2 => ticket.state.feature_slot += 1,
+            3 => ticket.state.input.token_span.end += 1,
+            4 => ticket.state.input.feature_range.end += 1,
+            5 => { ticket.state.input.encodings.pop(); },
+            6 => ticket.state.window_inputs.end += 1,
+            _ => unreachable!(),
+        }
+        let before = scheduler.prerequisite_state(handle).unwrap();
+        assert!(scheduler.complete_conditioned_prerequisite(ticket).is_err(), "mutation {mutation}");
+        assert_eq!(scheduler.prerequisite_state(handle).unwrap(), before);
+    }
+    let ticket = scheduler.conditioned_prerequisite(handle).unwrap();
+    scheduler.conditioned_inputs_ready(handle, false).unwrap();
+    scheduler.conditioned_inputs_ready(handle, true).unwrap();
+    let before = scheduler.prerequisite_state(handle).unwrap();
+    assert!(scheduler.complete_conditioned_prerequisite(ticket).is_err());
+    assert_eq!(scheduler.prerequisite_state(handle).unwrap(), before);
+}
+
+#[test]
+fn prerequisite_rejects_uninitialized_pending_partial_and_retired_work() {
+    let mut scheduler = scheduler(1);
+    let handle = admit(&mut scheduler);
+    assert!(scheduler.conditioned_prerequisite(handle).is_err());
+    let (plan, fence, records) = commit(&mut scheduler);
+    assert!(scheduler.conditioned_prerequisite(handle).is_err());
+    complete(&mut scheduler, &plan, fence, &records);
+    let ticket = scheduler.conditioned_prerequisite(handle).unwrap();
+    let (plan, fence, records) = commit(&mut scheduler);
+    let before = scheduler.request(handle).unwrap().epoch;
+    assert!(scheduler.complete_conditioned_prerequisite(ticket).is_err());
+    assert_eq!(scheduler.request(handle).unwrap().epoch, before);
+    assert!(scheduler.conditioned_prerequisite(handle).is_err());
+    complete(&mut scheduler, &plan, fence, &records);
+    assert_eq!(scheduler.request(handle).unwrap().encoder_jobs.len(), 1);
+    assert!(scheduler.conditioned_prerequisite(handle).is_err());
+    scheduler.cancel(handle).unwrap();
+    assert!(scheduler.conditioned_prerequisite(handle).is_err());
+}
+
+#[test]
+fn whole_input_prerequisite_preserves_later_conditioned_windows() {
+    let mut scheduler = tests::scheduler(2, 128, 8);
+    scheduler.capabilities.vision.features_per_request = 64;
+    let handle = scheduler.admit(tests::spec(150, 2)).unwrap();
+    let images = [ConditionedInput { token_span: 1..65, feature_range: 0..64,
+        encodings: vec![EncoderJob::Vision { patches: 256 }] },
+        ConditionedInput { token_span: 70..134, feature_range: 64..128,
+        encodings: vec![EncoderJob::Vision { patches: 256 }] }];
+    scheduler.set_conditioned_inputs(handle, &images).unwrap();
+    scheduler.conditioned_inputs_ready(handle, true).unwrap();
+    let (plan, fence, records) = commit(&mut scheduler);
+    complete(&mut scheduler, &plan, fence, &records);
+    let ticket = scheduler.conditioned_prerequisite(handle).unwrap();
+    scheduler.complete_conditioned_prerequisite(ticket).unwrap();
+    let live = scheduler.request(handle).unwrap();
+    assert_eq!(live.conditioned_windows.len(), 2);
+    assert!(live.encoder_jobs.is_empty());
+    assert_eq!(live.conditioned_windows[1].encodings.iter().copied().collect::<Vec<_>>(), images[1].encodings);
+    assert!(live.window_snapshot.is_some());
+    assert_eq!(live.phase, RequestPhase::Prefill);
+}

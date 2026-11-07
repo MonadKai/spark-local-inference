@@ -62,6 +62,11 @@ Cancel(before, after, slot) ==
                                 !.lastUse[slot] = IF waiting THEN @ ELSE 0]
 
 UnconfirmedDrain(before, after) == after = before
+SatisfiedPrerequisite(before, after, slot) ==
+    /\ slot \in Slots
+    /\ before.phase[slot] = Live
+    /\ before.lastUse[slot] <= before.completed
+    /\ after = before
 ConfirmedDrain(before, after) ==
     after = [before EXCEPT !.completed = before.submitted, !.queue = <<>>,
                           !.phase = [s \in Slots |-> Free],
@@ -72,6 +77,7 @@ Next == (\E s \in Slots : Admit(state, state', s))
      \/ Complete(state, state')
      \/ (\E s \in Slots : Cancel(state, state', s))
      \/ UnconfirmedDrain(state, state')
+     \/ (\E s \in Slots : SatisfiedPrerequisite(state, state', s))
      \/ ConfirmedDrain(state, state')
 
 TypeOK == /\ state.submitted \in 0..MaxSubmissions
@@ -134,6 +140,7 @@ AllowedEdge(edge) ==
          [] action[1] = 4 -> Cancel(before, after, action[2])
          [] action[1] = 5 -> UnconfirmedDrain(before, after)
          [] action[1] = 6 -> ConfirmedDrain(before, after)
+         [] action[1] = 7 -> SatisfiedPrerequisite(before, after, action[2])
          [] OTHER -> FALSE
 
 Spec == Init /\ [][Next]_state

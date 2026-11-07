@@ -16,6 +16,9 @@ use std::{
 
 use tokio::sync::{mpsc as async_mpsc, oneshot};
 
+#[cfg(feature = "audio")]
+mod encoded;
+
 use crate::{
     AdmissionError, Error, ExecutionError, Failure, Result, Shutdown,
     cache::ConditioningEvent,
@@ -472,6 +475,7 @@ pub struct ModelRuntime {
     finished: Arc<(Mutex<bool>, Condvar)>,
     metrics: Arc<super::metrics::Metrics>,
     input_store: Option<flare_selene::input::InputStore>,
+    input_records: Option<flare_selene::input::InputStore>,
     prefix_scopes: Option<PrefixScopes>,
 }
 
@@ -499,6 +503,7 @@ impl ModelRuntime {
         peers: Option<crate::execution::RankPeers>,
         policy: crate::scheduler::PolicyConfig,
         prefix_cache_reuse: super::PrefixCacheReuse,
+        prepared_input_cache: Option<super::PreparedInputCacheMode>,
     ) -> Result<Self> {
         crate::model::catalog::validate(&config, &manifest)?;
         super::observation::initialize_clock();
@@ -513,9 +518,26 @@ impl ModelRuntime {
         let worker_message_capacity = message_capacity.clone();
         let prefix_scopes = (prefix_cache_reuse == super::PrefixCacheReuse::Request)
             .then(PrefixScopes::new);
-        let input_store = (prefix_cache_reuse == super::PrefixCacheReuse::Shared)
+        let input_mode = prepared_input_cache.unwrap_or_else(|| {
+            if prefix_cache_reuse == super::PrefixCacheReuse::Shared { super::PreparedInputCacheMode::Preprocessed }
+            else { super::PreparedInputCacheMode::Off }
+        });
+        let input_records = (input_mode != super::PreparedInputCacheMode::Off)
             .then(|| manifest.offload.as_ref().and_then(|binding| binding.inputs())).flatten();
+        if prepared_input_cache.is_some() && input_mode != super::PreparedInputCacheMode::Off
+            && input_records.is_none()
+        {
+            return Err("prepared input retention needs a nonzero host-cache memory or disk budget".into());
+        }
+        if input_mode.encoded() && (peers.is_some() || config.contract.audio.is_none()) {
+            return Err("encoded retention requires a declared single-rank feature storage contract".into());
+        }
+        #[cfg(not(feature = "audio"))]
+        if input_mode.encoded() { return Err("this build has no encoded audio retention".into()); }
+        let input_store = input_mode.preprocessed().then(|| input_records.clone()).flatten();
         let worker_input_store = input_store.clone();
+        #[cfg(feature = "audio")]
+        let worker_encoded_store = input_mode.encoded().then(|| input_records.clone()).flatten();
         let config = Arc::new(config);
         let (sender, receiver) = mpsc::sync_channel(queue_capacity);
         let (ready_tx, ready_rx) = mpsc::sync_channel(1);
@@ -690,6 +712,16 @@ impl ModelRuntime {
                     receiver,
                     queue_capacity,
                 );
+                #[cfg(feature = "audio")]
+                if let Some(store) = worker_encoded_store {
+                    if let Err(error) = executor.bind_feature_storage(worker.config.contract.audio.as_ref().unwrap()) {
+                        let _ = ready_tx.send(Err(error.clone()));
+                        let mut shutdown = executor.close();
+                        shutdown.error = Some(error);
+                        return shutdown;
+                    }
+                    worker.encoded_inputs = Some(encoded::EncodedInputs::new(store));
+                }
                 worker.attach_store(store);
                 if worker.config.contract.vision.enabled() {
                     worker.image_preparation = Some(ImagePreparation::new(worker_input_store));
@@ -741,6 +773,7 @@ impl ModelRuntime {
                 config,
                 event_capacity,
                 input_store,
+                input_records,
                 prefix_scopes,
                 capacity,
                 queue_capacity: message_capacity,
@@ -766,6 +799,10 @@ impl ModelRuntime {
 
     pub(super) fn input_store(&self) -> Option<&flare_selene::input::InputStore> {
         self.input_store.as_ref()
+    }
+
+    pub(super) fn input_record_stats(&self) -> flare_selene::input::InputStats {
+        self.input_records.as_ref().map(|store| store.stats()).unwrap_or_default()
     }
 
     pub fn healthy(&self) -> bool {
@@ -1065,6 +1102,8 @@ struct Worker<'a> {
     image_preparation: Option<ImagePreparation>,
     preparing_image: Option<RequestHandle>,
     image_preparation_cursor: usize,
+    #[cfg(feature = "audio")]
+    encoded_inputs: Option<encoded::EncodedInputs>,
     prefill_started: VecDeque<(crate::cache::Fence, std::time::Instant, u64)>,
 }
 
@@ -1100,6 +1139,8 @@ impl<'a> Worker<'a> {
             image_preparation: None,
             preparing_image: None,
             image_preparation_cursor: 0,
+            #[cfg(feature = "audio")]
+            encoded_inputs: None,
         }
     }
 
@@ -1117,6 +1158,8 @@ impl<'a> Worker<'a> {
             }
             progress |= self.publish()?;
             progress |= self.service_store()?;
+            #[cfg(feature = "audio")]
+            { progress |= self.service_encoded_inputs(executor)?; }
             let (step, planned) = self.plan(executor.outstanding())?;
             progress |= planned;
             if let Some(step) = step {

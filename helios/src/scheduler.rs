@@ -215,7 +215,7 @@ struct BoundaryCapture {
     resume: RequestPhase,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg(any(feature = "server", test))]
 pub(crate) struct ConditionedInput {
     pub token_span: std::ops::Range<usize>,
@@ -242,6 +242,8 @@ impl EncoderJob {
 #[derive(Clone, Debug)]
 struct ConditionedWindow {
     #[cfg(any(feature = "server", test))]
+    single_input: Option<ConditionedInput>,
+    #[cfg(any(feature = "server", test))]
     inputs: std::ops::Range<usize>,
     #[cfg(any(feature = "server", test))]
     token_start: usize,
@@ -249,6 +251,31 @@ struct ConditionedWindow {
     #[cfg(any(feature = "server", test))]
     features: Vec<std::ops::Range<usize>>,
     encodings: VecDeque<EncoderJob>,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+#[cfg(any(feature = "server", test))]
+struct PrerequisiteState {
+    handle: RequestHandle,
+    epoch: u64,
+    feature_slot: usize,
+    input: ConditionedInput,
+    window_inputs: std::ops::Range<usize>,
+    prefill_end: usize,
+}
+
+/// A whole immutable input's outstanding prerequisite, never a graph completion.
+/// The worker must keep ownership through its fenced copy and revalidate here.
+#[cfg(any(feature = "server", test))]
+pub(crate) struct ConditionedPrerequisite {
+    owner: Arc<()>,
+    state: PrerequisiteState,
+}
+
+#[cfg(any(feature = "server", test))]
+impl ConditionedPrerequisite {
+    pub(crate) fn feature_slot(&self) -> usize { self.state.feature_slot }
+    pub(crate) fn input(&self) -> &ConditionedInput { &self.state.input }
 }
 
 pub struct LiveRequest {
@@ -1986,6 +2013,7 @@ impl RequestScheduler {
                     previous.prefill_end = input.token_span.start;
                 }
                 windows.push_back(ConditionedWindow {
+                    single_input: None,
                     inputs: index..index,
                     token_start: input.token_span.start,
                     prefill_end: request.prompt_tokens,
@@ -1995,6 +2023,7 @@ impl RequestScheduler {
                 features = 0;
             }
             let window = windows.back_mut().unwrap();
+            window.single_input = window.inputs.is_empty().then(|| input.clone());
             window.inputs.end = index + 1;
             window.features.push(input.feature_range.clone());
             window.encodings.extend(input.encodings.iter().copied());
@@ -2071,6 +2100,51 @@ impl RequestScheduler {
         );
         request.conditioned_inputs_ready = inputs.is_empty();
         request.conditioned_windows = windows;
+        Ok(())
+    }
+
+    #[cfg(any(feature = "server", test))]
+    fn prerequisite_state(&self, handle: RequestHandle) -> Result<PrerequisiteState> {
+        let request = self.request(handle)?;
+        let window = request.conditioned_windows.front().ok_or("request lacks a conditioned window")?;
+        let input = window.single_input.as_ref().ok_or("prerequisite requires one complete input per window")?;
+        let slot = match (request.image_slot, request.audio_slot) {
+            (Some(slot), None) | (None, Some(slot)) => slot,
+            _ => return Err("prerequisite lacks exclusive feature storage".into()),
+        };
+        if !matches!(request.phase, RequestPhase::Vision | RequestPhase::AudioEncode)
+            || request.phase != request.prompt_phase() || !request.conditioned_inputs_ready
+            || request.pending != 0 || request.last_use > self.completed
+            || request.window_restore || request.window_snapshot_ready || request.boundary_capture.is_some()
+            || request.error_code.is_some() || request.encoder_jobs.is_empty()
+            || !request.encoder_jobs.iter().copied().eq(input.encodings.iter().copied())
+            || request.encoder_jobs != window.encodings
+            || request.conditioned_features.as_deref() != Some(std::slice::from_ref(&input.feature_range))
+            || request.consumed_tokens > input.token_span.start as u64
+        {
+            return Err("conditioned prerequisite is stale, partially executed or still in use".into());
+        }
+        Ok(PrerequisiteState { handle, epoch: request.epoch, feature_slot: slot,
+            input: input.clone(), window_inputs: window.inputs.clone(), prefill_end: window.prefill_end })
+    }
+
+    #[cfg(any(feature = "server", test))]
+    pub(crate) fn conditioned_prerequisite(&self, handle: RequestHandle) -> Result<ConditionedPrerequisite> {
+        Ok(ConditionedPrerequisite { owner: self.plan_owner.clone(), state: self.prerequisite_state(handle)? })
+    }
+
+    #[cfg(any(feature = "server", test))]
+    pub(crate) fn complete_conditioned_prerequisite(&mut self, ticket: ConditionedPrerequisite) -> Result<()> {
+        if !Arc::ptr_eq(&ticket.owner, &self.plan_owner)
+            || self.prerequisite_state(ticket.state.handle)? != ticket.state
+        {
+            return Err("conditioned prerequisite belongs to a different owner or epoch".into());
+        }
+        // All rejection checks precede request_mut: even a rejected ticket must
+        // leave epochs and plans unchanged. Future windows retain their jobs.
+        let request = self.request_mut(ticket.state.handle)?;
+        request.encoder_jobs.clear();
+        request.phase = request.prompt_phase();
         Ok(())
     }
 

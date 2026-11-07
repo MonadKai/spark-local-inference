@@ -332,6 +332,10 @@ impl Bootstrap {
         let server = ServerConfig {
             scheduling_policy,
             prefix_cache_reuse,
+            prepared_input_cache: object.get("prepared_input_cache")
+                .map(|value| value.as_str().ok_or("prepared_input_cache must be a string")?
+                    .parse().map_err(|error: String| crate::Error::from(error)))
+                .transpose()?,
             thinking_token_budget: object.get("thinking_token_budget")
                 .filter(|value| !value.is_null())
                 .map(|value| value.as_u64()
@@ -724,6 +728,21 @@ mod tests {
         assert_eq!(loaded.frontend.prompt_encoder(), PromptEncoder::Jinja);
         assert_eq!(loaded.server.scheduling_policy.adaptive_verification_alpha, 1.0);
         assert_eq!(loaded.server.prefix_cache_reuse, super::super::PrefixCacheReuse::Shared);
+        assert_eq!(loaded.server.prepared_input_cache, None);
+        for name in ["off", "preprocessed", "encoded", "both"] {
+            let mut configured = legacy.clone();
+            configured["prepared_input_cache"] = name.into();
+            configured["prefix_cache_reuse"] = "request".into();
+            let server = Bootstrap::load(&configured.to_string(), &manifest).unwrap().server;
+            assert_eq!(server.prepared_input_cache.unwrap().as_str(), name);
+            assert_eq!(server.prefix_cache_reuse, super::super::PrefixCacheReuse::Request);
+        }
+        for invalid in [json!("unknown"), json!(false), json!(0), json!(null)] {
+            let mut configured = legacy.clone();
+            configured["prepared_input_cache"] = invalid;
+            let error = Bootstrap::load(&configured.to_string(), &manifest).err().unwrap().to_string();
+            assert!(error.contains("prepared input cache") || error.contains("prepared_input_cache"));
+        }
         for (mode, expected) in [("shared", super::super::PrefixCacheReuse::Shared),
                                  ("request", super::super::PrefixCacheReuse::Request)] {
             let mut configured = legacy.clone();

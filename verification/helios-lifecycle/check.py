@@ -157,6 +157,8 @@ def main():
             output = run(cargo + [test, "--"] + exact + ["--nocapture"])
             check_observations(output, directory, args.java, jar, module, prefix, width)
         for test in ["cache::lifecycle_tests::reclaimable_projection_matches_eviction_with_pins",
+                     "scheduler::lifecycle_tests::late_prerequisite_ticket_cannot_publish_into_a_reused_slot_and_arena",
+                     "scheduler::lifecycle_tests::duplicate_prerequisite_ticket_cannot_advance_the_epoch_twice",
                      "scheduler::speculative_lifecycle_tests::packed_two_lane_completions_validate_atomically_for_bounded_geometry",
                      "scheduler::speculative_lifecycle_tests::terminal_noop_and_cancel_preserve_queued_speculative_storage",
                      "scheduler::cache_memory::tests::all_two_snapshot_alias_layouts_preserve_page_ownership_and_reservation_budget",
@@ -225,6 +227,11 @@ def main():
                  "audio completion did not retire exactly one encoder job"),
                 ("premature audio retirement", "through: request.last_use,", "through: self.completed,",
                  "cancel released a slot referenced by queued work"),
+                ("unretired uploaded prerequisite", "request.encoder_jobs.clear();", "let _ = &request.encoder_jobs;",
+                 "conditioned upload did not retire its encoder jobs"),
+                ("uploaded prerequisite keeps stale epoch", "let request = self.request_mut(ticket.state.handle)?;",
+                 "let request = self.slots[ticket.state.handle.slot as usize].request.as_mut().unwrap();",
+                 "conditioned upload did not invalidate prior scheduler plans"),
             ])
             check_mutations(cargo, ROOT / "helios/src/execution/threaded/protocol.rs", RANK_TEST, [
                 ("partial readiness", "frame.ready.iter().all(|ready| *ready)",

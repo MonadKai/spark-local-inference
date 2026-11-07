@@ -25,6 +25,7 @@ _SECTIONS = {
     "memory": {"reserve": str},
     "preparation": {"compile_workers": int, "autotune_effort": str, "collective_tuning": str, "checkpoint_token_file": str, "force_moe_decode_a16": bool},
     "prefix_cache": {"reuse": str, "memory": str, "disk_limit": str, "drain_on_shutdown": str, "max_age": str},
+    "prepared_input_cache": {"mode": str},
     "paths": {"hub_cache": str, "kernel_cache": str, "package_cache": str, "export_staging": str,
               "prefix_cache": str, "cuda": str},
 }
@@ -41,6 +42,7 @@ _BUILT_IN = {
     "preparation.collective_tuning": None,
     "preparation.checkpoint_token_file": "~/.config/flare/agent.token",
     "prefix_cache.reuse": "shared",
+    "prepared_input_cache.mode": None,
     "prefix_cache.memory": "", "prefix_cache.disk_limit": "", "prefix_cache.drain_on_shutdown": "", "prefix_cache.max_age": "off",
     "paths.hub_cache": "~/.cache/huggingface/hub", "paths.kernel_cache": "~/.cache/flare/kernels",
     "paths.package_cache": "~/.cache/flare/packages",
@@ -120,6 +122,8 @@ class Configuration:
                     raise UsageError(f'prefix_cache {key} {text!r} must be {"on, " if key == "drain_on_shutdown" else ""}off, or a positive duration such as 90s or 2m')
             if section == "prefix_cache" and key == "reuse" and value not in ("shared", "request"):
                 raise UsageError(f"{path}: prefix_cache reuse must be shared or request")
+            if section == "prepared_input_cache" and value not in ("off", "preprocessed", "encoded", "both"):
+                raise UsageError(f"{path}: prepared_input_cache mode must be off, preprocessed, encoded or both")
             if key == "autotune_effort" and value not in AUTOTUNE_EFFORTS:
                 raise UsageError(f"{path}: autotune_effort must be one of {', '.join(AUTOTUNE_EFFORTS)}")
             if key == "collective_tuning" and value not in ("static", "runtime"):
@@ -191,6 +195,8 @@ class Configuration:
             "", "[memory]",
             f'# reserve = "{self.get("memory.reserve").value}"'
             "                   # GPU memory left untouched for processes that start later",
+            "", "[prepared_input_cache]",
+            '# mode = "preprocessed"          # off, preprocessed, encoded, both; omitted: follow prefix reuse',
             "", "[paths]",
             f'# hub_cache = "{self.get("paths.hub_cache").value}"',
             f'# kernel_cache = "{self.get("paths.kernel_cache").value}"',

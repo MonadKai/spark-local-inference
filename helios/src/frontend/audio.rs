@@ -304,6 +304,7 @@ pub struct AudioProcessor {
 
 mod fetch;
 mod cache;
+pub(crate) mod encoded;
 
 struct PlanLease<'a> {
     pool: &'a std::sync::Mutex<Vec<LogMelPlan>>,

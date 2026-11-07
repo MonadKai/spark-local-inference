@@ -1115,7 +1115,7 @@ file or an invalid runtime setting is an error. Help does not read the file.
 
 Native `flare run` applies `[server] host`, `port`, `api_key`, and `thinking_token_budget`,
 `[memory] reserve`, `[defaults] max_concurrency`, `[models.<name>] max_concurrency`, all `[prefix_cache]`
-settings, and `[paths] prefix_cache`. Prepared-model acquisition and cache commands
+settings, `[prepared_input_cache] mode`, and `[paths] prefix_cache`. Prepared-model acquisition and cache commands
 use `[paths] package_cache`. Flags override these defaults, including explicit
 zero limits and values equal to the built-in defaults. An empty `--api-key-file`
 disables configured authentication; API keys are never forwarded as arguments.
@@ -1180,7 +1180,7 @@ cuda = "/opt/cuda"                # Explicit CUDA toolkit directory for native b
 `--prefix-cache-reuse shared|request` overrides `[prefix_cache] reuse`.
 The default `shared` retains existing GPU and host prefix keys. `request`
 assigns each submitted generation an independent prefix namespace and bypasses
-shared CPU prepared-input stores. Identical audio/image/text in different
+shared CPU prepared-input stores unless explicitly overridden below. Identical audio/image/text in different
 generations cannot share prefix work, including text before the media tokens.
 Each choice and transcription child receives its own namespace. A generation
 keeps that namespace through preemption and readmission, so its complete
@@ -1269,6 +1269,22 @@ Explicit request values take precedence within the declared sampling bounds. Spe
 depends on native confidence or measured acceptance and execution cost. Reducing the draft limit at
 load time retains draft weights; freeing those weights requires preparation
 with `--no-mtp`.
+
+`--prepared-input-cache off|preprocessed|encoded|both` overrides
+`[prepared_input_cache] mode` independently of prefix KV reuse. Omission keeps
+the historical behavior: `shared` permits CPU prepared-input records and
+`request` bypasses them. Explicit `preprocessed` retains existing frontend
+records; `encoded` retains whole-input BF16 encoder features; `both` enables both
+tiers; `off` bypasses both. Explicit retention requires an existing host-cache
+budget. Encoded retention additionally requires declared feature storage and a
+single rank: no cross-rank feature replication contract is inferred from shapes.
+These settings do not change GPU or host prefix-checkpoint policy.
+
+`flare_graph_batch_submissions_total` reports each successful shared submission
+once, labeled by prepared graph index, physical request capacity and scheduled
+request count. `flare_graph_batch_catalog_entries` identifies coverage of the
+loaded catalog. These counters distinguish logical request occupancy from graph
+padding; they do not count per-request GPU time or completed requests.
 
 Host checkpoint and prepared-input retention share the memory and disk settings
 in the [host retention design](prefix-cache-offload.md). Both tiers remain

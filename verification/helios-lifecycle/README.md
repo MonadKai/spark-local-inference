@@ -111,6 +111,17 @@ these new Rust assertions, physical GPU reads or executor drain. The mutation
 runner additionally removes audio ownership transfer/return and encoder-job
 retirement, and shortens the audio retirement fence.
 
+The audio exploration also satisfies complete conditioned-input prerequisites
+through the real scheduler ticket API, assuming the external feature upload has
+finished. This transition is a strict stutter in the 14-field ownership model:
+it creates no graph submission or completion and releases no arena, page or slot.
+Separate Rust assertions require an increased request epoch, retired encoder
+jobs and progression to text prefill, with unchanged tokens and ownership.
+Cancellation, reuse, queued work and failed drains continue from these states.
+These checks do not establish the external CUDA copy or its fence. The single
+worker retains arena ownership throughout its synchronous upload; a concurrent
+client may set a cancellation flag but cannot retire scheduler storage itself.
+
 ## Response ownership
 
 `ResponseLifecycle.tla` checks three reusable response cells, two host admission
