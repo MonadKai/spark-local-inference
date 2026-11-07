@@ -87,6 +87,51 @@ async fn start(state: Arc<super::super::super::HttpState>, request: axum::extrac
     tokio::spawn(super::super::super::transcription::generate(State(state), Extension(ingress), request))
 }
 
+#[tokio::test]
+async fn late_multipart_tail_and_body_cancellation_return_credits_without_queueing_children() {
+    use axum::body::{Body, Bytes};
+    use futures_util::stream;
+
+    for cancel in [false, true] {
+        let (sender, receiver) = mpsc::sync_channel(4);
+        let mut state = http_state_for(fixture(), sender, None);
+        let (parts, body) = request(&[], &[wav(400)]).into_parts();
+        let envelope = axum::body::to_bytes(body, 65536).await.unwrap();
+        Arc::get_mut(&mut state).unwrap().max_body_bytes = envelope.len();
+        let (tail, input) = tokio::sync::mpsc::unbounded_channel::<std::result::Result<Bytes, std::io::Error>>();
+        tail.send(Ok(envelope)).unwrap();
+        let body = Body::from_stream(stream::unfold(input, |mut input| async {
+            input.recv().await.map(|value| (value, input))
+        }));
+        let request = axum::extract::Request::from_parts(parts, body);
+        let ingress = Arc::new(state.ingress_slots.clone().acquire_owned().await.unwrap());
+        let mut response = Box::pin(super::super::super::transcription::generate(
+            State(state.clone()), Extension(ingress), request));
+        assert!(futures_util::poll!(response.as_mut()).is_pending());
+        assert_eq!(state.ingress_slots.available_permits(), 3);
+        assert_eq!(state.frontend_slots.available_permits(), 1);
+        assert!(receiver.try_recv().is_err());
+        if cancel {
+            drop(response);
+            assert!(tail.is_closed());
+        } else {
+            tail.send(Ok(Bytes::from_static(b" "))).unwrap();
+            drop(tail);
+            let response = response.await;
+            assert_eq!(response.status(), axum::http::StatusCode::PAYLOAD_TOO_LARGE);
+            let bytes = axum::body::to_bytes(response.into_body(), 65536).await.unwrap();
+            let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+            assert_eq!(body["error"]["code"], "request_too_large");
+            assert!(body.get("text").is_none());
+        }
+        assert!(receiver.try_recv().is_err());
+        assert_eq!(state.model.capacity.available_permits(), 4);
+        assert_eq!(state.model.queue_capacity.available_permits(), 4);
+        assert_eq!(state.ingress_slots.available_permits(), 4);
+        assert_eq!(state.frontend_slots.available_permits(), 1);
+    }
+}
+
 async fn receive(receiver: &mpsc::Receiver<Vec<Incoming>>) -> Incoming {
     tokio::time::timeout(Duration::from_secs(10), async {
         loop {

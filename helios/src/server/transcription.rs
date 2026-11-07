@@ -32,13 +32,26 @@ fn parameters(mut fields: Map<String, Value>) -> Result<Parameters> {
     Ok(Parameters { context, language, sampling: fields })
 }
 
-async fn multipart(request: Request, state: &Arc<HttpState>, maximum: usize)
+async fn multipart(request: Request, signed_seed: bool, maximum: usize, max_body_bytes: usize)
     -> std::result::Result<(Vec<u8>, Map<String, Value>), (StatusCode, String)> {
-    let signed_seed = state.model.config().contract.frontend.request_seed_syntax.is_some();
     if request.headers().get("content-encoding").is_some_and(|value| value != "identity") {
         return Err((StatusCode::UNSUPPORTED_MEDIA_TYPE, "multipart Content-Encoding must be identity".into()));
     }
-    let mut form = Multipart::from_request(request, state).await
+    // Multipart's terminal boundary need not be the HTTP body's EOF. Read the
+    // bounded entity first so late epilogues and transport failures cannot be
+    // ignored. The caller retains its ingress credit throughout this read.
+    let (parts, body) = request.into_parts();
+    let mut entity = Request::new(body);
+    axum::extract::DefaultBodyLimit::max(max_body_bytes).apply(&mut entity);
+    let bytes = axum::body::Bytes::from_request(entity, &()).await.map_err(|error| {
+        let status = if error.status() == StatusCode::PAYLOAD_TOO_LARGE {
+            StatusCode::PAYLOAD_TOO_LARGE
+        } else { StatusCode::INTERNAL_SERVER_ERROR };
+        (status, error.to_string())
+    })?;
+    let mut request = Request::from_parts(parts, axum::body::Body::from(bytes));
+    axum::extract::DefaultBodyLimit::max(max_body_bytes).apply(&mut request);
+    let mut form = Multipart::from_request(request, &()).await
         .map_err(|error| (error.status(), error.to_string()))?;
     let mut file = None;
     let mut fields = Map::new();
@@ -87,7 +100,9 @@ pub(super) async fn generate(State(state): State<Arc<HttpState>>,
     if state.transcription.is_none() {
         return http::error(Protocol::Chat, StatusCode::BAD_REQUEST, "prepared frontend has no transcription syntax");
     }
-    let (bytes, mut fields) = match multipart(request, &state, settings.max_file_bytes).await {
+    let signed_seed = state.model.config().contract.frontend.request_seed_syntax.is_some();
+    let (bytes, mut fields) = match multipart(request, signed_seed,
+        settings.max_file_bytes, state.max_body_bytes).await {
         Ok(value) => value,
         Err((status, message)) => return http::error(Protocol::Chat, status, message),
     };
@@ -261,4 +276,58 @@ async fn transcribe(state: Arc<HttpState>, ingress: Arc<OwnedSemaphorePermit>, b
         }
     }
     Ok((output.into_iter().map(Option::unwrap).collect::<Vec<_>>().join(&separator), pcm.len(), generated, truncated))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::body::{Body, Bytes};
+    use futures_util::stream;
+    use std::io;
+    use tokio::sync::mpsc;
+
+    async fn gated_body(tail: Option<std::result::Result<Bytes, io::Error>>, expected: StatusCode) {
+        let boundary = "bounded-audio";
+        let envelope = format!("--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"input.wav\"\r\n\r\naudio\r\n--{boundary}--\r\n").into_bytes();
+        let maximum = envelope.len();
+        let (sender, receiver) = mpsc::unbounded_channel();
+        sender.send(Ok(Bytes::from(envelope))).unwrap();
+        let body = Body::from_stream(stream::unfold(receiver, |mut receiver| async {
+            receiver.recv().await.map(|value| (value, receiver))
+        }));
+        let request = Request::builder()
+            .header("content-type", format!("multipart/form-data; boundary={boundary}"))
+            .body(body).unwrap();
+        let mut parsing = Box::pin(multipart(request, false, 5, maximum));
+        assert!(futures_util::poll!(parsing.as_mut()).is_pending(),
+            "multipart returned before the HTTP body reached EOF");
+        let rejected = tail.is_some();
+        if let Some(tail) = tail { sender.send(tail).unwrap(); }
+        drop(sender);
+        match parsing.await {
+            Ok((audio, fields)) => {
+                assert!(!rejected, "multipart ignored an excess or failing epilogue");
+                assert_eq!(audio, b"audio");
+                assert!(fields.is_empty());
+            }
+            Err((status, _)) => {
+                assert!(rejected, "exact-limit envelope was rejected at EOF");
+                assert_eq!(status, expected);
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn multipart_exact_limit_waits_for_body_eof() { gated_body(None, StatusCode::OK).await; }
+
+    #[tokio::test]
+    async fn multipart_late_epilogue_counts_toward_body_limit() {
+        gated_body(Some(Ok(Bytes::from_static(b" "))), StatusCode::PAYLOAD_TOO_LARGE).await;
+    }
+
+    #[tokio::test]
+    async fn multipart_late_body_error_cannot_succeed() {
+        gated_body(Some(Err(io::Error::other("controlled delayed body failure"))),
+            StatusCode::INTERNAL_SERVER_ERROR).await;
+    }
 }
