@@ -372,6 +372,63 @@ safety and unwinding checks remain enabled. The completion harnesses use unwind
 bound 20, the 65-token mask-boundary harness uses 66, and the state-view
 harnesses use 16.
 
+For the audio arithmetic, a separately qualified solver route uses CVC5 1.4.2
+(commit `282d5e0`) with `--solve-bv-as-int=sum --check-models`. CBMC 6.11 needs
+its [overflow-expression lowering fix](https://github.com/diffblue/cbmc/pull/9145).
+This is not a stock Kani/Bitwuzla result. The `bitwuzla` selector below chooses
+CBMC's SMT dialect; the external process actually runs CVC5 from `PATH`.
+CVC5's [IntBlaster](https://github.com/cvc5/cvc5/blob/282d5e0/src/theory/bv/int_blaster.cpp)
+retains unsigned ranges and modular semantics, but uses a trusted translation
+without an independently checkable complete proof certificate.
+
+```sh
+cargo kani --manifest-path helios/Cargo.toml --lib \
+  --harness model::contract::kani_proofs:: --solver bitwuzla \
+  --cbmc-args --external-smt2-solver /absolute/repository/path/verification/helios-lifecycle/cvc5_smt.py
+```
+
+The [restricted input adapter](cvc5_smt.py) removes only an isolated zero-width
+constant declaration and its sole single-value model query. It rejects any such
+symbol used by a constraint, compound query or additional declaration, and
+checks that every retained command and assertion stays byte-identical.
+Its ordinary tests validate that transformation, not the solver. Before using
+an alternative toolchain's result, separately run positive and deliberately
+false solver/CBMC controls, including unsigned maxima, zero divisors, modular
+overflow and the actual overflow-lowering regression. Record the real versions,
+all selected harnesses and unresolved checks. A partial run, timeout, missing
+result or unsupported input cannot establish a complete module result.
+
+The eighteen audio stride harnesses use arbitrary target-width capacity, chunk,
+window, subsampling, Mel and feature geometry, partitioned into empty, one-entry
+and two-entry frame catalogs. Four arithmetic first-failure cases, an accepted
+geometry case and an
+independent catalog-rejection property cover every integer assignment without
+restricting the inputs. Catalog rejection does not require preceding arithmetic
+to be valid: it checks all malformed catalogs regardless of the other geometry.
+The other cases cover the catalog-valid complement. They assert the derived
+`chunk <= window <= i32::MAX` bound after scalar validation, without assuming it
+or changing the original arbitrary `usize` inputs. For a representable ceiling
+numerator, `factor >= chunk` uses the independent algebraic quotient one.
+Each active case invokes the production validator and
+retains the returned `Result` in `ManuallyDrop`: it checks error construction and
+the rejection value through return, excluding caller-side destruction of that
+diagnostic. The audio fixture and frame catalog are still dropped normally.
+These properties do not prove leak freedom or safety of the returned error destructor.
+An independent wide-arithmetic oracle checks the production capacity validator's
+acceptance/rejection and BF16 row extent, including checked intermediate
+arithmetic. Only overflow arithmetic uses `u128`; division uses target-width
+integers after checking the target-width numerator against the wide sum.
+Supplemental `u32` arithmetic lemmas retain their explicit smaller domains;
+they never stub or replace the full target-width validator obligations.
+The additional `factor >= chunk` and `factor < chunk` partitions retain both
+complements alongside the unsplit obligations; one partition alone cannot
+establish the full property. Empty catalogs still exercise scalar rejection,
+but cannot reach the ceiling, window, extent or acceptance cases. Those four
+proofs are vacuous for empty catalogs and do not establish positive acceptance
+examples. The harnesses
+do not cover longer frame catalogs, manifest lookup or complete
+package validation; ordinary contract and packing tests cover those seams.
+
 The vector safety harness supplies arbitrary `i64` fields and token IDs in
 owned vectors of every length zero through sixteen, including inactive and
 absent-vector cases. It checks that successful active-vector validation implies

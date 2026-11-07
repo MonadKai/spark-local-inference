@@ -749,23 +749,32 @@ impl AudioCapacity {
     }
 
     pub(crate) fn feature_stride(&self) -> Result<usize> {
-        let geometry = self.frames_per_chunk.checked_add(self.subsampling_factor.saturating_sub(1))
-            .and_then(|value| value.checked_div(self.subsampling_factor));
-        let window_features = self.attention_window_frames.checked_div(self.frames_per_chunk)
-            .and_then(|chunks| chunks.checked_mul(self.features_per_chunk));
         if self.feature_slots == 0 || self.feature_slots > crate::execution::REQUEST_LANES
             || self.features_per_request == 0 || self.feature_width == 0 || self.mel_bins == 0
-            || self.frames_per_chunk == 0 || self.features_per_chunk == 0
-            || geometry != Some(self.features_per_chunk)
-            || window_features.is_none_or(|features| features > self.features_per_request)
+            || self.frames_per_chunk == 0 || self.subsampling_factor == 0 || self.features_per_chunk == 0
             || self.features_per_request > i32::MAX as usize
             || self.attention_window_frames > i32::MAX as usize
             || self.attention_window_frames == 0
+            || self.frames_per_chunk > self.attention_window_frames
             || !self.attention_window_frames.is_multiple_of(self.frames_per_chunk)
             || self.frame_capacities.is_empty()
             || self.frame_capacities.last() != Some(&self.attention_window_frames)
             || self.frame_capacities.windows(2).any(|pair| pair[0] >= pair[1])
             || self.frame_capacities.iter().any(|frames| *frames == 0 || !frames.is_multiple_of(self.frames_per_chunk))
+        {
+            return Err("invalid prepared audio capacities".into());
+        }
+        let Some(numerator) = self.frames_per_chunk.checked_add(self.subsampling_factor - 1) else {
+            return Err("invalid prepared audio capacities".into());
+        };
+        // Keep the checked numerator even when the quotient is one: accepting
+        // an overflowing ceiling would change the existing package contract.
+        let geometry = if self.subsampling_factor >= self.frames_per_chunk { 1 }
+            else { numerator / self.subsampling_factor };
+        let window_features = (self.attention_window_frames / self.frames_per_chunk)
+            .checked_mul(self.features_per_chunk);
+        if geometry != self.features_per_chunk
+            || window_features.is_none_or(|features| features > self.features_per_request)
         {
             return Err("invalid prepared audio capacities".into());
         }
@@ -901,6 +910,52 @@ impl FrontendContract {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn audio_stride_accepts_large_legal_geometry_without_allocating_features() {
+        let view = StateView { buffer: String::new(), offset: 0, stride: 1, nbytes: 1 };
+        let mut audio = AudioCapacity {
+            feature_slots: 1, features_per_request: 1_073_741_824, feature_width: 1_610_612_737,
+            frame_capacities: vec![1309], mel_bins: 1, frames_per_chunk: 187,
+            features_per_chunk: 9, subsampling_factor: 21, attention_window_frames: 1309,
+            features: view.clone(), generations: view.clone(), counts: view,
+        };
+        assert_eq!(audio.feature_stride().unwrap(), 3_458_764_515_968_024_576);
+        audio.feature_slots = 64;
+        audio.feature_width = 2_147_483_649;
+        audio.mel_bins = usize::MAX;
+        audio.frames_per_chunk = 1;
+        audio.subsampling_factor = 8;
+        audio.features_per_chunk = 1;
+        audio.attention_window_frames = 536_870_912;
+        audio.frame_capacities = vec![536_870_912];
+        assert_eq!(audio.feature_stride().unwrap(), 4_611_686_020_574_871_552);
+    }
+
+    #[test]
+    fn audio_ceiling_checks_overflow_before_unit_quotient_and_preserves_extent_error() {
+        let view = StateView { buffer: String::new(), offset: 0, stride: 1, nbytes: 1 };
+        let mut audio = AudioCapacity {
+            feature_slots: 1, features_per_request: 1, feature_width: 1,
+            frame_capacities: vec![1], mel_bins: 1, frames_per_chunk: 1,
+            features_per_chunk: 1, subsampling_factor: usize::MAX, attention_window_frames: 1,
+            features: view.clone(), generations: view.clone(), counts: view,
+        };
+        assert_eq!(audio.feature_stride().unwrap(), 2);
+        audio.frames_per_chunk = 2;
+        audio.attention_window_frames = 2;
+        audio.frame_capacities = vec![2];
+        assert_eq!(audio.feature_stride().unwrap_err().to_string(), "invalid prepared audio capacities");
+        audio.subsampling_factor = 2;
+        assert_eq!(audio.feature_stride().unwrap(), 2);
+        audio.feature_width = usize::MAX / 2 + 1;
+        assert_eq!(audio.feature_stride().unwrap_err().to_string(), "audio feature extent overflows");
+        audio.subsampling_factor = 0;
+        assert_eq!(audio.feature_stride().unwrap_err().to_string(), "invalid prepared audio capacities");
+        audio.subsampling_factor = 1;
+        audio.frames_per_chunk = 3;
+        assert_eq!(audio.feature_stride().unwrap_err().to_string(), "invalid prepared audio capacities");
+    }
 
     #[test]
     fn audio_capacity_validates_real_views_and_rejects_bad_geometry() {
