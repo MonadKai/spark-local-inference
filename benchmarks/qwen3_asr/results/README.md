@@ -145,6 +145,36 @@ concurrent slot reuse and internal prompt/token IDs remain separate checks.
 Repeated content and cache hits here are functional observations, not cold
 performance workloads or cache-isolation acceptance.
 
+The three `native-http-boundaries-*.json` files retain every attempt of the
+extended client, including failures. Reproduce with `qualify/asr_http.py
+--extended --public-revision b8bf56e72accd8e9538a1c02a4595be0c6932ccd`,
+the public WAV fixture and a separately started native server. Configurations
+identify the actual binary and unchanged earlier graph package; these are WIP
+builds, not final clean-source model qualification.
+
+The initial 87 attempts include two unavailable public fixture downloads and
+an incorrectly constructed large whitespace-context positive. Whitespace is
+preserved by the reference renderer, so that request properly exceeded context.
+The corrected 89-attempt workload uses removable control markers for the large
+multipart field. It exercises exact 25 MiB encoded WAV, 32 MiB multipart/JSON
+body, and 9,600,000 decoded-sample limits with adjacent refusals. The 600-second
+silence case caps each child at one token; it is a duration control, never speech
+quality, complete transcription throughput or a substitute for real long audio.
+Transport cases cover multipart WAV, inline/data-URL WAV/MP3 and fixed public
+HTTPS WAV/MP3; different codecs retain different waveforms.
+Counts include two client-side immutable-file checks; only successful downloads
+enable the two corresponding server-side public audio-URL requests.
+
+Before the body fix, 88/89 attempts pass: a one-byte over-limit chunked epilogue
+arriving after the multipart terminal boundary incorrectly returns HTTP 200.
+After the fix, that request returns 413, as do the ordinary excess-body controls,
+and their exact-limit positives pass. The latter run still fails 1/89 attempts
+because the public MP3 fetch returns HTTP 400; that failure remains in the result.
+It is not an all-pass HTTP qualification. Controlled Pending-stream Rust tests
+separately cover EOF, true size rejection, late transport errors and cancellation
+with no child queueing and complete host-credit return. The one-second HTTP tail
+delay is a finite observation, not a proof of every ordering.
+
 `legacy-qwen38-native.json` records a real previously published text package
 loaded by the original and candidate Rust binaries. All 70 published payloads
 were independently checked at the recorded immutable revision; both binaries

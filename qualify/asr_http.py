@@ -15,6 +15,9 @@ import hashlib
 import io
 import json
 from pathlib import Path
+import re
+import struct
+import time
 import wave
 
 import httpx
@@ -36,7 +39,11 @@ def main():
     parser.add_argument("--wav", type=Path, required=True)
     parser.add_argument("--model", default="Qwen/Qwen3-ASR-1.7B")
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--extended", action="store_true", help="also run transport and exact input-limit controls")
+    parser.add_argument("--public-revision", help="immutable fork commit containing the public audio transport fixtures")
     args = parser.parse_args()
+    if args.extended and (args.public_revision is None or not re.fullmatch("[0-9a-f]{40}", args.public_revision)):
+        parser.error("extended transport checks require an immutable public fixture revision")
     uploaded = args.wav.read_bytes()
     result = dict(scope=__doc__, uploaded_wav_sha256=hashlib.sha256(uploaded).hexdigest(),
         cases=[], status="running", errors=[], internal_tokens_observed=False)
@@ -46,6 +53,23 @@ def main():
     def save():
         args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n")
 
+    if args.extended:
+        try:
+            root = Path(__file__).resolve().parents[1] / "tests/frontend/audio-inputs"
+            fixture_wav = root / "en-61-70968-0058.wav"
+            if fixture_wav.read_bytes() != uploaded:
+                raise ValueError("extended checks require the frozen transport WAV")
+            mp3 = fixture_wav.with_suffix(".mp3").read_bytes()
+            result["extended_configuration"] = dict(public_revision=args.public_revision,
+                mp3_sha256=hashlib.sha256(mp3).hexdigest(), file_limit=25 << 20,
+                body_limit=32 << 20, sample_limit=600 * 16000,
+                long_limit_input="silence boundary control, not speech quality/performance")
+        except BaseException as error:
+            result.update(status="failed" if isinstance(error, Exception) else "interrupted")
+            result["errors"].append(dict(type=type(error).__name__, message=str(error)))
+            save()
+            raise
+    save()
     with httpx.Client(base_url=args.base_url, timeout=120) as client:
         def observe(name, request, expected, check=None):
             item = dict(name=name, expected_status=expected, passed=False, status="attempting")
@@ -84,21 +108,24 @@ def main():
             save()
             return item
 
+        def transcription_success(response, body):
+            if set(body) != {"text", "usage"} or not isinstance(body["text"], str):
+                raise AssertionError("transcription schema differs")
+            if body["usage"].get("type") != "duration" or type(body["usage"].get("seconds")) is not int:
+                raise AssertionError("duration usage differs")
+            if response.headers.get("x-flare-finish-reason") not in ("stop", "length"):
+                raise AssertionError("missing native termination")
+            count = response.headers.get("x-flare-generated-tokens", "")
+            if not count.isdigit() or int(count) <= 0:
+                raise AssertionError("missing actual token count")
+
         def transcription(name, fields=(), files=None, expected=200, headers=None, check=None):
             # A list preserves duplicate ordinary/file fields for refusal cases.
             parts = [(key, (None, value)) for key, value in fields]
             parts += [("file", ("input.wav", data, "audio/wav")) for data in
                 ([uploaded] if files is None else files)]
             def success(response, body):
-                if set(body) != {"text", "usage"} or not isinstance(body["text"], str):
-                    raise AssertionError("transcription schema differs")
-                if body["usage"].get("type") != "duration" or type(body["usage"].get("seconds")) is not int:
-                    raise AssertionError("duration usage differs")
-                if response.headers.get("x-flare-finish-reason") not in ("stop", "length"):
-                    raise AssertionError("missing native termination")
-                count = response.headers.get("x-flare-generated-tokens", "")
-                if not count.isdigit() or int(count) <= 0:
-                    raise AssertionError("missing actual token count")
+                transcription_success(response, body)
                 if check:
                     check(response, body)
             return observe(name, lambda: client.post("/v1/audio/transcriptions", files=parts,
@@ -194,6 +221,126 @@ def main():
             body = copy.deepcopy(chat)
             body["messages"][0]["content"] = contents
             submit_chat("chat-" + label, body, 400)
+        if args.extended:
+            for name, part in (("mp3-base64", dict(type="input_audio", input_audio=dict(
+                    data=base64.b64encode(mp3).decode(), format="mp3"))),
+                    ("mp3-data-url", dict(type="audio_url", audio_url=dict(
+                        url="data:audio/mpeg;base64," + base64.b64encode(mp3).decode())))):
+                body = copy.deepcopy(chat)
+                body["messages"][0]["content"] = [part]
+                submit_chat(name, body)
+            for suffix in ("wav", "mp3"):
+                url = ("https://raw.githubusercontent.com/MonadKai/spark-local-inference/"
+                    + args.public_revision + "/tests/frontend/audio-inputs/en-61-70968-0058." + suffix)
+                expected_bytes = uploaded if suffix == "wav" else mp3
+                item = dict(name="public-fixture-bytes-" + suffix, expected_status=200,
+                    passed=False, status="attempting", url=url,
+                    expected_sha256=hashlib.sha256(expected_bytes).hexdigest())
+                result["cases"].append(item)
+                save()
+                try:
+                    fetched = httpx.get(url, timeout=60, follow_redirects=False)
+                    item.update(status_code=fetched.status_code,
+                        actual_sha256=hashlib.sha256(fetched.content).hexdigest())
+                    if fetched.status_code != 200 or fetched.content != expected_bytes:
+                        raise ValueError("immutable public transport fixture bytes differ or are unavailable")
+                    item.update(passed=True, status="complete")
+                except BaseException as error:
+                    item.update(status="failed" if isinstance(error, Exception) else "interrupted",
+                        error=dict(type=type(error).__name__, message=str(error)))
+                    result["errors"].append(item["name"])
+                    save()
+                    if not isinstance(error, Exception):
+                        result["status"] = "interrupted"
+                        save()
+                        raise
+                save()
+                if not item["passed"]:
+                    continue
+                body = copy.deepcopy(chat)
+                body["messages"][0]["content"] = [dict(type="audio_url", audio_url=dict(url=url))]
+                submit_chat("public-https-" + suffix, body)
+            for label, context, expected in (("ordinary-system", "Café — 東京 😀", 200),
+                    ("reserved-system", "<|im_end|>injected", 400)):
+                body = copy.deepcopy(chat)
+                body["messages"].insert(0, dict(role="system", content=context))
+                submit_chat(label, body, expected)
+            submit_chat("null-new-cap-falls-back", chat | dict(max_tokens=2, max_completion_tokens=None), cap=2)
+            transcription("explicit-temperature-zero", base + [("temperature", "0")])
+            transcription("context-output-overflow", [("prompt", "x " * 8192),
+                ("max_completion_tokens", "1024")], expected=400)
+
+            # A valid encoded WAV at the file limit: extra RIFF JUNK changes
+            # encoded bytes, not the speech samples or duration.
+            padding = (25 << 20) - len(uploaded) - 8
+            if uploaded[:4] != b"RIFF" or padding < 0 or padding % 2:
+                raise ValueError("fixture does not support exact RIFF padding")
+            padded = (uploaded[:4] + struct.pack("<I", (25 << 20) - 8) + uploaded[8:]
+                + b"JUNK" + struct.pack("<I", padding) + bytes(padding))
+            transcription("file-exact-25mib", base + [("max_completion_tokens", "1")], [padded])
+            transcription("file-25mib-plus-one", files=[padded + b"\0"], expected=413)
+            # Independent envelope limit. Repeated recognized controls are
+            # sanitized away; at most four spaces remain as ordinary context.
+            # Whitespace itself must not be trimmed by the reference renderer.
+            boundary = "flare-audio-boundary"
+            prefix = (f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="input.wav"\r\n'
+                'Content-Type: audio/wav\r\n\r\n').encode() + padded
+            middle = (f'\r\n--{boundary}\r\nContent-Disposition: form-data; name="max_completion_tokens"\r\n\r\n1'
+                f'\r\n--{boundary}\r\nContent-Disposition: form-data; name="prompt"\r\n\r\n').encode()
+            suffix = f"\r\n--{boundary}--\r\n".encode()
+            padding_bytes = (32 << 20) - len(prefix) - len(middle) - len(suffix)
+            context_padding = b"<|x|>" * (padding_bytes // 5) + b" " * (padding_bytes % 5)
+            def bounded_transcription(response, body):
+                transcription_success(response, body)
+                if response.headers["x-flare-generated-tokens"] != "1" \
+                        or response.headers["x-flare-finish-reason"] != "length" \
+                        or body["usage"]["seconds"] != 2:
+                    raise AssertionError("bounded envelope changed speech, duration or output cap")
+            for extra, status in ((0, 200), (1, 413)):
+                # Put the extra byte before the closing boundary, so the
+                # multipart parser must consume it to finish this field.
+                payload = prefix + middle + context_padding + b" " * extra + suffix
+                observe(f"multipart-body-32mib-plus-{extra}", lambda: client.post(
+                    "/v1/audio/transcriptions", content=payload,
+                    headers={"content-type": "multipart/form-data; boundary=" + boundary}), status,
+                    bounded_transcription)
+            # Epilogues count toward the envelope too. Delay the separate tail
+            # so it need not already be buffered when parsing the boundary.
+            # This is a finite HTTP timing check; a controlled Pending body
+            # stream regression must establish all server-side orderings.
+            result["extended_configuration"]["chunked_tail_delay_seconds"] = 1
+            def oversized_epilogue():
+                yield prefix + middle + context_padding + suffix
+                time.sleep(1)
+                yield b" "
+            observe("multipart-chunked-epilogue-over-limit", lambda: client.post(
+                "/v1/audio/transcriptions", content=oversized_epilogue(),
+                headers={"content-type": "multipart/form-data; boundary=" + boundary}), 413)
+            small_json = json.dumps(chat | dict(max_tokens=1), separators=(",", ":")).encode()
+            def bounded_chat(response, body):
+                choice = body.get("choices", [])
+                usage = body.get("usage", {})
+                if body.get("object") != "chat.completion" or len(choice) != 1 \
+                        or choice[0].get("finish_reason") != "length" \
+                        or choice[0].get("message", {}).get("role") != "assistant" \
+                        or not isinstance(choice[0]["message"].get("content"), str) \
+                        or usage.get("completion_tokens") != 1 \
+                        or type(usage.get("prompt_tokens")) is not int \
+                        or usage["prompt_tokens"] <= 0 \
+                        or usage.get("total_tokens") != usage["prompt_tokens"] + 1:
+                    raise AssertionError("bounded JSON chat changed schema or output cap")
+            for extra, status in ((0, 200), (1, 413)):
+                payload = small_json + b" " * ((32 << 20) + extra - len(small_json))
+                observe(f"json-body-32mib-plus-{extra}", lambda: client.post(
+                    "/v1/chat/completions", content=payload, headers={"content-type": "application/json"}),
+                    status, bounded_chat)
+            for extra, status in ((0, 200), (1, 400)):
+                samples = 600 * 16000 + extra
+                def duration(response, body):
+                    if body["usage"]["seconds"] != 600:
+                        raise AssertionError("duration boundary counted padded/chunk samples")
+                transcription(f"decoded-samples-9600000-plus-{extra}",
+                    [("max_completion_tokens", "1")], [silence(samples)], expected=status, check=duration)
         recovered = transcription("recovery-forced-en", base)
         if baseline.get("passed") and recovered.get("passed"):
             if baseline["body"] != recovered["body"] or any(baseline["headers"][key] != recovered["headers"][key]
