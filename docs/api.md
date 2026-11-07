@@ -679,6 +679,15 @@ including the legacy terminal usage when token IDs are requested without a
 separate usage chunk. Stop sequences report the exact matched string through
 Anthropic `stop_sequence`.
 
+Token timestamps use the server process's monotonic clock. `ingress_ns` starts
+in the handler before body reading, after ingress admission; `enqueue_ns` is
+recorded before the runtime queue submission. Each raw token timestamp is a CPU
+observation after completion validation and scheduler state commitment, before
+text/stop filtering. Their differences describe server-observed first raw-token
+latency, including completion delivery and polling. They are not GPU-only model
+TTFT, client/network timing or word-aligned audio timestamps. Raw IDs include
+EOS and control tokens; do not subtract a client clock from these timestamps.
+
 For cumulative usage during Chat and Completions streaming, set
 `"stream_options": {"include_usage": true, "continuous_usage_stats": true}`.
 The `continuous_usage_stats` option defaults to false and requires

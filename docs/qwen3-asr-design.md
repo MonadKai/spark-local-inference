@@ -311,6 +311,16 @@ multipart HTTP or GPU sampling equivalence.
 
 ## Native API input boundaries
 
+Audio chat reuses Flare's existing `return_token_ids` and
+`return_token_timestamps` observation options. These expose actual prompt/raw
+generated IDs and worker completion observation times; they do not request
+word-aligned ASR timestamps. The shared parser retains strict boolean/null
+validation and requires IDs when timestamps are enabled. The audio subset still
+rejects `timestamps`, streaming and multiple choices. Ingress/enqueue-to-first
+raw-token differences include native delivery/polling; they are server-observed
+latencies, not GPU-only model TTFT. The ordinary parser tests pass; real native
+audio-chat observation qualification remains required.
+
 The implementation remains unregistered and requires real HTTP/model
 qualification. Transcription declares the pinned endpoint's 100 accepted
 Whisper language codes. Its 57 model-supported codes use the published language

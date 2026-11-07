@@ -33,7 +33,8 @@ pub(super) fn validate_chat_body(body: &serde_json::Value) -> Result<()> {
     let object = body.as_object().ok_or("audio chat requires a JSON object")?;
     for key in object.keys() {
         if !["model", "messages", "seed", "temperature", "top_p", "top_k", "min_p",
-            "max_tokens", "max_completion_tokens", "stream", "n"].contains(&key.as_str()) {
+            "max_tokens", "max_completion_tokens", "stream", "n",
+            "return_token_ids", "return_token_timestamps"].contains(&key.as_str()) {
             return Err(super::inference::unsupported(format!("audio chat does not support {key}")));
         }
     }
@@ -129,5 +130,22 @@ mod tests {
         }
         assert!(validate_chat_body(&json!({"model":"audio", "messages":[], "stream":false,
             "n":1,"temperature":0,"seed":0,"max_tokens":1024})).is_ok());
+    }
+
+    #[test]
+    fn audio_chat_retains_shared_raw_token_observation_validation() {
+        use crate::server::observation::ObservationOptions;
+        for body in [json!({"return_token_ids":true}),
+            json!({"return_token_ids":true,"return_token_timestamps":true}),
+            json!({"return_token_ids":null,"return_token_timestamps":false})] {
+            assert!(validate_chat_body(&body).is_ok());
+            assert!(ObservationOptions::parse(body.as_object().unwrap()).is_ok());
+        }
+        for body in [json!({"return_token_ids":1}), json!({"return_token_timestamps":true}),
+            json!({"return_token_ids":true,"return_token_timestamps":"true"})] {
+            assert!(validate_chat_body(&body).is_ok());
+            assert!(ObservationOptions::parse(body.as_object().unwrap()).is_err());
+        }
+        assert!(validate_chat_body(&json!({"return_token_ids":true,"timestamps":false})).is_err());
     }
 }
