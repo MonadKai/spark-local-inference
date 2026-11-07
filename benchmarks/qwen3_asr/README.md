@@ -148,3 +148,21 @@ selection; the prepared component itself and complete ASR service need separate
 latency measurements. Neither these component observations nor unchanged head
 selection establish complete-model admission, native ASR, recognition quality,
 cache/lifecycle completion or a vLLM serving-performance win.
+
+`python -m qualify.asr_workload` runs one complete frozen short, long or mixed
+HTTP cohort against an independently managed server. It verifies and loads PCM
+before sampling, keeps bounded response/timestamp records in memory, then writes
+all attempts after drain or interruption. Short cells consume the entire 8,169
+request list; repeated-content cells cycle the fixed 256 development inputs.
+Mixed short latency includes waiting for its four client credits, while long
+requests retain their independent frozen arrival schedule. Abbreviated
+`--diagnostic-limit` runs are explicitly ineligible for formal measurement.
+
+Ten CPU/real local HTTP controls cover concurrency, failed siblings, truncation,
+interruption, PCM identity, mixed admission and latency accounting. They do not
+run an ASR model. The launcher still supplies warmup, actual engine/package/image
+identity, resource isolation, cache observations and observer-overhead calibration.
+For vLLM, HTTP success leaves tokens and complete-ASR throughput unknown until
+the independent engine observer reconciles every planned chunk and official
+counter. The client always leaves overall performance qualification false;
+the frozen block comparison and all model/lifecycle gates remain separate.
