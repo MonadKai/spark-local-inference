@@ -35,6 +35,7 @@ class PreparedResume:
         buffers=None,
         sampling_selection=SamplingSelection.CATEGORICAL,
         projection_row_capacity=None,
+        vocabulary_projection=None,
     ):
         if logits_dtype not in (torch.bfloat16, torch.float32):
             raise ValueError("resume logits require BF16 or FP32 storage")
@@ -62,7 +63,10 @@ class PreparedResume:
         self.local_logits = empty((rows, weights.head.shape[0] if isinstance(weights.head, torch.Tensor)
                                    else weights.head.out_features))
         self.logits = empty((rows, requests.vocab_size))
-        self.projection = PreparedVocabularyProjection(
+        # Recipe composition chooses the preparation-time projection constructor;
+        # the returned computation is compiled/captured with this ordinary graph.
+        project = PreparedVocabularyProjection if vocabulary_projection is None else vocabulary_projection
+        self.projection = project(
             self.state.hidden,
             weights.head,
             self.local_logits,

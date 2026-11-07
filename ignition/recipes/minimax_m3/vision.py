@@ -17,7 +17,7 @@ from transformers.models.minimax_m3_vl.modeling_minimax_m3_vl import (
 from ignition.components.collectives import PreparedAllReduce
 from ignition.components.linear import UnquantizedProjection
 from ignition.components.varlen_attention import PreparedVarlenAttention
-from ignition.components.vision_delivery import PreparedFeaturePublication
+from ignition.components.feature_delivery import PreparedFeaturePublication
 from ignition.components.weights import DirectWeightLoader
 
 PATCH_CAPACITIES = (256, 1024, 2304)
@@ -488,7 +488,10 @@ class PreparedVisionGeneration:
             else buffers.zeros((1,), torch.int32)
         )
         self.publish = PreparedFeaturePublication(
-            state, encoder.inputs, records, frame, sequence
+            state, records, frame, sequence,
+            request_slot=encoder.inputs.vision_slot,
+            generation=encoder.inputs.vision_generation,
+            offset=encoder.inputs.vision_feature_offset,
         )
 
     def __call__(self):

@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 Flare community contributors
 # SPDX-License-Identifier: Apache-2.0
 
-"""Publish bounded image features and complete a scheduled vision graph."""
+"""Publish bounded features and complete a scheduled encoder graph."""
 
 import torch
 import triton
@@ -77,20 +77,21 @@ def _finish(
 
 
 class PreparedFeaturePublication:
-    def __init__(self, state, inputs, completion, frame, sequence):
+    def __init__(self, state, completion, frame, sequence, *, request_slot, generation, offset):
         records = completion.records
-        self.state, self.inputs = state, inputs
+        self.state = state
+        self.request_slot, self.generation, self.offset = request_slot, generation, offset
         self.records, self.frame, self.sequence = records, frame, sequence
         self.record_fields = _completion_fields(records, records.device, state.requests.capacity)
 
     def __call__(self, output, count, errors):
-        s, i = self.state, self.inputs
+        s = self.state
         r = s.requests
         torch.library.wrap_triton(_publish)[(triton.cdiv(output.numel(), 1024),)](
-            output, s.arena, s.feature_slot, i.vision_feature_offset, count, errors,
+            output, s.arena, s.feature_slot, self.offset, count, errors,
             s.arena.shape[1], s.arena.shape[2], 1024)
         torch.library.wrap_triton(_finish)[(r.capacity,)](
-            i.vision_slot, i.vision_generation, count, i.vision_feature_offset, errors,
+            self.request_slot, self.generation, count, self.offset, errors,
             s.generation, s.count, r.generation, r.consumed_tokens, r.generated_tokens,
             r.status, r.error_code, self.records, self.frame, self.sequence,
             r.consumed_tokens.stride(0), self.record_fields, r.capacity)
