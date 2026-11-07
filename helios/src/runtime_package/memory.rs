@@ -555,7 +555,8 @@ impl NativeModel {
             (0, 0)
         };
         #[cfg(feature = "images")]
-        let source_window = if input_window == 0 {
+        let source_window = if input_window == 0 || !contract.graphs.iter().any(|graph|
+            graph.inputs.iter().any(|binding| binding.source == crate::model::contract::ValueSource::ImageTensor)) {
             0
         } else {
             crate::frontend::images::ImageLimits::default().source_retention_bytes()?
@@ -565,7 +566,7 @@ impl NativeModel {
         let host_future = offload_host
             .checked_add(input_window)
             .and_then(|bytes| bytes.checked_add(source_window))
-            .ok_or_else(|| invalid("CPU image input windows overflow host memory"))?;
+            .ok_or_else(|| invalid("CPU prepared-input windows overflow host memory"))?;
         let mut available = Vec::new();
         let mut loaded_bytes = Vec::new();
         for (index, (rank, package)) in self.ranks.iter().zip(packages.iter()).enumerate() {

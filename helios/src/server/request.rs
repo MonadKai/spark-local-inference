@@ -268,7 +268,7 @@ pub(super) fn prepare_inference_with_audio_cached(
         (frontend.render_chat(&normalized, &options)?, String::new())
     };
     #[cfg(feature = "audio")]
-    let audio = super::audio::prepare_chat_audio(frontend, audio_processor, config, request, cancelled)?;
+    let audio = super::audio::prepare_chat_audio(frontend, audio_processor, config, request, cancelled, input_store)?;
     #[cfg(not(feature = "audio"))]
     if super::audio::has_audio(request) {
         return Err(super::inference::unsupported("native audio frontend is not included in this build"));

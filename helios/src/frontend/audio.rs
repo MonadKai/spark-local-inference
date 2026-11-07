@@ -303,6 +303,7 @@ pub struct AudioProcessor {
 }
 
 mod fetch;
+mod cache;
 
 struct PlanLease<'a> {
     pool: &'a std::sync::Mutex<Vec<LogMelPlan>>,
@@ -378,15 +379,44 @@ impl AudioProcessor {
 
     pub fn prepare_pcm(&self, pcm: &[f32], capacity: &crate::model::contract::AudioCapacity,
                        cancelled: &AtomicBool) -> Result<(std::sync::Arc<PreparedAudio>, [u8; 32])> {
+        self.prepare_pcm_cached(pcm, capacity, cancelled, None)
+    }
+
+    pub fn prepare_pcm_cached(&self, pcm: &[f32], capacity: &crate::model::contract::AudioCapacity,
+                             cancelled: &AtomicBool, store: Option<&flare_selene::input::InputStore>)
+        -> Result<(std::sync::Arc<PreparedAudio>, [u8; 32])> {
+        if cancelled.load(Ordering::Acquire) { return Err(invalid("audio preparation cancelled")); }
+        let identity = semantic_identity(pcm, &self.settings)?;
+        let key = cache::key(identity);
+        let _source = store.map(|store| store.source_guard(key));
+        if cancelled.load(Ordering::Acquire) { return Err(invalid("audio preparation cancelled")); }
+        let frames = match self.settings.sample_padding {
+            crate::model::contract::AudioSamplePadding::Unpadded => pcm.len() / HOP,
+            crate::model::contract::AudioSamplePadding::HopMultiple => pcm.len().div_ceil(HOP),
+        };
+        let prepared_samples = match self.settings.sample_padding {
+            crate::model::contract::AudioSamplePadding::Unpadded => pcm.len(),
+            crate::model::contract::AudioSamplePadding::HopMultiple => frames * HOP,
+        };
+        if prepared_samples <= FFT / 2 || prepared_samples > 600 * RATE {
+            return Err(invalid("invalid finite PCM extent for centered audio STFT"));
+        }
+        if let Some(mel) = store.and_then(|store| cache::lookup(store, key, frames)) {
+            let audio = std::sync::Arc::new(PreparedAudio::new(mel, frames, capacity)?);
+            if cancelled.load(Ordering::Acquire) { return Err(invalid("audio preparation cancelled")); }
+            return Ok((audio, identity));
+        }
+        if cancelled.load(Ordering::Acquire) { return Err(invalid("audio preparation cancelled")); }
         let plan = self.plans.lock().unwrap_or_else(|error| error.into_inner()).pop()
             .ok_or_else(|| Error::admission(crate::AdmissionError::Capacity,
                 "native audio feature preparation is at capacity"))?;
         let mut lease = PlanLease { pool: &self.plans, plan: Some(plan) };
         if cancelled.load(Ordering::Acquire) { return Err(invalid("audio preparation cancelled")); }
-        let identity = semantic_identity(pcm, &self.settings)?;
         let features = lease.plan.as_mut().unwrap().prepared_features(pcm, &self.settings, cancelled)?;
         let frames = features.len() / MELS;
         let audio = std::sync::Arc::new(PreparedAudio::new(features, frames, capacity)?);
+        if cancelled.load(Ordering::Acquire) { return Err(invalid("audio preparation cancelled")); }
+        if let Some(store) = store { cache::insert(store, key, &audio)?; }
         if cancelled.load(Ordering::Acquire) { return Err(invalid("audio preparation cancelled")); }
         Ok((audio, identity))
     }
@@ -653,6 +683,119 @@ mod tests {
         assert_eq!(processor.plans.lock().unwrap().len(), 1);
         assert!(AudioProcessor::new(settings(), 0).is_err());
         assert!(AudioProcessor::new(settings(), 65).is_err());
+    }
+
+    #[test]
+    fn whole_input_feature_cache_skips_fft_and_revalidates_identity_capacity_and_records() {
+        use flare_selene::input::{DiskBudget, InputStore, PreparedInputRecord};
+        use std::sync::Arc;
+
+        let store = InputStore::start(4 << 20, None, DiskBudget::new(0, 0)).unwrap();
+        let processor = AudioProcessor::new(settings(), 1).unwrap();
+        let cancelled = AtomicBool::new(false);
+        let pcm = processor.decode(&wav(16001, 2, 16000), &cancelled).unwrap();
+        let (first, identity) = processor.prepare_pcm_cached(&pcm, &capacity(), &cancelled, Some(&store)).unwrap();
+        let key = cache::key(identity);
+        assert!(store.get_blocking(key, true).is_some());
+        let plan = processor.plans.lock().unwrap().pop().unwrap();
+        assert!(matches!(processor.prepare_pcm(&pcm, &capacity(), &cancelled),
+            Err(Error::Admission(crate::AdmissionError::Capacity(_)))));
+        let (hit, repeated_identity) = processor.prepare_pcm_cached(&pcm, &capacity(), &cancelled, Some(&store)).unwrap();
+        assert_eq!(identity, repeated_identity);
+        assert_eq!(first.mel.as_ref(), hit.mel.as_ref());
+        assert!(store.stats().payload_hits > 0);
+        let mut other = pcm.clone(); other[0] += 0.125;
+        assert!(matches!(processor.prepare_pcm_cached(&other, &capacity(), &cancelled, Some(&store)),
+            Err(Error::Admission(crate::AdmissionError::Capacity(_)))));
+        let mut smaller = capacity(); smaller.features_per_request = first.feature_count() - 1;
+        let failure = processor.prepare_pcm_cached(&pcm, &smaller, &cancelled, Some(&store)).err().unwrap();
+        assert!(failure.to_string().contains("exceeds prepared feature storage"));
+        assert!(processor.prepare_pcm_cached(&pcm, &capacity(), &cancelled, Some(&store)).is_ok());
+        cancelled.store(true, Ordering::Release);
+        assert!(processor.prepare_pcm_cached(&pcm, &capacity(), &cancelled, Some(&store)).is_err());
+        cancelled.store(false, Ordering::Release);
+        processor.plans.lock().unwrap().push(plan);
+        for kind in 0..3 {
+            store.invalidate(key);
+            assert!(store.get_blocking(key, true).is_none());
+            let mut payload: Vec<_> = first.mel.iter().flat_map(|value| value.to_le_bytes()).collect();
+            let mut metadata = b"flare-centered-slaney-f32-v1\0".to_vec();
+            match kind {
+                0 => metadata[0] ^= 1,
+                1 => payload.truncate(payload.len() - 4),
+                _ => payload[..4].copy_from_slice(&f32::NAN.to_le_bytes()),
+            }
+            store.insert(key, Arc::new(PreparedInputRecord { metadata: metadata.into(), payload: Some(Arc::new(payload)) }));
+            assert!(store.get_blocking(key, true).is_some());
+            let (recovered, recovered_identity) = processor.prepare_pcm_cached(&pcm, &capacity(), &cancelled, Some(&store)).unwrap();
+            assert_eq!(identity, recovered_identity);
+            assert_eq!(first.mel.as_ref(), recovered.mel.as_ref());
+            assert_eq!(processor.plans.lock().unwrap().len(), 1);
+        }
+        let mut altered = settings(); altered.sample_padding = crate::model::contract::AudioSamplePadding::Unpadded;
+        let altered = AudioProcessor::new(altered, 1).unwrap();
+        let plan = altered.plans.lock().unwrap().pop().unwrap();
+        assert!(matches!(altered.prepare_pcm_cached(&pcm, &capacity(), &cancelled, Some(&store)),
+            Err(Error::Admission(crate::AdmissionError::Capacity(_)))));
+        altered.plans.lock().unwrap().push(plan);
+    }
+
+    #[test]
+    fn cached_features_retain_normalization_across_encoder_windows() {
+        use flare_selene::input::{DiskBudget, InputStore};
+        let store = InputStore::start(4 << 20, None, DiskBudget::new(0, 0)).unwrap();
+        let processor = AudioProcessor::new(settings(), 1).unwrap();
+        let cancelled = AtomicBool::new(false);
+        let pcm: Vec<_> = (0..900 * HOP + 1).map(|i|
+            (i as f32 * 0.01).sin() * if i < 800 * HOP { 0.0001 } else { 0.5 }).collect();
+        let (original, identity) = processor.prepare_pcm(&pcm, &capacity(), &cancelled).unwrap();
+        let (first, _) = processor.prepare_pcm_cached(&pcm, &capacity(), &cancelled, Some(&store)).unwrap();
+        assert_eq!(original.mel.as_ref(), first.mel.as_ref());
+        assert!(store.get_blocking(cache::key(identity), true).unwrap().payload.as_ref().unwrap().len() > 800 * MELS * 4);
+        let plan = processor.plans.lock().unwrap().pop().unwrap();
+        let (hit, repeated_identity) = processor.prepare_pcm_cached(&pcm, &capacity(), &cancelled, Some(&store)).unwrap();
+        assert_eq!(identity, repeated_identity);
+        assert_eq!(hit.windows.len(), 2);
+        for index in 0..2 {
+            let before = original.window_buffers(index, 800).unwrap();
+            let after = hit.window_buffers(index, 800).unwrap();
+            assert_eq!(before.mel, after.mel);
+            assert_eq!(before.gather_indices, after.gather_indices);
+            assert_eq!(before.feature_offset, after.feature_offset);
+        }
+        processor.plans.lock().unwrap().push(plan);
+    }
+
+    #[test]
+    fn feature_cache_does_not_admit_invalid_short_or_nonfinite_pcm() {
+        use flare_selene::input::{DiskBudget, InputStore, PreparedInputRecord};
+        use std::sync::Arc;
+
+        let store = InputStore::start(1 << 20, None, DiskBudget::new(0, 0)).unwrap();
+        for padding in [crate::model::contract::AudioSamplePadding::Unpadded,
+            crate::model::contract::AudioSamplePadding::HopMultiple] {
+            let mut settings = settings(); settings.sample_padding = padding;
+            let processor = AudioProcessor::new(settings.clone(), 1).unwrap();
+            for samples in [1, 160, 161, 200, 201] {
+                let pcm = vec![0.; samples];
+                let identity = semantic_identity(&pcm, &settings).unwrap();
+                let key = cache::key(identity);
+                let frames = if padding == crate::model::contract::AudioSamplePadding::HopMultiple {
+                    samples.div_ceil(HOP)
+                } else { samples / HOP };
+                store.insert(key, Arc::new(PreparedInputRecord {
+                    metadata: Arc::from(&b"flare-centered-slaney-f32-v1\0"[..]),
+                    payload: Some(Arc::new(vec![0; frames * MELS * 4])),
+                }));
+                assert!(store.get_blocking(key, true).is_some());
+                let valid = samples > 200 || padding == crate::model::contract::AudioSamplePadding::HopMultiple && samples > 160;
+                assert_eq!(processor.prepare_pcm_cached(&pcm, &capacity(), &AtomicBool::new(false), Some(&store)).is_ok(), valid);
+                store.invalidate(key);
+                assert!(store.get_blocking(key, true).is_none());
+            }
+            assert!(processor.prepare_pcm_cached(&[f32::NAN; 201], &capacity(), &AtomicBool::new(false), Some(&store)).is_err());
+            assert_eq!(store.stats().memory_records, 0);
+        }
     }
 
     #[test]

@@ -158,7 +158,8 @@ async fn prepare_child(state: Arc<HttpState>, ingress: Arc<OwnedSemaphorePermit>
         let state = preparation_state;
         let processor = state.audio.as_ref().ok_or("audio processor is unavailable")?;
         let config = state.model.config();
-        let (audio, identity) = processor.prepare_pcm(&pcm[range], config.contract.audio.as_ref().unwrap(), &cancelled)?;
+        let (audio, identity) = processor.prepare_pcm_cached(&pcm[range], config.contract.audio.as_ref().unwrap(),
+            &cancelled, state.model.input_store())?;
         let (prepared, input) = crate::model::prepare_audio_input(config, &rendered, audio, identity)?;
         let mut boundaries = rendered.message_boundaries.clone();
         request::expand_boundaries(&mut boundaries, &prepared.token_expansions);

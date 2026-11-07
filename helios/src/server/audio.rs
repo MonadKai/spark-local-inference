@@ -47,7 +47,8 @@ pub(super) fn validate_chat_body(body: &serde_json::Value) -> Result<()> {
 #[cfg(feature = "audio")]
 pub(super) fn prepare_chat_audio(frontend: &crate::frontend::Frontend,
     processor: Option<&crate::frontend::audio::AudioProcessor>, config: &crate::model::ModelConfig,
-    request: &Request, cancelled: &std::sync::Arc<std::sync::atomic::AtomicBool>)
+    request: &Request, cancelled: &std::sync::Arc<std::sync::atomic::AtomicBool>,
+    input_store: Option<&flare_selene::input::InputStore>)
     -> Result<Option<(std::sync::Arc<crate::frontend::audio::PreparedAudio>, [u8; 32])>> {
     use super::inference::{AudioSource, Role};
     use base64::Engine;
@@ -78,7 +79,7 @@ pub(super) fn prepare_chat_audio(frontend: &crate::frontend::Frontend,
         if !url.starts_with("data:") {
             let bytes = processor.fetch_https(url, cancelled.clone())?;
             let pcm = processor.decode(&bytes, cancelled)?;
-            return Ok(Some(processor.prepare_pcm(&pcm, capacity, cancelled)?));
+            return Ok(Some(processor.prepare_pcm_cached(&pcm, capacity, cancelled, input_store)?));
         }
     }
     let data = match source {
@@ -99,7 +100,7 @@ pub(super) fn prepare_chat_audio(frontend: &crate::frontend::Frontend,
     let bytes = base64::engine::general_purpose::STANDARD.decode(data).map_err(|_| "invalid audio base64")?;
     if bytes.len() > maximum { return Err("encoded audio exceeds its file limit".into()); }
     let pcm = processor.decode(&bytes, cancelled)?;
-    Ok(Some(processor.prepare_pcm(&pcm, capacity, cancelled)?))
+    Ok(Some(processor.prepare_pcm_cached(&pcm, capacity, cancelled, input_store)?))
 }
 
 #[cfg(test)]

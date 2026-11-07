@@ -143,6 +143,33 @@ New audio metadata is inert when absent. No raw processor/config JSON is a
 runtime asset. Decoder prefill uses typed feature indices and generation checks;
 audio preparation identifiers cannot select scheduler/cache policy.
 
+### CPU feature retention
+
+The native frontend can retain whole-input FP32 Log-Mel in the existing bounded
+prepared-input store. Its key separates the CPU processing format from the
+conditioning identity and includes the actual decoded PCM and typed processing
+settings. It does not use a filename, URL or placeholder-token count. A hit skips
+FFT/Mel computation, then validates the exact frame/payload extent, finite values,
+current feature capacity and window layout. The request retains the original
+conditioning identity. Decode and encoder execution still run.
+
+The record contains one complete normalization domain, including inputs spanning
+multiple encoder windows. `insert_with` reserves serialized storage before
+encoding; existing store leases, budgets and eviction remain in force. Input
+staging accounts for the whole-input feature bound rather than the largest
+encoder graph. Absent audio metadata retains the image accounting path. Invalid
+records are discarded and recomputed; a valid record rejected by the current
+capacity remains valid in the store. Cancellation is checked around blocking
+store/plan boundaries; waiting for a store lookup or source guard is not itself
+interruptible.
+
+Ordinary CPU tests cover hits with no FFT plan available, identity isolation,
+corrupt records, short-input rules, capacity rejection and cross-window equality.
+Native HTTP qualification remains required. The current request prefix-reuse
+mode also disables the input store, so it is not an independent cache-layer
+ablation control. Encoder-embedding retention and its lifecycle validation remain
+separate work; CPU feature hits do not establish encoder-cache reuse.
+
 ### Whole encoder-input length
 
 Convolution batch geometry belongs to the complete normalized model input,
