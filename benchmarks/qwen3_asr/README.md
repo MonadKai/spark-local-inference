@@ -52,3 +52,37 @@ annotation gaps and Chinese partial/invalid/overlap markers remain visible;
 deterministic speaker ordering is not a word-interleaving claim.
 `regression_inputs` contains a separately labelled repeated-content 600-second
 stress input, excluded from real long-speech quality and unique-content throughput.
+
+The native collector also accepts `--suite long-speech --manifest
+benchmarks/qwen3_asr/long-speech.json --pcm-root INPUTS --base-url URL --output
+RESULT`. It requires the exact frozen nine-request manifest and verifies each
+uploaded PCM before submission. Its result explicitly separates supplemental
+long speech from the 256-request primary qualification. Natural stop and actual
+generated-token headers are checked for every parent; failures stay in the
+nine-request denominator. Observation IO excludes these runs from timing claims.
+
+For the pinned vLLM image, `qualify/asr_vllm_performance_entry.py` records bounded
+actual terminal tokens and frontend media identifiers in memory. Pass the pinned
+source directory with `--vllm-source`, a new `--observations` file and an explicit
+`--observation-capacity`. Keep the normal non-streaming transcription endpoint;
+verbose JSON changes logprob work and is not a token-count workaround.
+
+The optional `asr_vllm_worker_observations.WorkerObservations` official worker
+extension exposes `install_asr_encoder_observations` and
+`get_asr_encoder_observations` through vLLM's official collective RPC. Install
+after startup, snapshot after all HTTP work drains, and use a bounded capacity.
+The pinned vLLM dev RPC route requires its documented dev-mode setting; that
+reference-only configuration does not introduce a Flare environment switch.
+The entry explicitly adds its own module directory for spawned workers.
+`validate_cohort` requires the externally planned complete chunk-ID set;
+`validate_encoder_cohort` reconciles actual successful dispatches with frontend
+identifiers. Unknown KV reuse, reused identifiers in cold mode, missing chunks,
+non-natural stops, outstanding dispatches and every engine/collector failure
+invalidate the cohort. Recompute counts within a request are retained.
+
+These observers do not establish timing eligibility. Calibrate their combined
+overhead, retain all HTTP attempts including failures before engine admission,
+reconcile official generated-token/terminal counters and record actual cache and
+compile conditions before using a cohort for performance. Successful dispatch
+is not a GPU busy timer. `results/long-speech-observer.json` is a finite actual
+integration/long-quality observation with performance qualification false.

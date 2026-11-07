@@ -221,3 +221,25 @@ This finite control does not establish host-cache combinations, CPU image stores
 asynchronous preemption, long-child isolation or performance. Native prompt and
 generated token IDs were not observed; the SDK prompt supplies only the stated
 first-audio-token bound.
+
+`long-speech-observer.json` retains nine frozen long requests against pinned
+vLLM with decode/prefill CUDA Graph capacities through 4096. The actual bounded
+observer records 95 natural terminal chunks/6,170 tokens, agreeing with official
+counters; all 95 unique audio identifiers associate with successful encoder
+execution, with no pending work or unknown cache observations. The reference
+API container exits 0 and its task container is removed after the complete
+cohort has drained. The default abort/zero-timeout shutdown force-kills the
+EngineCore worker; this is not a graceful worker-teardown check. Its image has no
+repository digest; the actual local image ID and installed selected-source
+checks are explicit. Encoder CUDA Graphs remain unavailable for this model in
+the pinned implementation; decoder graphs, compilation and batching are active.
+
+Paired descriptive long scores versus the earlier native package are retained
+per crop and in aggregate. Native/reference English WER is .323510/.326785,
+English CER .241497/.243916 and Mandarin CER .149927/.150414. These nine crops
+come from three recordings and overlap; frozen annotation gaps/overlap/order
+limits remain. They do not establish the primary qualification margin, a
+reliable P95 or all-language quality. The native side uses the previously
+identified modified-worktree binary and unchanged package from
+`native-prefix-reuse.json`, not the new projection candidate. Instrumentation
+overhead, sustained performance and final clean-source qualification remain open.

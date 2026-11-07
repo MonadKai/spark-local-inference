@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 Flare community contributors
 # SPDX-License-Identifier: Apache-2.0
 
-"""Collect complete native transcription responses on the frozen qualification set.
+"""Collect native transcription responses on frozen qualification or long speech.
 
 Run against an independently launched exported package with flare run. The
 client verifies frozen uploaded PCM and actual terminal token-count headers;
@@ -26,6 +26,7 @@ def main():
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--pcm-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--suite", choices=("qualification", "long-speech"), default="qualification")
     args = parser.parse_args()
     manifest_bytes = args.manifest.read_bytes()
     manifest = json.loads(manifest_bytes)
@@ -33,12 +34,20 @@ def main():
         language="utterance.language", max_completion_tokens=1024)
     utterances = manifest["utterances"]
     ids = [row["id"] for row in utterances]
-    if manifest["split"] != "qualification" or manifest["request"] != policy \
-            or len(ids) != 256 or len(set(ids)) != 256:
-        raise ValueError("unchanged 256-request frozen qualification input required")
+    if args.suite == "qualification":
+        if manifest["split"] != "qualification" or manifest["request"] != policy \
+                or len(ids) != 256 or len(set(ids)) != 256:
+            raise ValueError("unchanged 256-request frozen qualification input required")
+    else:
+        frozen = Path(__file__).resolve().parents[1] / "benchmarks/qwen3_asr/long-speech.json"
+        if manifest_bytes != frozen.read_bytes() or manifest["request"] != policy \
+                or not manifest["fixed_before_recognizer_execution"] \
+                or len(ids) != 9 or len(set(ids)) != 9:
+            raise ValueError("unchanged nine-request supplemental long-speech input required")
     if args.output.exists():
         raise ValueError("preserve all prior attempts; choose a fresh output")
     result = dict(scope=__doc__, manifest_sha256=hashlib.sha256(manifest_bytes).hexdigest(),
+        suite=args.suite, primary_qualification=args.suite == "qualification",
         candidate_executed=True, request=policy, cases=[], errors=[], status="running",
         generated_token_ids_observed=False, binary_package_identity_verified_by_client=False)
 
