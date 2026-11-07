@@ -135,7 +135,7 @@ before consuming the sizing records, and `execution_manifest` in
 A layout fingerprint is the 16-byte BLAKE2b digest of the rank count, the page
 token count, and for each rank the ordered page plane names and unit sizes and
 the row plane name and unit size. The disk namespace combines this fingerprint
-with a 32-byte identity derived from the package's model identity and the
+with a 32-byte identity derived from the package's computed-history identity and the
 selected continuation-state mode: ordinary execution, learned speculation,
 or copy speculation. `offload_identity` in
 `helios/src/runtime_package/model.rs` computes that identity with BLAKE2b and
@@ -144,7 +144,24 @@ updates, so its records cannot be loaded into speculative execution even when
 the physical layouts match. Changes to positive draft limits, concurrency,
 and verification policy that retain speculation do not change the state mode.
 Permanently fixed width one selects ordinary execution. Token-prefix
-keys retain the package's model identity within this storage namespace.
+keys retain that computed-history identity within this storage namespace.
+
+Native package loading binds the signed recipe identity to an executable
+producer: the exact verified envelope digest, format domain, and selected
+deployment ID. Every rank of that deployment shares the producer identity.
+The loader supplies this derived data internally; the original signed model
+identity and package bytes remain unchanged. Bootstrap and the host-store
+namespace use the same derivation. This applies to legacy and payload packages,
+without re-exporting or re-signing them. Diagnostic preparation without a
+package retains its original identity.
+
+Moving a package or packing/unpacking unchanged envelope bytes preserves its
+cache namespace. A different executable envelope or deployment cannot reuse its
+computed histories merely because the recipe identity and storage layout match.
+Re-signing or combining deployments also starts a cold namespace, even when the
+computation is equivalent. Previous cache directories remain on disk; loading
+does not migrate or delete them. Runtime concurrency and compatible speculative
+width limits within one package retain their existing sharing semantics.
 
 The fingerprint is required because model identity does not encode every
 row-layout parameter.

@@ -77,7 +77,10 @@ labels are empty strings; `families` is empty. The listing reports unknown artif
 size as zero and unknown modification time as `0001-01-01T00:00:00Z`. Its `digest`
 is a SHA-256 cache key over the prepared model identity and discovery details;
 it changes when the model or advertised metadata changes. It is not an Ollama
-manifest digest. Templates and tensor inventories are not exposed.
+manifest digest. Native loading includes the authenticated executable producer
+in this cache identity, so upgrading from an engine that omitted it changes this
+opaque digest for an unchanged package. Signed model identifiers remain intact.
+Templates and tensor inventories are not exposed.
 
 OpenCode v2 can discover Flare through its built-in Ollama provider. Merge into
 `~/.config/opencode/opencode.json`:

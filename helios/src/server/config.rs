@@ -103,19 +103,9 @@ impl Bootstrap {
             })?;
         sampling_ranges.validate(&sampling_defaults)?;
 
-        if identity.len() != 64 || !identity.bytes().all(|byte| byte.is_ascii_hexdigit()) {
-            return Err("model identity must be 64 hexadecimal characters".into());
-        }
-        let mut digest = [0u8; 32];
-        for (index, byte) in digest.iter_mut().enumerate() {
-            *byte =
-                u8::from_str_radix(&identity[index * 2..index * 2 + 2], 16).map_err(|error| {
-                    crate::ExecutionError::Manifest(crate::Failure::caused_by(
-                        error.to_string(),
-                        error,
-                    ))
-                })?;
-        }
+        let producer = object.get("cache_producer_identity").map(|value| value.as_str()
+            .ok_or("cache producer identity must be a string")).transpose()?;
+        let digest = crate::cache::model_cache_identity(identity, producer)?;
         let contract = serde_json::from_value(
             object
                 .get("model_contract")
@@ -587,6 +577,21 @@ mod tests {
             "frontend":{"tokenizer":{},"eos_token_ids":[0]},
             "assets":{"tokenizer":tokenizer_asset}
         });
+        let mut cached = config.clone();
+        cached["frontend"]["prompt_encoder"] = json!(1);
+        let original = Bootstrap::load(&cached.to_string(), &manifest).unwrap().model.identity;
+        assert_eq!(original, [0x11; 32]);
+        cached["cache_producer_identity"] = json!("ab".repeat(32));
+        let producer = Bootstrap::load(&cached.to_string(), &manifest).unwrap().model.identity;
+        assert_ne!(original, producer);
+        cached["cache_producer_identity"] = json!("AB".repeat(32));
+        assert_eq!(producer, Bootstrap::load(&cached.to_string(), &manifest).unwrap().model.identity);
+        assert_eq!(cached["identity"], config["identity"]);
+        for invalid in [json!(null), json!(1), json!(""), json!("ff".repeat(31)), json!("gg".repeat(32))] {
+            cached["cache_producer_identity"] = invalid;
+            let error = Bootstrap::load(&cached.to_string(), &manifest).err().unwrap();
+            assert!(error.to_string().contains("cache producer identity"), "{error}");
+        }
         for (suffix, supported) in [
             ("", false),
             (" to=self<|message|>", true),

@@ -221,6 +221,25 @@ impl AuthorizedPackage {
         }
     }
 
+    /// Isolate computed state by the authenticated program and selected deployment.
+    pub(super) fn cache_producer_identity(&self) -> Result<[u8; 32]> {
+        let (format, deployment) = match &self.kind {
+            AuthorizedKind::Legacy { .. } => (b"legacy".as_slice(), ""),
+            AuthorizedKind::Payload(package) => (
+                b"payload".as_slice(),
+                package.source.authorized.verified().deployment()
+                    .ok_or_else(|| invalid("authorized payload package has no deployment"))?
+                    .deployment_id.as_str(),
+            ),
+        };
+        let hash = digest::digest(&digest::SHA256, &fields(&[
+            b"flare-cache-producer-v1", format, &self.envelope_digest(), deployment.as_bytes(),
+        ]));
+        let mut identity = [0; 32];
+        identity.copy_from_slice(hash.as_ref());
+        Ok(identity)
+    }
+
     /// The legacy model index when this package uses the compatibility format.
     #[cfg_attr(not(test), allow(dead_code))]
     pub(super) fn legacy_index(&self) -> Option<&wire::ModelIndex> {

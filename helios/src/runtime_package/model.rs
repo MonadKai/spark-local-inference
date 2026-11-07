@@ -277,6 +277,7 @@ impl NativeModel {
             return Err(invalid("GPU label count must match selected devices"));
         }
         let phase = progress.phase("Prepare model", None);
+        let cache_producer = authorized.cache_producer_identity()?;
         let (mut descriptor, mut ready_packages, files) = match authorized.kind {
             AuthorizedKind::Legacy { archive, index } => (index, None, FilesRef::Legacy(archive)),
             AuthorizedKind::Payload(package) => {
@@ -376,6 +377,7 @@ impl NativeModel {
                 .ok_or_else(|| invalid("model package has no serving contract"))?
                 .max_active,
         )?;
+        server_config["cache_producer_identity"] = super::protection::hex(&cache_producer).into();
         server_config["sampling_defaults"] = protobuf::sampling_defaults(
             descriptor
                 .sampling_defaults
@@ -982,19 +984,18 @@ impl Drop for NativeModel {
     }
 }
 
-/// Namespace host records by model and the continuation state maintained by selected graphs.
-pub(super) fn offload_identity(config: &serde_json::Value) -> Result<[u8; 32]> {
+fn cache_identity(config: &serde_json::Value) -> Result<[u8; 32]> {
     let text = config["identity"]
         .as_str()
         .ok_or_else(|| invalid("model package lacks an identity"))?;
-    if text.len() != 64 || !text.bytes().all(|byte| byte.is_ascii_hexdigit()) {
-        return Err(invalid("model identity must be 64 hexadecimal characters"));
-    }
-    let mut digest = [0u8; 32];
-    for (index, byte) in digest.iter_mut().enumerate() {
-        *byte = u8::from_str_radix(&text[index * 2..index * 2 + 2], 16)
-            .map_err(|_| invalid("model identity must be hexadecimal"))?;
-    }
+    let producer = config.get("cache_producer_identity").map(|value| value.as_str()
+        .ok_or_else(|| invalid("cache producer identity must be a string"))).transpose()?;
+    crate::cache::model_cache_identity(text, producer).map_err(invalid)
+}
+
+/// Namespace host records by their program and the selected continuation state.
+pub(super) fn offload_identity(config: &serde_json::Value) -> Result<[u8; 32]> {
+    let digest = cache_identity(config)?;
     let widths = config["speculative_widths"]
         .as_array()
         .ok_or_else(|| invalid("selected speculative_widths must be an array"))?;
@@ -1267,15 +1268,26 @@ mod identity_tests {
         hardware: &str,
         tp: u32,
     ) -> (Publisher, Vec<u8>) {
+        let rng = ring::rand::SystemRandom::new();
+        let pkcs8 = Ed25519KeyPair::generate_pkcs8(&rng).unwrap();
+        let key = Ed25519KeyPair::from_pkcs8(pkcs8.as_ref()).unwrap();
+        published_graph(dir, model, hardware, tp, &key, b"graph-bytes")
+    }
+
+    fn published_graph(
+        dir: &std::path::Path,
+        model: &str,
+        hardware: &str,
+        tp: u32,
+        key: &Ed25519KeyPair,
+        graph_bytes: &[u8],
+    ) -> (Publisher, Vec<u8>) {
         let payload = b"identity payload".to_vec();
         let id = PayloadId::of(&payload);
         let raw = dir.join("weights.bin");
         std::fs::write(&raw, &payload).unwrap();
         let graph = dir.join("graph.bin");
-        std::fs::write(&graph, b"graph-bytes").unwrap();
-        let rng = ring::rand::SystemRandom::new();
-        let pkcs8 = Ed25519KeyPair::generate_pkcs8(&rng).unwrap();
-        let key = Ed25519KeyPair::from_pkcs8(pkcs8.as_ref()).unwrap();
+        std::fs::write(&graph, graph_bytes).unwrap();
         let public_key: [u8; 32] = key.public_key().as_ref().try_into().unwrap();
         let publisher = Publisher {
             name: "Identity".into(),
@@ -1286,7 +1298,7 @@ mod identity_tests {
         let contract = crate::runtime_package::wire::ServingContract {
             model_id: model.into(),
             served_names: vec!["recipe-alias".into()],
-            identity: format!("{model}-{hardware}"),
+            identity: "37".repeat(32),
             max_sequence_tokens: 8,
             prefill_chunk_size: 1,
             pages: 1,
@@ -1382,7 +1394,7 @@ mod identity_tests {
                         resources: vec![export::PublishResource {
                             kind: wire::ExecutableKind::Graph,
                             path: graph.clone(),
-                            nbytes: 11,
+                            nbytes: graph_bytes.len() as u64,
                         }],
                     })
                     .collect(),
@@ -1392,7 +1404,7 @@ mod identity_tests {
             accepted: "identity".into(),
             no_weights: false,
         };
-        export::publish(&request, &key, export::Destination::Directory(dir)).unwrap();
+        export::publish(&request, key, export::Destination::Directory(dir)).unwrap();
         let metadata = crate::package::reader::Metadata::open(dir).unwrap();
         (publisher, metadata.envelope)
     }
@@ -1485,5 +1497,97 @@ mod identity_tests {
             }
         );
         let _ = std::fs::remove_dir_all(&scratch);
+    }
+
+    #[test]
+    fn authenticated_programs_isolate_real_prefix_records_and_preserve_old_hits() {
+        use crate::cache::PrefixHistory;
+        use flare_selene::{HostStore, InboundTicket, Layout, PageId, StateSlotId, StoreEvent, StoreOutcome};
+        use flare_selene::testing::{Ids, SimulatedGpu, checkpoint, geometry, poll_until};
+        use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+
+        let scratch = std::env::temp_dir().join(format!("helios-cache-producer-{}-{}",
+            std::process::id(), SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()));
+        std::fs::create_dir(&scratch).unwrap();
+        let first = scratch.join("first");
+        let second = scratch.join("second");
+        std::fs::create_dir(&first).unwrap();
+        std::fs::create_dir(&second).unwrap();
+        let key = Ed25519KeyPair::from_seed_unchecked(&[43; 32]).unwrap();
+        let (publisher, envelope) = published_graph(&first, "same-model", "same-gpu", 2, &key, b"graph-bytes");
+        let (_, changed_envelope) = published_graph(&second, "same-model", "same-gpu", 2, &key, b"other-bytes");
+        assert_ne!(envelope, changed_envelope);
+        let authorize = |path: &Path, rank| crate::runtime_package::VerifiedPackage::open(
+            path, std::slice::from_ref(&publisher), rank).unwrap().authorize("identity", false).unwrap();
+        let first_package = authorize(&first, None);
+        let second_package = authorize(&second, None);
+        let producer = first_package.cache_producer_identity().unwrap();
+        assert_ne!(producer, second_package.cache_producer_identity().unwrap());
+        for rank in 0..2 {
+            assert_eq!(producer, authorize(&first, Some(rank)).cache_producer_identity().unwrap());
+        }
+        let moved = scratch.join("moved");
+        std::fs::rename(&first, &moved).unwrap();
+        assert_eq!(producer, authorize(&moved, None).cache_producer_identity().unwrap());
+
+        let config = |package: &AuthorizedPackage| {
+            let AuthorizedKind::Payload(payload) = &package.kind else { panic!("expected payload") };
+            serde_json::json!({"identity": payload.descriptor().unwrap().contract.unwrap().identity,
+                "cache_producer_identity": super::super::protection::hex(&package.cache_producer_identity().unwrap()),
+                "speculative_widths": []})
+        };
+        let first_config = config(&first_package);
+        let second_config = config(&second_package);
+        // Equal recipe identities and physical layouts used to share histories.
+        assert_eq!(first_config["identity"], second_config["identity"]);
+        let first_identity = cache_identity(&first_config).unwrap();
+        let second_identity = cache_identity(&second_config).unwrap();
+        assert_ne!(first_identity, second_identity);
+        let mut old = PrefixHistory::new(first_identity);
+        let mut other = PrefixHistory::new(second_identity);
+        let tokens: Vec<_> = (0..64).collect();
+        old.append(&tokens, &[]).unwrap();
+        other.append(&tokens, &[]).unwrap();
+        assert_ne!(old.key_at(64), other.key_at(64));
+        let geometry = [geometry(64, &[("k", 4096), ("v", 4096)], 4096)];
+        let layout = Layout::new(&geometry).unwrap();
+        let old_store_identity = offload_identity(&first_config).unwrap();
+        let new_store_identity = offload_identity(&second_config).unwrap();
+        let fingerprint = flare_selene::geometry::fingerprint(&geometry);
+        assert_ne!(flare_selene::record::directory_name(&old_store_identity, &fingerprint),
+            flare_selene::record::directory_name(&new_store_identity, &fingerprint));
+        let (copier, gpu) = SimulatedGpu::shared_mapped(&geometry).unwrap();
+        let intake = flare_selene::offload::intake_slots(&layout, 1);
+        let pool = flare_selene::slab::SlabPool::new(layout.page_record_bytes, 8 + intake, intake).unwrap();
+        let mut store = flare_selene::memory::MemoryStore::new(old_store_identity, pool, copier).unwrap();
+        gpu.pages.lock().unwrap().insert(0, vec![71; 8192]);
+        gpu.rows.lock().unwrap().insert(1, vec![93; 4096]);
+        let publication = checkpoint(&mut Ids::new(), &old, 64, None, vec![PageId(0)], 1, StateSlotId(1));
+        assert_eq!(store.store(&publication).unwrap(), StoreOutcome::Queued);
+        poll_until(&mut store, Instant::now() + Duration::from_secs(5), |event|
+            matches!(event, StoreEvent::Stored { result: Ok(_), .. }));
+        assert!(store.lookup(&other, 0, u64::MAX).is_none());
+        let hit = store.lookup(&old, 0, u64::MAX).expect("original producer must still hit");
+        store.fetch(hit.clone(), InboundTicket { key: hit.key, pages: vec![PageId(10)], slot: StateSlotId(20) }).unwrap();
+        poll_until(&mut store, Instant::now() + Duration::from_secs(5), |event|
+            matches!(event, StoreEvent::Fetched { result: Ok(_), .. }));
+        assert_eq!(gpu.pages.lock().unwrap()[&10], vec![71; 8192]);
+        assert_eq!(gpu.rows.lock().unwrap()[&20], vec![93; 4096]);
+        store.close().unwrap();
+        std::fs::remove_dir_all(&scratch).unwrap();
+    }
+
+    #[test]
+    fn signed_legacy_program_identity_is_stable_across_authorized_ranks() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+        let publisher = crate::runtime_package::test_support::publisher();
+        let authorize = |name: &str, rank| crate::runtime_package::VerifiedPackage::open(
+            &root.join(name), std::slice::from_ref(&publisher), rank).unwrap()
+            .authorize("flare-tests", false).unwrap();
+        let ordinary = authorize("legacy-custom/model.safetensors", None).cache_producer_identity().unwrap();
+        assert_eq!(ordinary, authorize("legacy-custom/model.safetensors", None).cache_producer_identity().unwrap());
+        let cluster = authorize("legacy-cluster-custom/model.safetensors", Some(0)).cache_producer_identity().unwrap();
+        assert_eq!(cluster, authorize("legacy-cluster-custom/model.safetensors", Some(1)).cache_producer_identity().unwrap());
+        assert_ne!(ordinary, cluster);
     }
 }

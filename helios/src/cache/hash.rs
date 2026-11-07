@@ -11,6 +11,31 @@ use crate::Result;
 
 pub use flare_selene::{HASH_BLOCK_TOKENS, PrefixKey};
 
+/// Bind computed histories to an authenticated executable producer when present.
+pub(crate) fn model_cache_identity(
+    model: &str,
+    producer: Option<&str>,
+) -> std::result::Result<[u8; 32], &'static str> {
+    fn decode(text: &str) -> Option<[u8; 32]> {
+        if text.len() != 64 || !text.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+            return None;
+        }
+        let mut digest = [0; 32];
+        for (index, byte) in digest.iter_mut().enumerate() {
+            *byte = u8::from_str_radix(&text[index * 2..index * 2 + 2], 16).ok()?;
+        }
+        Some(digest)
+    }
+    let model = decode(model).ok_or("model identity must be 64 hexadecimal characters")?;
+    let Some(producer) = producer else { return Ok(model) };
+    let producer = decode(producer).ok_or("cache producer identity must be 64 hexadecimal characters")?;
+    let mut hash = Blake2b::<blake2::digest::consts::U32>::new();
+    hash.update(b"flare-prefix-producer-v1\0");
+    hash.update(model);
+    hash.update(producer);
+    Ok(hash.finalize().into())
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ConditioningEvent {
     pub position: u64,
