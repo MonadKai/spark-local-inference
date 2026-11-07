@@ -52,6 +52,7 @@ fn scheduler_with_concurrency(snapshots: u32, mtp: bool, page_tokens: usize, act
 }
 fn spec(system: Option<usize>, prompt: usize, output: u32) -> RequestSpec {
     RequestSpec {
+        prefix_scope: None,
         message_boundaries: system.into_iter().collect(),
         prompt: (0..prompt as u32).collect(),
         conditioning: vec![],

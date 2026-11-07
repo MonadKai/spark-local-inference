@@ -333,8 +333,15 @@ impl Bootstrap {
                 .filter(|v| v.is_finite() && *v > 0.0)
                 .ok_or("adaptive verification alpha must be finite and greater than zero")?;
         }
+        let prefix_cache_reuse = match object.get("prefix_cache_reuse") {
+            None => super::PrefixCacheReuse::default(),
+            Some(Value::String(value)) => value.parse().map_err(|error: String|
+                format!("prefix_cache_reuse: {error}"))?,
+            Some(_) => return Err("prefix_cache_reuse must be shared or request".into()),
+        };
         let server = ServerConfig {
             scheduling_policy,
+            prefix_cache_reuse,
             thinking_token_budget: object.get("thinking_token_budget")
                 .filter(|value| !value.is_null())
                 .map(|value| value.as_u64()
@@ -711,6 +718,21 @@ mod tests {
         let loaded = Bootstrap::load(&legacy.to_string(), &manifest).unwrap();
         assert_eq!(loaded.frontend.prompt_encoder(), PromptEncoder::Jinja);
         assert_eq!(loaded.server.scheduling_policy.adaptive_verification_alpha, 1.0);
+        assert_eq!(loaded.server.prefix_cache_reuse, super::super::PrefixCacheReuse::Shared);
+        for (mode, expected) in [("shared", super::super::PrefixCacheReuse::Shared),
+                                 ("request", super::super::PrefixCacheReuse::Request)] {
+            let mut configured = legacy.clone();
+            configured["prefix_cache_reuse"] = mode.into();
+            assert_eq!(Bootstrap::load(&configured.to_string(), &manifest).unwrap()
+                .server.prefix_cache_reuse, expected);
+        }
+        for invalid in [json!("off"), json!(false), json!(0), json!(null)] {
+            let mut configured = legacy.clone();
+            configured["prefix_cache_reuse"] = invalid;
+            assert!(Bootstrap::load(&configured.to_string(), &manifest).err().unwrap()
+                .to_string().contains("prefix_cache_reuse"));
+        }
+
         for preference in ["balanced", "throughput"] {
             let mut configured = legacy.clone();
             configured["scheduler_policy"] = preference.into();

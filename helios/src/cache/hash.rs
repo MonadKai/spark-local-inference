@@ -35,9 +35,20 @@ pub struct PrefixHistory {
 
 impl PrefixHistory {
     pub fn new(identity: [u8; 32]) -> Self {
+        Self::new_scoped(identity, None)
+    }
+
+    /// Isolate externally submitted generations while retaining their complete
+    /// checkpoint history through preemption and readmission. Absent scope keeps
+    /// the original shared-prefix bytes, including host-store bucket keys.
+    pub fn new_scoped(identity: [u8; 32], scope: Option<[u8; 24]>) -> Self {
         let mut hash = Blake2b::<U16>::new();
         hash.update(b"flare-prefix-root-v1\0");
         hash.update(identity);
+        if let Some(scope) = scope {
+            hash.update(b"flare-prefix-request-v1\0");
+            hash.update(scope);
+        }
         Self {
             identity,
             boundaries: vec![PrefixKey {

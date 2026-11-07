@@ -1159,6 +1159,7 @@ max_concurrency = 4
 reserve = "0"                     # GPU memory left for processes started later.
 
 [prefix_cache]
+reuse = "shared"                 # shared, request; request isolates generations and bypasses shared CPU inputs.
 memory = ""                      # Warm checkpoints and CPU inputs; empty or 0: no warm tier. Intake is additional.
 drain_on_shutdown = "off"         # Pooled DRAM persistence: on, off, or a duration.
 disk_limit = ""                  # Empty: 10% of free disk space when disk retention is enabled.
@@ -1175,6 +1176,21 @@ prefix_cache = ""                # Host checkpoint directory; empty: disk retent
 export_staging = ""               # Rank files an export assembles from; empty: beside the package.
 cuda = "/opt/cuda"                # Explicit CUDA toolkit directory for native builds.
 ```
+
+`--prefix-cache-reuse shared|request` overrides `[prefix_cache] reuse`.
+The default `shared` retains existing GPU and host prefix keys. `request`
+assigns each submitted generation an independent prefix namespace and bypasses
+shared CPU prepared-input stores. Identical audio/image/text in different
+generations cannot share prefix work, including text before the media tokens.
+Each choice and transcription child receives its own namespace. A generation
+keeps that namespace through preemption and readmission, so its complete
+checkpoint can still restore rather than losing state. GPU/host checkpoint
+publication, storage, eviction and fence retirement remain active; this mode
+isolates cross-request reuse, not checkpoint maintenance or allocation.
+The host memory/disk limits alone do not disable GPU prefix reuse. Frontend
+FFT/Mel plans and request-owned decoded inputs remain reusable within their
+existing lifetimes. Model identities, media identities, tokens and sampling seeds
+are unchanged; the new setting does not require package re-export.
 
 `[models.<alias>]` overrides `[defaults]`; flags override both.
 Both sections accept `speculative_token_capacity`, overridden during preparation

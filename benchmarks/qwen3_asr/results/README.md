@@ -209,3 +209,15 @@ existing format limitation, not an executed load failure or a new regression.
 The metadata signer's match to the fixed public publisher profile does not
 verify the missing payload. The smaller 27B package above has no VISION graphs;
 its successful text replay cannot qualify old VISION loading or execution.
+
+`native-prefix-reuse.json` records ten serial native ASR requests through two
+separately started Rust processes loading the unchanged earlier audio package.
+Two different PCM contents have the same 39-token prompt extent. For A/A/B/A/B,
+shared reuse reports cached counts 0/39/5/39/39 and two AudioEncode submissions;
+request reuse reports all-zero cached counts and five submissions. All responses
+stop naturally with matching text/counts/usage, and both processes drain cleanly.
+The build is explicitly a modified worktree, not final clean-source qualification.
+This finite control does not establish host-cache combinations, CPU image stores,
+asynchronous preemption, long-child isolation or performance. Native prompt and
+generated token IDs were not observed; the SDK prompt supplies only the stated
+first-audio-token bound.

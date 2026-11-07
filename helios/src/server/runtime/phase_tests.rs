@@ -252,6 +252,7 @@ impl Fixture {
         let failure = Arc::new(Mutex::new(None));
         (
             Incoming {
+                prefix_scope: None,
                 _capacity: None,
                 queue_capacity: None,
                 arrival_ns: super::super::observation::monotonic_ns(),
@@ -3101,6 +3102,7 @@ fn group_runtime(
             finished: Arc::new((Mutex::new(false), Condvar::new())),
             metrics: fixture.metrics.clone(),
             input_store: None,
+            prefix_scopes: None,
         },
         receiver,
     )
@@ -3315,6 +3317,7 @@ fn exercise_text_preemption(
     data: impl Fn(usize) -> crate::model::PromptData,
     evict_checkpoint: bool,
     reasoning_cut: Option<ReasoningCut>,
+    isolate_prefixes: bool,
 ) {
     let mut fixture = Fixture::new();
     fixture.config.history_drafts = true;
@@ -3328,6 +3331,8 @@ fn exercise_text_preemption(
     let (sender, receiver) = mpsc::channel();
     let (mut first, mut first_generation) = fixture.incoming_for(vec![0; 60], budget, data(60));
     let (mut second, mut second_generation) = fixture.incoming_for(vec![2; 60], budget, data(60));
+    first.prefix_scope = isolate_prefixes.then_some([1; 24]);
+    second.prefix_scope = isolate_prefixes.then_some([2; 24]);
     first.prompt.reasoning_cut = reasoning_cut.clone();
     second.prompt.reasoning_cut = reasoning_cut.clone();
     sender.send(vec![first, second]).unwrap();
@@ -3387,6 +3392,8 @@ fn exercise_text_preemption(
         reasoning_cut.as_ref().is_some_and(|cut| cut.close != 1)
     );
     let index = usize::from(incoming.prompt.tokens[0] == 2);
+    let scope = incoming.prefix_scope;
+    assert_eq!(scope, isolate_prefixes.then_some([index as u8 + 1; 24]));
     let decoded_sequence = parked.carried.decoded_sequence;
     assert_ne!(decoded_sequence, Default::default());
     let history_len = incoming.prompt.tokens.len();
@@ -3413,6 +3420,7 @@ fn exercise_text_preemption(
         let pressure = worker
             .scheduler
             .admit(RequestSpec {
+                prefix_scope: None,
                 prompt: vec![3; page_tokens * 5],
                 max_new_tokens: 1,
                 growable_output: false,
@@ -3428,6 +3436,7 @@ fn exercise_text_preemption(
     assert_eq!(worker.admit().unwrap(), ControlFlow::Continue(true));
     assert!(worker.parked.is_empty());
     let resumed = worker.active.iter().flatten().next().unwrap().request;
+    assert_eq!(worker.active[resumed.slot as usize].as_ref().unwrap().incoming.prefix_scope, scope);
     let live = worker.scheduler.request(resumed).unwrap();
     assert_eq!(live.decoded_sequence, decoded_sequence);
     if evict_checkpoint {
@@ -3507,6 +3516,7 @@ fn exercise_text_preemption(
 fn text_preemption_restores_or_recomputes_every_attention_contract() {
     for page_tokens in [64, 128, 256] {
         for evict in [false, true] {
+          for isolate in [false, true] {
             let mut metadata = crate::model::testing::metadata();
             metadata.cache.page_tokens = page_tokens;
             exercise_text_preemption(
@@ -3518,7 +3528,9 @@ fn text_preemption_restores_or_recomputes_every_attention_contract() {
                 },
                 evict,
                 None,
+                isolate,
             );
+          }
         }
     }
 }
@@ -3527,6 +3539,7 @@ fn text_preemption_restores_or_recomputes_every_attention_contract() {
 fn reasoning_budget_survives_preemption_and_checkpoint_recomputation() {
     for evict in [false, true] {
         for close in [1, 4] {
+          for isolate in [false, true] {
             exercise_text_preemption(
                 crate::model::testing::metadata(),
                 |n| PromptData { audio_token_indices: Vec::new(),
@@ -3536,7 +3549,9 @@ fn reasoning_budget_survives_preemption_and_checkpoint_recomputation() {
                 },
                 evict,
                 Some(budget_cut(close, 16)),
+                isolate,
             );
+          }
         }
     }
 }
@@ -3687,6 +3702,7 @@ fn http_state_for(
         finished: Arc::new((Mutex::new(true), Condvar::new())),
         metrics: fixture.metrics,
         input_store: None,
+        prefix_scopes: None,
     });
     Arc::new(HttpState {
         #[cfg(feature = "audio")]
@@ -4498,6 +4514,7 @@ fn host_prefix_selects_whole_required_images_and_compacts_feature_indices() {
             let occupied = worker
                 .scheduler
                 .admit(RequestSpec {
+                    prefix_scope: None,
                     prompt: vec![1; 2],
                     message_boundaries: vec![],
                     conditioning: vec![],
@@ -5044,6 +5061,7 @@ fn unpinned_checkpoint(
     end: usize,
 ) -> crate::cache::CheckpointId {
     let spec = RequestSpec {
+        prefix_scope: None,
         prompt: vec![token; end + 1],
         message_boundaries: vec![],
         conditioning: vec![],
@@ -5206,6 +5224,7 @@ fn publication_copy_pins_survive_ancestor_compaction() {
     assert_eq!(pins(&worker, b), 1);
     let (incoming, generation) = fixture.incoming(vec![1; 70], 4);
     let spec = RequestSpec {
+        prefix_scope: None,
         prompt: incoming.prompt.tokens.clone(),
         message_boundaries: vec![],
         conditioning: vec![],
@@ -5355,6 +5374,7 @@ fn publication_retries_wait_for_progress_and_abandon_evicted_ids() {
         assert_eq!(pins(&worker, id), 0);
         assert_eq!(worker.deferred_stores, [(id, reason)]);
         let spec = RequestSpec {
+            prefix_scope: None,
             prompt: vec![1; 70],
             message_boundaries: vec![],
             conditioning: vec![],
@@ -5396,4 +5416,50 @@ fn publication_losses_classify_oversize_and_copy_failure() {
         );
         assert_eq!(pins(&worker, id), 0);
     }
+}
+
+#[test]
+fn isolated_generations_receive_distinct_scopes_without_changing_prompts_or_sampling() {
+    let fixture = Fixture::new();
+    let (mut runtime, receiver) = group_runtime(&fixture, 4);
+    runtime.prefix_scopes = Some(PrefixScopes::new());
+    let first = runtime.generate(queued_prompt()).unwrap();
+    let second = runtime.generate(queued_prompt()).unwrap();
+    let mut a = receiver.recv().unwrap();
+    let mut b = receiver.recv().unwrap();
+    assert_ne!(a[0].prefix_scope, b[0].prefix_scope);
+    assert!(a[0].prefix_scope.is_some());
+    assert_eq!(a[0].prompt.tokens, b[0].prompt.tokens);
+    assert_eq!(a[0].prompt.sampling.seed, b[0].prompt.sampling.seed);
+    let scope = a[0].prefix_scope;
+    a[0].readmitted = true;
+    assert_eq!(a[0].spec().prefix_scope, scope);
+    assert_eq!(b[0].spec().prefix_scope, b[0].prefix_scope);
+    drop(first);
+    drop(second);
+    assert!(a[0].cancelled.load(Ordering::Acquire));
+    assert!(b[0].cancelled.load(Ordering::Acquire));
+    a.clear(); b.clear();
+    assert_eq!(runtime.capacity.available_permits(), 4);
+    assert_eq!(runtime.queue_capacity.available_permits(), 2);
+}
+
+#[test]
+fn request_scope_sequence_is_concurrent_and_never_wraps() {
+    let scopes = Arc::new(PrefixScopes::new());
+    let mut threads = Vec::new();
+    for _ in 0..8 {
+        let scopes = scopes.clone();
+        threads.push(std::thread::spawn(move ||
+            (0..128).map(|_| scopes.next().unwrap()).collect::<Vec<_>>()));
+    }
+    let all: std::collections::HashSet<_> = threads.into_iter()
+        .flat_map(|thread| thread.join().unwrap()).collect();
+    assert_eq!(all.len(), 1024);
+    assert!(all.iter().all(|scope| scope[..16] == scopes.nonce));
+    let last = PrefixScopes { nonce: [7; 16], next: AtomicU64::new(u64::MAX - 1) };
+    assert_eq!(&last.next().unwrap()[16..], &(u64::MAX - 1).to_le_bytes());
+    assert!(last.next().is_err());
+    assert!(last.next().is_err());
+    assert_eq!(last.next.load(Ordering::Relaxed), u64::MAX);
 }

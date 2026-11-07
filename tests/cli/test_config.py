@@ -71,6 +71,14 @@ def test_prefix_cache_settings_validate(tmp_path):
     configuration = load(tmp_path, "[prefix_cache]\nmemory = \"4G\"\n")
     assert configuration.get("prefix_cache.memory") == Setting("4G", "[prefix_cache]")
     assert configuration.directory("prefix_cache") is None
+    assert configuration.get("prefix_cache.reuse") == Setting("shared", "default")
+    for value in ("shared", "request"):
+        configured = load(tmp_path, f'[prefix_cache]\nreuse="{value}"\n')
+        assert configured.get("prefix_cache.reuse") == Setting(value, "[prefix_cache]")
+        assert configured.get("prefix_cache.reuse", "shared") == Setting("shared", "flag")
+    for value in ('"off"', '"REQUEST"', '""', 'true', '0'):
+        with pytest.raises(UsageError, match="reuse"):
+            load(tmp_path, f'[prefix_cache]\nreuse={value}\n')
     with pytest.raises(UsageError, match="prefix_cache disk_limit"):
         load(tmp_path, "[prefix_cache]\ndisk_limit = \"lots\"\n")
     for transport in ("nvme", "staged", "direct"):

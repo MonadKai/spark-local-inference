@@ -63,6 +63,32 @@ use std::{
 };
 use tokio::sync::{OwnedSemaphorePermit, Semaphore, oneshot};
 
+/// Reuse complete prefix state across generations, or only within one generation.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PrefixCacheReuse {
+    #[default]
+    Shared,
+    Request,
+}
+
+impl PrefixCacheReuse {
+    pub fn as_str(self) -> &'static str {
+        match self { Self::Shared => "shared", Self::Request => "request" }
+    }
+}
+
+impl std::str::FromStr for PrefixCacheReuse {
+    type Err = String;
+    fn from_str(value: &str) -> std::result::Result<Self, Self::Err> {
+        match value {
+            "shared" => Ok(Self::Shared),
+            "request" => Ok(Self::Request),
+            _ => Err("prefix cache reuse must be shared or request".into()),
+        }
+    }
+}
+
 pub struct ServerConfig {
     pub bind: SocketAddr,
     pub queue_capacity: usize,
@@ -82,6 +108,7 @@ pub struct ServerConfig {
     /// Setting that raises request or page capacity, appended to capacity rejections.
     pub capacity_hint: String,
     pub scheduling_policy: crate::scheduler::PolicyConfig,
+    pub prefix_cache_reuse: PrefixCacheReuse,
 }
 impl Default for ServerConfig {
     fn default() -> Self {
@@ -97,6 +124,7 @@ impl Default for ServerConfig {
             context_hint: String::new(),
             capacity_hint: String::new(),
             scheduling_policy: crate::scheduler::PolicyConfig::default(),
+            prefix_cache_reuse: PrefixCacheReuse::Shared,
         }
     }
 }
@@ -246,6 +274,7 @@ impl Server {
                 frontend.clone(),
                 peers,
                 config.scheduling_policy,
+                config.prefix_cache_reuse,
             )?
         });
         let state = Arc::new(HttpState {

@@ -60,6 +60,7 @@ struct Memory {
 #[derive(Default, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 struct PrefixCache {
+    reuse: Option<flare_helios::server::PrefixCacheReuse>,
     memory: Option<String>,
     disk_limit: Option<String>,
     drain_on_shutdown: Option<String>,
@@ -148,6 +149,9 @@ impl Configuration {
                 if serving.memory_limit.is_none() {
                     serving.memory_limit = size(self.memory.reserve.as_deref(), "memory.reserve")?
                         .map(MemoryLimit::Reserve);
+                }
+                if serving.prefix_cache_reuse.is_none() {
+                    serving.prefix_cache_reuse = self.prefix_cache.reuse;
                 }
                 if serving.prefix_cache_memory.is_none() {
                     serving.prefix_cache_memory = size(
@@ -295,6 +299,26 @@ mod tests {
         };
         config.apply_model(&mut run.serving, names).unwrap();
         (config, *run)
+    }
+
+    #[test]
+    fn prefix_reuse_defaults_config_precedence_and_rank_forwarding() {
+        use flare_helios::server::PrefixCacheReuse::{Request, Shared};
+        let args = ["flare", "run", "model.safetensors"];
+        let (_, run) = configured("", &args, &[]);
+        assert_eq!(run.prefix_cache_reuse, None);
+        let (_, run) = configured("[prefix_cache]\nreuse='request'", &args, &[]);
+        assert_eq!(run.prefix_cache_reuse, Some(Request));
+        let forwarded = run.serving.rank_options(crate::cluster::Shape::Mesh);
+        let peer_args: Vec<_> = std::iter::once("flare").chain(std::iter::once("run"))
+            .chain(std::iter::once("model.safetensors"))
+            .chain(forwarded.iter().map(String::as_str)).collect();
+        let (_, peer) = configured("", &peer_args, &[]);
+        assert_eq!(peer.prefix_cache_reuse, Some(Request));
+        let (_, run) = configured("[prefix_cache]\nreuse='request'",
+            &["flare", "run", "model.safetensors", "--prefix-cache-reuse", "shared"], &[]);
+        assert_eq!(run.prefix_cache_reuse, Some(Shared));
+        assert!(Configuration::parse("[prefix_cache]\nreuse='off'").is_err());
     }
 
     #[test]

@@ -8,7 +8,7 @@ use std::{
     collections::{HashMap, VecDeque},
     sync::{
         Arc, Condvar, Mutex,
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicU64, Ordering},
         mpsc,
     },
     thread::{self, JoinHandle},
@@ -178,7 +178,34 @@ impl Drop for Generation {
     }
 }
 
+/// A random server namespace and a checked sequence keep request keys distinct
+/// across hosts/restarts without changing model identity or sampling RNG state.
+struct PrefixScopes {
+    nonce: [u8; 16],
+    next: AtomicU64,
+}
+
+impl PrefixScopes {
+    fn new() -> Self {
+        let mut nonce = [0; 16];
+        nonce[..8].copy_from_slice(&super::run_id().to_le_bytes());
+        nonce[8..].copy_from_slice(&super::run_id().to_le_bytes());
+        Self { nonce, next: AtomicU64::new(0) }
+    }
+
+    fn next(&self) -> Result<[u8; 24]> {
+        let sequence = self.next.fetch_update(Ordering::Relaxed, Ordering::Relaxed,
+            |value| value.checked_add(1)).map_err(|_| Error::admission(
+                AdmissionError::Capacity, "request prefix namespace exhausted"))?;
+        let mut scope = [0; 24];
+        scope[..16].copy_from_slice(&self.nonce);
+        scope[16..].copy_from_slice(&sequence.to_le_bytes());
+        Ok(scope)
+    }
+}
+
 struct Incoming {
+    prefix_scope: Option<[u8; 24]>,
     _capacity: Option<Arc<tokio::sync::OwnedSemaphorePermit>>,
     // One permit per queued message, shared by its members until the worker
     // receives them. Response readers do not retain this queue reservation.
@@ -220,6 +247,7 @@ impl Drop for Incoming {
 impl Incoming {
     fn spec(&self) -> RequestSpec {
         RequestSpec {
+            prefix_scope: self.prefix_scope,
             message_boundaries: self.prompt.message_boundaries.clone(),
             prompt: self.prompt.tokens.clone(),
             conditioning: self.prompt.conditioning.clone(),
@@ -444,6 +472,7 @@ pub struct ModelRuntime {
     finished: Arc<(Mutex<bool>, Condvar)>,
     metrics: Arc<super::metrics::Metrics>,
     input_store: Option<flare_selene::input::InputStore>,
+    prefix_scopes: Option<PrefixScopes>,
 }
 
 struct CloseAdmission {
@@ -469,6 +498,7 @@ impl ModelRuntime {
         frontend: Arc<crate::frontend::Frontend>,
         peers: Option<crate::execution::RankPeers>,
         policy: crate::scheduler::PolicyConfig,
+        prefix_cache_reuse: super::PrefixCacheReuse,
     ) -> Result<Self> {
         crate::model::catalog::validate(&config, &manifest)?;
         super::observation::initialize_clock();
@@ -481,10 +511,10 @@ impl ModelRuntime {
         let message_capacity = Arc::new(tokio::sync::Semaphore::new(queue_capacity));
         let worker_capacity = capacity.clone();
         let worker_message_capacity = message_capacity.clone();
-        let input_store = manifest
-            .offload
-            .as_ref()
-            .and_then(|binding| binding.inputs());
+        let prefix_scopes = (prefix_cache_reuse == super::PrefixCacheReuse::Request)
+            .then(PrefixScopes::new);
+        let input_store = (prefix_cache_reuse == super::PrefixCacheReuse::Shared)
+            .then(|| manifest.offload.as_ref().and_then(|binding| binding.inputs())).flatten();
         let worker_input_store = input_store.clone();
         let config = Arc::new(config);
         let (sender, receiver) = mpsc::sync_channel(queue_capacity);
@@ -711,6 +741,7 @@ impl ModelRuntime {
                 config,
                 event_capacity,
                 input_store,
+                prefix_scopes,
                 capacity,
                 queue_capacity: message_capacity,
                 thread: Mutex::new(Some(thread)),
@@ -860,6 +891,7 @@ impl ModelRuntime {
             let cancelled = Arc::new(AtomicBool::new(false));
             let failure = Arc::new(Mutex::new(None));
             let incoming = Incoming {
+                prefix_scope: self.prefix_scopes.as_ref().map(PrefixScopes::next).transpose()?,
                 _capacity: Some(capacity.clone()),
                 queue_capacity: Some(queue.clone()),
                 arrival_ns: super::observation::monotonic_ns(),
@@ -2976,6 +3008,7 @@ mod tests {
             .measured_graph_durations(&crate::scheduler::tests::duration_graphs(4))
             .unwrap();
         let spec = |token, grammar_constrained| RequestSpec {
+            prefix_scope: None,
             message_boundaries: vec![],
             prompt: vec![token],
             conditioning: vec![],
@@ -3044,6 +3077,7 @@ mod tests {
         let cancelled = Arc::new(AtomicBool::new(false));
         let failure = Arc::new(Mutex::new(None));
         let incoming = Incoming {
+            prefix_scope: None,
             _capacity: None,
             queue_capacity: None,
             arrival_ns: super::super::observation::monotonic_ns(),
@@ -3242,6 +3276,7 @@ mod tests {
 
     fn retirement_spec(grammar_constrained: bool) -> RequestSpec {
         RequestSpec {
+            prefix_scope: None,
             message_boundaries: vec![],
             prompt: vec![0],
             conditioning: vec![],
@@ -3759,6 +3794,7 @@ mod tests {
         )
         .unwrap();
         let spec = || RequestSpec {
+            prefix_scope: None,
             message_boundaries: vec![],
             prompt: vec![7],
             conditioning: vec![],

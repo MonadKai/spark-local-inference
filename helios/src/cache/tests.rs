@@ -1127,3 +1127,48 @@ fn reclamation_excludes_pins_branches_and_unready_checkpoints() {
     reclaimed.sort();
     assert_eq!(reclaimed, [PageId(0), PageId(1), PageId(2)]);
 }
+
+#[test]
+fn absent_prefix_scope_preserves_legacy_boundary_keys() {
+    let mut legacy = PrefixHistory::new([7; 32]);
+    let mut explicit = PrefixHistory::new_scoped([7; 32], None);
+    let tokens: Vec<_> = (0..65).collect();
+    legacy.append(&tokens, &[]).unwrap();
+    explicit.append(&tokens, &[]).unwrap();
+    for (end, digest) in [
+        (0, [111, 1, 120, 51, 140, 150, 192, 53, 82, 114, 134, 33, 115, 104, 155, 72]),
+        (63, [78, 45, 162, 108, 59, 212, 82, 111, 153, 204, 9, 152, 3, 251, 197, 199]),
+        (64, [106, 74, 240, 140, 3, 65, 12, 168, 105, 33, 253, 96, 7, 71, 61, 74]),
+        (65, [134, 93, 61, 121, 123, 217, 50, 12, 193, 244, 253, 54, 91, 202, 90, 67]),
+    ] {
+        assert_eq!(legacy.key_at(end).unwrap().digest, digest);
+        assert_eq!(explicit.key_at(end), legacy.key_at(end));
+    }
+}
+
+#[test]
+fn request_scopes_isolate_text_and_conditioned_prefixes_but_allow_self_restore() {
+    let tokens = vec![3; 65];
+    let events = [ConditioningEvent { position: 50, identity: [9; 32] }];
+    let mut first = PrefixHistory::new_scoped([7; 32], Some([1; 24]));
+    let mut rebuilt = PrefixHistory::new_scoped([7; 32], Some([1; 24]));
+    let mut other = PrefixHistory::new_scoped([7; 32], Some([2; 24]));
+    first.append(&tokens, &events).unwrap();
+    rebuilt.append(&tokens[..63], &events).unwrap();
+    rebuilt.append(&tokens[63..], &[]).unwrap();
+    other.append(&tokens, &events).unwrap();
+    assert_eq!(first.identity(), [7; 32]);
+    for end in [0, 1, 49, 50, 51, 63, 64, 65] {
+        assert_eq!(first.key_at(end), rebuilt.key_at(end));
+        assert_ne!(first.key_at(end), other.key_at(end));
+    }
+    let mut cache = PrefixCheckpointCache::new([7; 32], 4, 4, 64).unwrap();
+    let id = created(&mut cache, &first, &proposal(None, 64, &[0], 0, 0));
+    assert_eq!(cache.lookup(&rebuilt).unwrap().checkpoint, Some(id));
+    assert_eq!(cache.lookup(&other).unwrap().consumed_tokens, 0);
+    assert_eq!(cache.lookup(&rebuilt).unwrap().consumed_tokens, 64);
+    let mut resumed = first.clone();
+    resumed.append(&[4; 64], &[]).unwrap();
+    rebuilt.append(&[4; 64], &[]).unwrap();
+    assert_eq!(resumed.key_at(129), rebuilt.key_at(129));
+}

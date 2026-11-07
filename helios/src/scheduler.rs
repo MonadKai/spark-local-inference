@@ -171,6 +171,8 @@ pub struct SchedulerStats {
 
 #[derive(Clone)]
 pub struct RequestSpec {
+    /// Stable across this generation's readmissions; absent shares prefixes.
+    pub prefix_scope: Option<[u8; 24]>,
     pub prompt: Vec<u32>,
     pub message_boundaries: Vec<usize>,
     pub conditioning: Vec<ConditioningEvent>,
@@ -1458,7 +1460,7 @@ impl RequestScheduler {
             ));
         }
         self.free_slot()?;
-        let mut history = PrefixHistory::new(self.identity);
+        let mut history = PrefixHistory::new_scoped(self.identity, spec.prefix_scope);
         history.append(&spec.prompt, &spec.conditioning)?;
         if spec.prompt_logprobs && self.scored_prefill_catalog.is_empty() {
             return Err(crate::Error::admission(crate::AdmissionError::Invalid,

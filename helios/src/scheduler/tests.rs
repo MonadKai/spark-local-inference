@@ -209,6 +209,7 @@ pub(crate) fn duration_graphs(active: usize) -> Vec<crate::execution::GraphDescr
 
 pub(super) fn spec(tokens: usize, max_new: u32) -> RequestSpec {
     RequestSpec {
+        prefix_scope: None,
         message_boundaries: vec![],
         prompt: (0..tokens as u32).collect(),
         conditioning: vec![],
@@ -2015,6 +2016,7 @@ fn declared_model_capabilities_drive_state_slots_vision_buckets_and_copy_validat
     s.enable_speculation(&[1, 2]).unwrap();
     let handle = s
         .admit(RequestSpec {
+            prefix_scope: None,
             message_boundaries: vec![],
             prompt: vec![7; 4],
             conditioning: vec![],

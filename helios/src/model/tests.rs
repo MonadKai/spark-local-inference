@@ -70,6 +70,7 @@ fn admission_histogram_seed_and_partial_page_uploads_preserve_native_semantics()
         .unwrap();
     let handle = scheduler
         .admit(RequestSpec {
+            prefix_scope: None,
             message_boundaries: vec![],
             prompt: vec![7; 65],
             conditioning: vec![],
@@ -218,6 +219,7 @@ fn large_prefill_uploads_preserve_token_position_and_image_indices_without_tail_
     let prompt: Vec<u32> = (0..4113).collect();
     let handle = scheduler
         .admit(RequestSpec {
+            prefix_scope: None,
             message_boundaries: vec![],
             prompt: prompt.clone(),
             conditioning: vec![],
@@ -530,6 +532,7 @@ fn packing_follows_value_bindings_after_buffers_and_model_are_renamed() {
         .unwrap();
     let handle = scheduler
         .admit(RequestSpec {
+            prefix_scope: None,
             message_boundaries: vec![],
             prompt: vec![7; 65],
             conditioning: vec![],
@@ -667,6 +670,7 @@ fn copy_staging_uses_physical_slots_stochastic_defaults_and_bonus_mask() {
         .map(|slot| {
             scheduler
                 .admit(RequestSpec {
+                    prefix_scope: None,
                     message_boundaries: vec![],
                     prompt: vec![7; 65],
                     conditioning: vec![],
@@ -904,6 +908,7 @@ fn mixed_native_uploads_pack_prompt_after_the_decode_extent_and_sample_only_elig
             let prompt = vec![token; count];
             let h = scheduler
                 .admit(RequestSpec {
+                    prefix_scope: None,
                     prompt: prompt.clone(),
                     message_boundaries: vec![],
                     conditioning: vec![],
@@ -1111,6 +1116,7 @@ fn state_transfer_and_resume_upload_fixture() {
         let prompt = vec![7; 64];
         let handle = scheduler
             .admit(RequestSpec {
+                prefix_scope: None,
                 message_boundaries: vec![],
                 prompt: prompt.clone(),
                 conditioning: vec![],
@@ -1326,6 +1332,7 @@ fn grammar_packing_fixture() -> (
     for _ in 0..8 {
         let handle = scheduler
             .admit(RequestSpec {
+                prefix_scope: None,
                 message_boundaries: vec![],
                 prompt: vec![7; 66],
                 conditioning: vec![],
@@ -1559,6 +1566,7 @@ fn prefill_compacts_execution_feature_indices_and_preserves_admission_metadata()
         .unwrap();
     let handle = scheduler
         .admit(RequestSpec {
+            prefix_scope: None,
             prompt: vec![7; 4],
             message_boundaries: vec![],
             conditioning: vec![],
@@ -1674,7 +1682,7 @@ fn committed_generation_cursors_require_feedback_while_unused_prompt_positions_d
                 scheduler.fixed_speculative_width(Some(8)).unwrap();
             }
             scheduler.measured_graph_durations(&manifest.graphs).unwrap();
-            let handle = scheduler.admit(RequestSpec { message_boundaries: vec![], prompt: vec![7; 64], conditioning: vec![],
+            let handle = scheduler.admit(RequestSpec { prefix_scope: None, message_boundaries: vec![], prompt: vec![7; 64], conditioning: vec![],
                 max_new_tokens: 64, grammar_constrained: false, host_stops: false, prompt_logprobs: false, growable_output: false }).unwrap();
             let mut admissions: [Option<Admission>; 4] = std::array::from_fn(|_| None);
             admissions[handle.slot as usize] = Some(Admission { handle, sampling: SamplingParameters::default(),

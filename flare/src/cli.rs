@@ -929,6 +929,10 @@ pub struct ServingOptions {
     #[arg(long, value_name = "SIZE", value_parser = parse_size, help_heading = "Prefix cache options")]
     pub prefix_cache_memory: Option<u64>,
 
+    /// Share prefixes across generations or isolate each generation, including prepared inputs [default: prefix_cache.reuse, else shared].
+    #[arg(long, value_name = "shared|request", help_heading = "Prefix cache options")]
+    pub prefix_cache_reuse: Option<flare_helios::server::PrefixCacheReuse>,
+
     /// Directory for prefix checkpoints and prepared inputs on disk [default: paths.prefix_cache, else disabled].
     #[arg(long, value_name = "DIR", help_heading = "Prefix cache options")]
     pub prefix_cache_disk: Option<PathBuf>,
@@ -1090,6 +1094,9 @@ impl ServingOptions {
         // all of them, so every rank needs the same settings.
         if let Some(bytes) = self.prefix_cache_memory {
             options.extend(["--prefix-cache-memory".into(), bytes.to_string()]);
+        }
+        if let Some(reuse) = self.prefix_cache_reuse {
+            options.extend(["--prefix-cache-reuse".into(), reuse.as_str().into()]);
         }
         if let Some(directory) = &self.prefix_cache_disk {
             options.extend([
