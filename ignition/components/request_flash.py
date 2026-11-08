@@ -147,6 +147,8 @@ def _attend_batched(query: torch.Tensor, key: torch.Tensor, value: torch.Tensor,
             plans: list[int], max_query: int) -> None:
     # The fixed catalog is visible to complete-forward compilation. Exported
     # execution contains CUDA nodes, with no Python dispatch in Rust serving.
+    if max_query != 1:
+        raise ValueError("batched request attention requires logical Q1")
     slots = pages.shape[0]
     positions = torch.arange(query.shape[0], device=query.device, dtype=torch.int32)
     query_bits, output_bits = query.view(torch.int16), output.view(torch.int16)
@@ -161,9 +163,13 @@ def _attend_batched(query: torch.Tensor, key: torch.Tensor, value: torch.Tensor,
     page_positions = torch.arange(pages.shape[1], device=query.device, dtype=torch.int32)
     bad_pages = (((pages < 0) | (pages >= key.shape[0]))
         & (page_positions[None, :] < (lengths[:, None] + key.shape[1] - 1) // key.shape[1])).any(1)
-    members = (positions[None, :] >= cu[:-1, None]) & (positions[None, :] < cu[1:, None])
+    # This program has at most one logical query per slot. Check that query
+    # directly, without a slots-by-packed-rows membership matrix. Invalid
+    # larger counts already fail the logical extent guard above.
     finite_query = torch.isfinite(query).all(dim=(1, 2))
-    valid &= ~bad_pages & ~((~finite_query)[None, :] & members).any(1)
+    first_finite = torch.index_select(finite_query, 0,
+        cu[:-1].clamp(0, query.shape[0] - 1).long())
+    valid &= ~bad_pages & first_finite
     row = torch.where(counts == 1, 0, (counts + 63) // 64).clamp(0, lookup.shape[0] - 1)
     column = ((lengths + 127) // 128).clamp(0, lookup.shape[1] - 1)
     chosen = torch.index_select(lookup.reshape(-1), 0, (row * lookup.shape[1] + column).long())
@@ -204,12 +210,16 @@ def _attend_batched(query: torch.Tensor, key: torch.Tensor, value: torch.Tensor,
     bad |= ((row_positions[None, :] < counts[:, None])
         & ~torch.isfinite(row_bits.view(torch.bfloat16)).all(dim=(2, 3))).any(1)
     errors[1:].copy_(bad.int())
-    bad_rows = torch.zeros_like(positions, dtype=torch.bool)
-    for slot in range(slots):
-        bad_rows |= members[slot] & bad[slot]
-        restored = torch.index_select(row_bits[slot], 0,
-            (positions - cu[slot]).clamp(0, max_query - 1).long())
-        output_bits.copy_(torch.where((members[slot] & valid[slot])[:, None, None], restored, output_bits))
+    # Upper-bound search skips empty slots, so a packed row maps to its actual
+    # owner even when physical request slots contain holes. Every Q1 result is
+    # in that slot's first logical row, including the two-query fixed-split
+    # program. Unordered metadata is masked as an error after bounded gathers.
+    owner = torch.searchsorted(cu[1:], positions, right=True).clamp(0, slots - 1)
+    packed = positions < cu[-1]
+    restored = torch.index_select(row_bits[:, 0], 0, owner)
+    selected = packed & torch.index_select(valid, 0, owner)
+    output_bits.copy_(torch.where(selected[:, None, None], restored, 0))
+    bad_rows = packed & torch.index_select(bad, 0, owner)
     output.masked_fill_((bad_rows | ~ordered)[:, None, None], float("nan"))
 
 

@@ -1,0 +1,63 @@
+{
+  "scope": "Scalable owner packing/restoration for logical-Q1 request attention; FA2 call families and split arithmetic remain unchanged; component qualification only",
+  "source_commit": "174516a0",
+  "overlay": [
+    "ignition/components/request_flash.py",
+    "tests/components/test_request_flash_cuda.py"
+  ],
+  "gates": {
+    "complete_cuda_native_file": "tests/components/test_request_flash_cuda.py",
+    "passed": 29,
+    "failed": 0,
+    "duration_seconds": 387.87
+  },
+  "new_coverage": {
+    "physical_slots": [
+      64,
+      4096
+    ],
+    "num_splits": [
+      null,
+      1
+    ],
+    "same_operand_reference": "Retained original general single-request captured-program arithmetic; no new independent model oracle",
+    "shared_kv_owners": 2,
+    "key_tokens": 8192,
+    "heads": 16,
+    "kv_heads": 8,
+    "head_dimension": 128,
+    "replays_per_arrangement": 5,
+    "arrangements": [
+      "full",
+      "holes every third slot",
+      "only final slot",
+      "empty",
+      "reverse identities",
+      "full recovery"
+    ],
+    "checks": [
+      "all split-family representatives",
+      "byte equality with single-request general program",
+      "inactive poison and zero output",
+      "late final-row active poison and exact healthy-row preservation",
+      "recovery without recapture",
+      "guard preservation",
+      "unchanged shared KV bytes",
+      "Torch allocation counters"
+    ]
+  },
+  "existing_coverage": [
+    "B1/2/4/8 packed holes and slot movement",
+    "all 128-key split boundaries to8192",
+    "original GQA SDPA byte checks and FP64 envelopes",
+    "prefill causal/page alignment",
+    "nonfinite/malformed inputs and recovery",
+    "independent Rust package replay after Python preparation exits"
+  ],
+  "limits": [
+    "4096 logical Q1 rows are graph-internal data, not native scheduler requests or separately owned KV",
+    "No generated-history whole-model equivalence or ASR use yet",
+    "No comparative timing; shared CPU work was present",
+    "No full-model numerical, deterministic, recognition-quality, API or performance acceptance"
+  ]
+}

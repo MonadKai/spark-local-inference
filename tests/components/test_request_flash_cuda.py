@@ -359,6 +359,116 @@ def test_bad_metadata_is_visible_and_recovers_without_allocating(num_splits):
 
 @pytest.mark.parametrize("num_splits", [None, 1])
 @torch.no_grad()
+@pytest.mark.parametrize("slots", [64, 4096])
+def test_large_q1_catalog_preserves_sparse_owners_shared_pages_and_late_errors(slots, num_splits):
+    from ignition.components.request_flash import _attend
+
+    owners, graphs = [], []
+    with retain_on_failed_drain(0, owners, graphs), ModuleImages() as images:
+        owners.append(images)
+        def allocate(shape, dtype=torch.bfloat16):
+            tensor = torch.zeros(shape, dtype=dtype, device="cuda")
+            owners.append(tensor)
+            return tensor
+        query = allocate((slots, 16, 128))
+        key, value = allocate((64, 256, 8, 128)), allocate((64, 256, 8, 128))
+        guard = allocate((slots + 2, 16, 128))
+        output = guard[1:-1]
+        pages, lengths = allocate((slots, 32), torch.int32), allocate((slots,), torch.int32)
+        cu, cu_key = allocate((slots + 1,), torch.int32), allocate((slots + 1,), torch.int32)
+        operation = PreparedRequestFlashAttention(query, key, value, pages, lengths, cu, cu_key,
+            output, max_query=1, num_splits=num_splits)
+        owners.append(operation)
+        compiled = compile_forward(operation)
+        owners.append(compiled)
+        compiled()
+        graph = torch.cuda.CUDAGraph()
+        graphs.append(graph)
+        with torch.cuda.graph(graph):
+            compiled()
+        generator = torch.Generator(device="cuda").manual_seed(20261106)
+        prototypes = allocate((8, 16, 128))
+        for tensor in (prototypes, key, value):
+            tensor.normal_(std=.2, generator=generator)
+        representatives = {}
+        for blocks, family in enumerate(operation.lookup[0].cpu().tolist()[1:], 1):
+            representatives.setdefault(family, blocks * 128)
+        assert set(representatives) == set(range(len(operation.family_geometry) // 3))
+        sizes = sorted({1, 123, 165, 444, 768, 769, 897, 8192, *representatives.values()})
+        reference = allocate((8 * len(sizes), 16, 128))
+        one_query, one_output = allocate((1, 16, 128)), allocate((1, 16, 128))
+        one_pages, one_length = allocate((1, 32), torch.int32), allocate((1,), torch.int32)
+        one_cu = torch.tensor([0, 1], device="cuda", dtype=torch.int32)
+        one_errors = allocate((2,), torch.int32)
+        owners.append(one_cu)
+        for identity in range(8):
+            one_query.copy_(prototypes[identity:identity + 1])
+            one_pages.copy_(torch.arange(32, device="cuda", dtype=torch.int32)[None] + 32 * (identity % 2))
+            for index, size in enumerate(sizes):
+                one_length.fill_(size)
+                # The retained general program supplies the same original
+                # single-request arithmetic without the batched owner packing.
+                _attend(one_query, key, value, one_pages, one_length, one_cu,
+                    one_output, one_errors, operation.lookup, operation.family_geometry, 1)
+                assert one_errors.eq(0).all() and torch.isfinite(one_output).all()
+                reference[identity * len(sizes) + index].copy_(one_output[0])
+        arrangements = [list(range(slots)), [i for i in range(slots) if i % 3 != 1],
+            [slots - 1], [], list(range(slots - 1, -1, -1)), list(range(slots))]
+        frozen = [tensor.view(torch.uint8).clone() for tensor in (key, value)]
+        for arrangement in arrangements:
+            live = len(arrangement)
+            occupied = set(arrangement)
+            cumulative = [0]
+            for slot in range(slots):
+                cumulative.append(cumulative[-1] + int(slot in occupied))
+            # Reverse identity assignment changes packed order without changing
+            # the sorted slot packing and also exercises empty slots in front.
+            ids = torch.tensor(list(reversed(arrangement)), device="cuda", dtype=torch.int64)
+            sorted_slots = torch.tensor(sorted(arrangement), device="cuda", dtype=torch.int64)
+            query.fill_(float("nan"))
+            query[:live].copy_(torch.index_select(prototypes, 0, ids % 8))
+            pages.fill_(-1)
+            pages[sorted_slots] = torch.arange(32, device="cuda", dtype=torch.int32)[None] + 32 * (ids[:, None] % 2).int()
+            lengths.zero_()
+            chosen_sizes = torch.tensor(sizes, device="cuda", dtype=torch.int32)
+            lengths[sorted_slots] = torch.index_select(chosen_sizes, 0, (ids // 8) % len(sizes))
+            cu.copy_(torch.tensor(cumulative, device="cuda", dtype=torch.int32))
+            target = torch.zeros_like(output)
+            reference_rows = (ids % 8) * len(sizes) + (ids // 8) % len(sizes)
+            target[:live].copy_(torch.index_select(reference, 0, reference_rows))
+            for _ in range(5):
+                guard.fill_(137)
+                torch.cuda.synchronize()
+                before = torch.cuda.memory_stats()
+                graph.replay()
+                torch.cuda.synchronize()
+                after = torch.cuda.memory_stats()
+                for field in ("allocation.all.allocated", "allocation.all.freed",
+                        "segment.all.allocated", "segment.all.freed"):
+                    assert before[field] == after[field], field
+                assert operation.errors.eq(0).all()
+                assert torch.equal(output.view(torch.uint8), target.view(torch.uint8))
+                assert guard[[0, -1]].eq(137).all()
+                for tensor, saved in zip((key, value), frozen, strict=True):
+                    assert torch.equal(tensor.view(torch.uint8), saved)
+        expected = output.clone()
+        saved = query[-1].clone()
+        query[-1, 0, 0] = float("nan")
+        graph.replay()
+        torch.cuda.synchronize()
+        assert operation.errors[-1].item() == 1 and operation.errors[:-1].eq(0).all()
+        assert not torch.isfinite(output[-1]).all()
+        assert torch.equal(output[:-1].view(torch.uint8), expected[:-1].view(torch.uint8))
+        query[-1].copy_(saved)
+        graph.replay()
+        torch.cuda.synchronize()
+        assert operation.errors.eq(0).all()
+        assert torch.equal(output.view(torch.uint8), expected.view(torch.uint8))
+        graph.reset()
+
+
+@pytest.mark.parametrize("num_splits", [None, 1])
+@torch.no_grad()
 def test_mixed_split_families_match_fp64_and_survive_row_movement(num_splits):
     owners, graphs = [], []
     with retain_on_failed_drain(0, owners, graphs), ModuleImages() as images:

@@ -1,0 +1,5725 @@
+{
+  "scope": "Current reduction rows8 versus exact c1f595d9 kernel source compiled now with the same pinned compiler; plus real SM121 cubin resources for rows8/16/40/4096/524280. No old published-package, whole-model or performance qualification",
+  "status": "passed_prior_source_differential_and_sm121_resources_only",
+  "prior_source_commit": "c1f595d929303a4b35d7bbd5bc5da222a213b6c6",
+  "source_seed": 20261106,
+  "torch": "2.14.1+cu132",
+  "cuda_runtime": "13.2",
+  "observations": [
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 64,
+      "columns": 17,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 4096,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 2048,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 12288,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 6144,
+      "columns": 2048,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        4,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        2,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        8,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        16,
+        4
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        8,
+        8
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 1,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 2,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 4,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 3,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 7,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 0,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    },
+    {
+      "reduction": 2048,
+      "columns": 151936,
+      "tactic": [
+        16,
+        8
+      ],
+      "logical_rows": 8,
+      "replays": 5,
+      "different_bytes": 0,
+      "allocation_stable": true,
+      "guards": true
+    }
+  ],
+  "resources": [
+    {
+      "query": {
+        "columns": 17,
+        "reduction": 64,
+        "rows": 8
+      },
+      "tactic": [
+        4,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 40,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:40 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 17,
+        "reduction": 64,
+        "rows": 8
+      },
+      "tactic": [
+        2,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 30,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:30 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 17,
+        "reduction": 64,
+        "rows": 8
+      },
+      "tactic": [
+        8,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 40,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:40 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 17,
+        "reduction": 64,
+        "rows": 8
+      },
+      "tactic": [
+        16,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 56,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:56 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 17,
+        "reduction": 64,
+        "rows": 8
+      },
+      "tactic": [
+        8,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 39,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 256
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:39 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 17,
+        "reduction": 64,
+        "rows": 8
+      },
+      "tactic": [
+        16,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 39,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:39 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 17,
+        "reduction": 64,
+        "rows": 16
+      },
+      "tactic": [
+        4,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 40,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:40 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 17,
+        "reduction": 64,
+        "rows": 16
+      },
+      "tactic": [
+        2,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 30,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:30 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 17,
+        "reduction": 64,
+        "rows": 16
+      },
+      "tactic": [
+        8,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 40,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:40 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 17,
+        "reduction": 64,
+        "rows": 16
+      },
+      "tactic": [
+        16,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 56,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:56 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 17,
+        "reduction": 64,
+        "rows": 16
+      },
+      "tactic": [
+        8,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 39,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 256
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:39 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 17,
+        "reduction": 64,
+        "rows": 16
+      },
+      "tactic": [
+        16,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 39,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:39 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 4096,
+        "reduction": 2048,
+        "rows": 8
+      },
+      "tactic": [
+        4,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 32,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:32 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 4096,
+        "reduction": 2048,
+        "rows": 8
+      },
+      "tactic": [
+        2,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 27,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:27 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 4096,
+        "reduction": 2048,
+        "rows": 8
+      },
+      "tactic": [
+        8,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 37,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:37 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 4096,
+        "reduction": 2048,
+        "rows": 8
+      },
+      "tactic": [
+        16,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 48,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:48 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 4096,
+        "reduction": 2048,
+        "rows": 8
+      },
+      "tactic": [
+        8,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 40,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 256
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:40 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 4096,
+        "reduction": 2048,
+        "rows": 8
+      },
+      "tactic": [
+        16,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 38,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:38 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 4096,
+        "reduction": 2048,
+        "rows": 16
+      },
+      "tactic": [
+        4,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 32,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:32 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 4096,
+        "reduction": 2048,
+        "rows": 16
+      },
+      "tactic": [
+        2,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 27,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:27 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 4096,
+        "reduction": 2048,
+        "rows": 16
+      },
+      "tactic": [
+        8,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 37,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:37 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 4096,
+        "reduction": 2048,
+        "rows": 16
+      },
+      "tactic": [
+        16,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 48,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:48 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 4096,
+        "reduction": 2048,
+        "rows": 16
+      },
+      "tactic": [
+        8,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 40,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 256
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:40 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 4096,
+        "reduction": 2048,
+        "rows": 16
+      },
+      "tactic": [
+        16,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 38,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:38 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 2048,
+        "reduction": 2048,
+        "rows": 8
+      },
+      "tactic": [
+        4,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 32,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:32 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 2048,
+        "reduction": 2048,
+        "rows": 8
+      },
+      "tactic": [
+        2,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 27,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:27 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 2048,
+        "reduction": 2048,
+        "rows": 8
+      },
+      "tactic": [
+        8,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 37,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:37 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 2048,
+        "reduction": 2048,
+        "rows": 8
+      },
+      "tactic": [
+        16,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 48,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:48 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 2048,
+        "reduction": 2048,
+        "rows": 8
+      },
+      "tactic": [
+        8,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 40,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 256
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:40 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 2048,
+        "reduction": 2048,
+        "rows": 8
+      },
+      "tactic": [
+        16,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 38,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:38 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 2048,
+        "reduction": 2048,
+        "rows": 16
+      },
+      "tactic": [
+        4,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 32,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:32 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 2048,
+        "reduction": 2048,
+        "rows": 16
+      },
+      "tactic": [
+        2,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 27,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:27 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 2048,
+        "reduction": 2048,
+        "rows": 16
+      },
+      "tactic": [
+        8,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 37,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:37 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 2048,
+        "reduction": 2048,
+        "rows": 16
+      },
+      "tactic": [
+        16,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 48,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:48 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 2048,
+        "reduction": 2048,
+        "rows": 16
+      },
+      "tactic": [
+        8,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 40,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 256
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:40 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 2048,
+        "reduction": 2048,
+        "rows": 16
+      },
+      "tactic": [
+        16,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 38,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:38 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 12288,
+        "reduction": 2048,
+        "rows": 8
+      },
+      "tactic": [
+        4,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 32,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:32 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 12288,
+        "reduction": 2048,
+        "rows": 8
+      },
+      "tactic": [
+        2,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 27,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:27 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 12288,
+        "reduction": 2048,
+        "rows": 8
+      },
+      "tactic": [
+        8,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 37,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:37 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 12288,
+        "reduction": 2048,
+        "rows": 8
+      },
+      "tactic": [
+        16,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 48,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:48 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 12288,
+        "reduction": 2048,
+        "rows": 8
+      },
+      "tactic": [
+        8,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 40,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 256
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:40 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 12288,
+        "reduction": 2048,
+        "rows": 8
+      },
+      "tactic": [
+        16,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 38,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:38 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 12288,
+        "reduction": 2048,
+        "rows": 16
+      },
+      "tactic": [
+        4,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 32,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:32 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 12288,
+        "reduction": 2048,
+        "rows": 16
+      },
+      "tactic": [
+        2,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 27,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:27 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 12288,
+        "reduction": 2048,
+        "rows": 16
+      },
+      "tactic": [
+        8,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 37,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:37 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 12288,
+        "reduction": 2048,
+        "rows": 16
+      },
+      "tactic": [
+        16,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 48,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:48 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 12288,
+        "reduction": 2048,
+        "rows": 16
+      },
+      "tactic": [
+        8,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 40,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 256
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:40 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 12288,
+        "reduction": 2048,
+        "rows": 16
+      },
+      "tactic": [
+        16,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 38,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:38 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 2048,
+        "reduction": 6144,
+        "rows": 8
+      },
+      "tactic": [
+        4,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 32,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:32 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 2048,
+        "reduction": 6144,
+        "rows": 8
+      },
+      "tactic": [
+        2,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 28,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:28 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 2048,
+        "reduction": 6144,
+        "rows": 8
+      },
+      "tactic": [
+        8,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 38,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:38 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 2048,
+        "reduction": 6144,
+        "rows": 8
+      },
+      "tactic": [
+        16,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 48,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:48 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 2048,
+        "reduction": 6144,
+        "rows": 8
+      },
+      "tactic": [
+        8,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 40,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 256
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:40 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 2048,
+        "reduction": 6144,
+        "rows": 8
+      },
+      "tactic": [
+        16,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 38,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:38 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 2048,
+        "reduction": 6144,
+        "rows": 16
+      },
+      "tactic": [
+        4,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 32,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:32 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 2048,
+        "reduction": 6144,
+        "rows": 16
+      },
+      "tactic": [
+        2,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 28,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:28 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 2048,
+        "reduction": 6144,
+        "rows": 16
+      },
+      "tactic": [
+        8,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 38,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:38 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 2048,
+        "reduction": 6144,
+        "rows": 16
+      },
+      "tactic": [
+        16,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 48,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:48 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 2048,
+        "reduction": 6144,
+        "rows": 16
+      },
+      "tactic": [
+        8,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 40,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 256
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:40 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 2048,
+        "reduction": 6144,
+        "rows": 16
+      },
+      "tactic": [
+        16,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 38,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:38 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 151936,
+        "reduction": 2048,
+        "rows": 8
+      },
+      "tactic": [
+        4,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 32,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:32 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 151936,
+        "reduction": 2048,
+        "rows": 8
+      },
+      "tactic": [
+        2,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 27,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:27 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 151936,
+        "reduction": 2048,
+        "rows": 8
+      },
+      "tactic": [
+        8,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 37,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:37 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 151936,
+        "reduction": 2048,
+        "rows": 8
+      },
+      "tactic": [
+        16,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 48,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:48 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 151936,
+        "reduction": 2048,
+        "rows": 8
+      },
+      "tactic": [
+        8,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 40,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 256
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:40 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 151936,
+        "reduction": 2048,
+        "rows": 8
+      },
+      "tactic": [
+        16,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 38,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:38 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 151936,
+        "reduction": 2048,
+        "rows": 16
+      },
+      "tactic": [
+        4,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 32,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:32 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 151936,
+        "reduction": 2048,
+        "rows": 16
+      },
+      "tactic": [
+        2,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 27,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:27 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 151936,
+        "reduction": 2048,
+        "rows": 16
+      },
+      "tactic": [
+        8,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 37,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:37 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 151936,
+        "reduction": 2048,
+        "rows": 16
+      },
+      "tactic": [
+        16,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 48,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:48 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 151936,
+        "reduction": 2048,
+        "rows": 16
+      },
+      "tactic": [
+        8,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 40,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 256
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:40 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 151936,
+        "reduction": 2048,
+        "rows": 16
+      },
+      "tactic": [
+        16,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 38,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:38 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 17,
+        "reduction": 64,
+        "rows": 40
+      },
+      "tactic": [
+        4,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 40,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:40 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 17,
+        "reduction": 64,
+        "rows": 40
+      },
+      "tactic": [
+        2,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 30,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:30 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 17,
+        "reduction": 64,
+        "rows": 40
+      },
+      "tactic": [
+        8,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 40,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:40 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 17,
+        "reduction": 64,
+        "rows": 40
+      },
+      "tactic": [
+        16,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 56,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:56 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 17,
+        "reduction": 64,
+        "rows": 40
+      },
+      "tactic": [
+        8,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 39,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 256
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:39 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 17,
+        "reduction": 64,
+        "rows": 40
+      },
+      "tactic": [
+        16,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 39,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:39 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 17,
+        "reduction": 64,
+        "rows": 4096
+      },
+      "tactic": [
+        4,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 40,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:40 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 17,
+        "reduction": 64,
+        "rows": 4096
+      },
+      "tactic": [
+        2,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 30,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:30 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 17,
+        "reduction": 64,
+        "rows": 4096
+      },
+      "tactic": [
+        8,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 40,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:40 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 17,
+        "reduction": 64,
+        "rows": 4096
+      },
+      "tactic": [
+        16,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 56,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:56 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 17,
+        "reduction": 64,
+        "rows": 4096
+      },
+      "tactic": [
+        8,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 39,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 256
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:39 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 17,
+        "reduction": 64,
+        "rows": 4096
+      },
+      "tactic": [
+        16,
+        8
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 39,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:39 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    },
+    {
+      "query": {
+        "columns": 1,
+        "reduction": 16,
+        "rows": 524280
+      },
+      "tactic": [
+        4,
+        4
+      ],
+      "compiler": {
+        "triton_version": "3.8.0",
+        "target_arch": 121,
+        "enable_fp_fusion": false
+      },
+      "loaded_kernel": {
+        "registers_per_thread": 24,
+        "local_bytes_per_thread": 0,
+        "maximum_threads_per_block": 1024,
+        "shared_memory_bytes": 512
+      },
+      "cuobjdump": "Resource usage:\n Common:\n  GLOBAL:0\n Function _project:\n  REG:24 STACK:0 SHARED:1024 LOCAL:0 CONSTANT[0]:944 TEXTURE:0 SURFACE:0 SAMPLER:0"
+    }
+  ],
+  "errors": [],
+  "device": "NVIDIA GB10",
+  "compute_capability": [
+    12,
+    1
+  ],
+  "multiprocessors": 48,
+  "current_reduction_source_commit": "e6dcc2bfbaaa804077d8aabc3f769ad8b72349f0",
+  "limits": [
+    "Prior source compiled with current pinned compiler, not an older published package cubin",
+    "Finite represented inputs and inactive NaN tails; not a new all-class arithmetic oracle",
+    "No whole-model, native ASR, quality or comparative-performance qualification",
+    "Resource records apply only to this actual SM121/compiler combination"
+  ]
+}
