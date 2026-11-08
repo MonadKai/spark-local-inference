@@ -289,7 +289,11 @@ overhead, sustained performance and final clean-source qualification remain open
 `request-attention-sm121.json` retains independent actual-GQA and right-aligned
 prefill operand observations, including the split/partition controls that reject
 uniform or repeated-KV arithmetic. This is component diagnosis, not serving
-performance. `shared-generation-errors-sm121.json` retains seven native fixture
+performance. `request-attention-partition-extent.json` adds actual CUDA kernel
+names and max-key/split controls to the same frozen operands. It identifies the
+165-key split-KV difference and retains failures of the fixed 128-key partition
+control at other lengths; it does not qualify a model configuration.
+`shared-generation-errors-sm121.json` retains seven native fixture
 attempts and the successful Rust HTTP/SSE metric/body observations. Six earlier
 attempts fail during fixture construction/startup; none establishes native ERROR
 handling. The final attempt exports real fault-producing attention computation,

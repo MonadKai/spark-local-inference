@@ -333,9 +333,22 @@ The first four continuation tests incorrectly required byte equality to
 standard fixed-length SDPA. All four batch cases failed first at 165 keys.
 The retained [path attribution](../benchmarks/qwen3_asr/results/request-attention-path-attribution.json)
 shows 588 differing BF16 values there, with maximum difference 0.000244140625.
-Explicit varlen split counts 0/1/2, paged layouts, padded queries and capture
-agree with each other and satisfy the unchanged FP64 bounds. The evidence does
-not isolate split count as the cause of the fixed-length/varlen difference.
+Requested nonpaged varlen split counts 0/1/2, paged split1, padded queries and
+capture agree with each other and satisfy the unchanged FP64 bounds. That
+initial evidence did not isolate the cause: the pinned nonpaged varlen entry
+ignores the requested split count for these multi-query inputs.
+
+The subsequent [partition observations](../benchmarks/qwen3_asr/results/request-attention-partition-extent.json)
+retain actual CUDA profiler kernel names and all four frozen operand cases.
+The fixed-length 165-key reference executes an N128 split-KV kernel and FP32
+combine. Paged max-key capacity 165 or 256 with split2 reproduces its final row
+exactly; max-key 8192 with split2 differs by 322 BF16 values because its partitions
+span 4096 keys. Fixed max-key 8192/split64 also reproduces the 165-key row, while
+differing by 418/817/837 values at 123/443/8192 keys. Five captured Q2 replays per
+variant preserve bytes and allocation counters. These controls identify the
+partition mechanism; they do not qualify a model configuration or establish
+fragment, readmission, slot or recognition guarantees. No model threshold or
+reference changes as a result.
 
 The corrected tests separately require byte identity against captured prefill
 with the same fixed-split configuration and numerical agreement with independent
