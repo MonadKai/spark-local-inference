@@ -24,30 +24,29 @@ _DISCRETE_WORKER_DEVICE_BYTES = 1 << 30
 
 @_defer_full_collection()
 def _compile_forward(payload, device, options, path, num_threads, grad_enabled,
-                     bf16_reduced_precision_reduction):
+                     bf16_reduced_precision_reduction, inference_enabled=False):
     from .aot import aot_forward
     from .device_binding import bind_device
     from .forward_metadata import loads
 
     torch.set_num_threads(num_threads)
-    torch.set_grad_enabled(grad_enabled)
     # Spawned workers do not inherit Torch's process-local arithmetic policy.
     # Apply it on every submission, including reused workers switching recipes.
     torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction = bf16_reduced_precision_reduction
     torch.cuda.set_device(device)
     # A lent forward's metadata names its owner's GPU; it loads bound to this worker's.
-    with bind_device(device):
+    with bind_device(device), torch.inference_mode(inference_enabled), torch.set_grad_enabled(grad_enabled):
         forward = loads(payload)
-    artifact = aot_forward(forward, options=options)
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile(dir=path.parent, suffix='.tmp', delete=False) as file:
-        temporary = Path(file.name)
-    try:
-        artifact.save_compiled_function(str(temporary))
-        os.replace(temporary, path)
-    finally:
-        temporary.unlink(missing_ok=True)
+        artifact = aot_forward(forward, options=options)
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(dir=path.parent, suffix='.tmp', delete=False) as file:
+            temporary = Path(file.name)
+        try:
+            artifact.save_compiled_function(str(temporary))
+            os.replace(temporary, path)
+        finally:
+            temporary.unlink(missing_ok=True)
 
 
 class CompilePool:
@@ -104,7 +103,8 @@ class CompilePool:
         return self.pool.submit(_compile_forward, payload, self.device, self.options, str(path),
                                 torch.get_num_threads(), torch.is_grad_enabled(),
                                 (torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction,
-                                 torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction_split_k))
+                                 torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction_split_k),
+                                torch.is_inference_mode_enabled())
 
     def __enter__(self):
         return self

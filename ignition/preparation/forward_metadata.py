@@ -48,11 +48,14 @@ class _Storage:
         return _storage, (self.nbytes,)
 
 
-def _tensor(storage, shape, stride, offset, dtype, device, requires_grad, kind):
-    with torch._C._DisableTorchDispatch():
-        meta = torch.empty(0, dtype=dtype, device='meta').set_(storage, offset, shape, stride)
-        meta.requires_grad_(requires_grad)
-    value = FakeTensor(_MODE.get(), meta, device)
+def _tensor(storage, shape, stride, offset, dtype, device, requires_grad, kind, inference=None):
+    # Old metadata omitted this argument and used the loading context.
+    inference = torch.is_inference_mode_enabled() if inference is None else inference
+    with torch.inference_mode(inference):
+        with torch._C._DisableTorchDispatch():
+            meta = torch.empty(0, dtype=dtype, device='meta').set_(storage, offset, shape, stride)
+            meta.requires_grad_(requires_grad)
+        value = FakeTensor(_MODE.get(), meta, device)
     if kind is torch.nn.Parameter:
         value._is_param = True
     _TENSOR_KINDS.get()[value] = kind
@@ -105,7 +108,7 @@ class _ForwardPickler(pickle.Pickler):
             storage = value.untyped_storage()
             owner = self.storages.setdefault(storage._cdata, _Storage(storage.nbytes()))
             return _tensor, (owner, tuple(value.shape), value.stride(), value.storage_offset(),
-                             value.dtype, value.device, value.requires_grad, type(value))
+                             value.dtype, value.device, value.requires_grad, type(value), value.is_inference())
         if isinstance(value, _PreparedSlot):
             # Tracing needs selected layouts; normal plan pickling clears prepared state.
             return _object, (type(value),), dict(vars(value)), None, None, _set_state

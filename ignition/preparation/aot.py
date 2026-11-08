@@ -94,13 +94,22 @@ class _GuardPickler(GuardsStatePickler):
         if deferred and _DEFERRED_BINDINGS.get():
             pytype = torch._subclasses.FakeTensor
         mode = _GUARD_TENSOR_MODE.get()
-        if mode is None:
-            return super()._unpickle_tensor(meta_tensor, device, pytype, dispatch_keys_raw, grad)
-        value = mode.fake_tensor_converter.from_meta_and_device(
-            mode, meta_tensor, device, pytype,
-            torch._C.DispatchKeySet.from_raw_repr(dispatch_keys_raw))
-        value.grad = grad
-        return value
+        keys = torch._C.DispatchKeySet.from_raw_repr(dispatch_keys_raw)
+        # Previous guard payloads already declare inference identity in their keys.
+        inference = not keys.has(torch._C.DispatchKey.ADInplaceOrView)
+        with torch.inference_mode(inference):
+            # Torch's ordinary meta-tensor pickle follows the loading context.
+            # Restore the declared identity before constructing its FakeTensor.
+            with torch._C._DisableTorchDispatch():
+                meta = torch.empty(0, dtype=meta_tensor.dtype, device="meta").set_(
+                    meta_tensor.untyped_storage(), meta_tensor.storage_offset(),
+                    meta_tensor.shape, meta_tensor.stride())
+                meta.requires_grad_(meta_tensor.requires_grad)
+            if mode is None:
+                return super()._unpickle_tensor(meta, device, pytype, dispatch_keys_raw, grad)
+            value = mode.fake_tensor_converter.from_meta_and_device(mode, meta, device, pytype, keys)
+            value.grad = grad
+            return value
 
     def reducer_override(self, obj):
         from triton.runtime import JITFunction
@@ -109,7 +118,7 @@ class _GuardPickler(GuardsStatePickler):
         if isinstance(obj, torch.device):
             return restore_device, (obj.type, obj.index)
         if isinstance(obj, torch._subclasses.FakeTensor):
-            with torch._C._DisableTorchDispatch():
+            with torch.inference_mode(obj.is_inference()), torch._C._DisableTorchDispatch():
                 meta = torch.empty_strided(obj.shape, obj.stride(), dtype=obj.dtype,
                                           device="meta", requires_grad=obj.requires_grad)
             from .forward_metadata import _TENSOR_KINDS

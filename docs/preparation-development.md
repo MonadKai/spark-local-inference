@@ -52,6 +52,13 @@ before the session's capture guard forbids further kernel resolution.
   b12x preparation, tuning, binding refresh, and compiled warmup before capturing
   each serving graph. Retain compiled kernel owners until native replay has drained.
 
+Tensor metadata preserves each tensor's inference identity, including mixed
+inference and ordinary views of shared storage. Compiler submissions also carry
+the parent's inference and grad modes independently; each worker restores them
+for that job's tracing and serialization. Guard serialization retains the
+declared dispatch keys, and a live tensor with different keys remains a binding
+error. Neither a worker's default mode nor its previous job defines this state.
+
 Preparation failures must fence the device before resetting graphs, closing
 kernel owners, or restoring released scratch backing. If the fence fails, use
 `ignition.preparation.failure` to retain all resource roots through the native
