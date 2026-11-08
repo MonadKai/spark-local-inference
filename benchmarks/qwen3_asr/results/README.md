@@ -440,3 +440,30 @@ poisons output. This does not validate N/position request uploads or cache
 dependencies because the fixture captures those metadata values. The previous
 25-pass/4-failure missing-worker-module attempt and private-wheel correction
 remain explicit, with no whole-model or performance claim.
+
+
+`original-prompt-teacher-state.json.gz` preserves the complete captured-network
+run for the original-prompt/generated-history recipe. The accompanying
+`original-prompt-teacher-state-run.json` records its source correspondence,
+fixed references, inputs and capacities. All twelve B1/2/4/8 schedule cells
+contain twenty cases: 1,783 required teacher rows pass the unchanged scalar
+bounds with zero top-1 differences; all 240 same-path case traces, 240
+full-prefill probes and 960 state probes pass. Thirty-eight case traces are
+planned two-row retirement prefixes, not complete natural transcriptions.
+Prefix and first-decode KV observations cover all 28 layers.
+
+Budgeted network-node checks pass for 8,460 encoder, 13,000 prefill and 40 head
+observations; all 27 encoder observation bridges pass. Another 1,120 activation
+hook entries remain unbudgeted, so these are not complete local-operator
+qualification. Teacher maximum absolute error is 0.125 and maximum relative L2
+is 0.006978388081540694, within the unchanged per-case bounds. All recorded
+floating-point values are finite.
+
+This run retains the preparer, uses SDK BF16 Mel widened to FP32 and enables
+inference mode. Its largest prepared text capacity is 512; context is 8192.
+Ordinary CLI export uses a different ambient inference mode and requires its
+own native checks. Between-replay retirement is not asynchronous cancellation.
+The raw `full_model_numerical_qualification=false` and
+`native_package_serving=false` remain intentional: this run does not qualify
+native readmission, the PCM frontend, recognition quality, larger prefill
+capacities, API/lifecycle/old-package behavior or serving performance.
