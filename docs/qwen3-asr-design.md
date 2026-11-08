@@ -97,6 +97,24 @@ and retirement mechanisms from their actual storage dependencies. Audio must
 not enter `set_vision_images`, `IMAGE_TENSOR`, or image patch-count validation.
 Ignition owns audio model computation; Helios owns declared storage and replay.
 
+The decoder's seven bias-free layer projections use the shared fixed-reduction
+component on eight physical rows. One column tile reads its weight operands for
+all live rows; the sixteen FP32 accumulation chains and terminal BF16 conversion
+remain fixed across logical B1/2/4/8. Prepared row packing preserves request
+positions and generations, defines inactive rows as zero and maps results back
+to the original request rows. Text prefill retains its canonical projection
+groups. The vocabulary projection, including the first token after prefill,
+retains the separate fixed-eight-row canonical BF16 result before sampling.
+
+One-query GQA batches independent requests within each original FA2 catalog
+family. Each request still selects its original split, partition and key bound;
+all families execute and device metadata selects represented output bits.
+General queries retain their right-aligned layout. Preparation compiles and
+captures these programs; Rust serves their exported CUDA nodes. The
+[native recognition observation](../benchmarks/qwen3_asr/results/native-recognition-batched-attention.json)
+qualifies finite primary recognition on modified source. Complete numerical,
+lifecycle, final-source and comparative performance gates remain separate.
+
 ## D3: additive typed data
 
 In `helios/proto/runtime_package.proto`, `GraphOperation` value 14 is currently
@@ -444,23 +462,28 @@ gates. Against vLLM, the English WER degradation was 0.0003478261 with upper
 The complete responses, configuration and both score objects are in
 [the ordinary recognition result](../benchmarks/qwen3_asr/results/native-recognition-current.json).
 This is a modified-worktree arithmetic baseline, not final source or performance
-acceptance. Raw generated token IDs were not observed in this run. The separate
-largest text-prefill diagnostic still fails scalar logit gates on two development
-inputs; the recognition result does not waive that capacity requirement.
+acceptance. Raw generated token IDs were not observed in this run. That baseline's
+separate largest text-prefill diagnostic failed scalar logit gates on two
+development inputs; its recognition result did not waive that capacity requirement.
+The subsequent fixed-reduction/batched-attention candidate
+[reports](../benchmarks/qwen3_asr/results/README.md) retain 240 full-prefill
+production bridges and frozen scalar checks in each of two audio-capacity runs.
+The later B1-only observation also passes all 423 audio and 650 decoder nodes on
+every frozen input. Independent operators, the complete schedule with these new
+observations, native lifecycles and final-source qualification remain open.
 
-The current integration candidate uses an arithmetic baseline for decoder
-projections. Decode metadata and pointwise computation have eight physical rows,
-but each layer projection issues eight separate M=1 ATen matrix products through
-`PreparedRowwiseProjection`. This is not a cross-row GEMM optimization. Only the
-vocabulary projection, including the first prefill token and cached-hidden
-resume, uses one eight-row ATen matrix product. Logical graph capacities remain
-1/2/4/8; admission, state publication, sampling and completion retain those
-logical capacities. A report of eight physical rows alone does not describe the
-layer projection's actual M=1 calls. Qualified cross-row b12x replacements and
-their complete-step performance measurements remain required.
+The package in that historical recognition record used an arithmetic baseline
+for decoder projections. Its decode metadata and pointwise computation had eight
+physical rows, while each layer projection issued eight separate M=1 ATen matrix
+products through `PreparedRowwiseProjection`. Its vocabulary projection, including
+the first prefill token and cached-hidden resume, used one eight-row ATen matrix
+product. That record does not measure cross-row layer GEMM. The subsequent shared
+fixed-reduction path described above has separate model observations; its complete
+serving-step performance qualification remains open.
 
 Prefill captures the 64..4096 token catalog. Its fixed subrow projection extents
-19/27/32 all execute and select represented BF16 outputs by device count. Encoder
+19/27/32, plus 64 in larger capacities, all execute and select represented BF16
+outputs by device count. Encoder
 projections likewise execute the regular 104-row and small 13-row geometries;
 `conv_out` also executes a 512-row geometry for measured whole-input classes.
 These choices address arithmetic differences, not reduced GPU work. Their

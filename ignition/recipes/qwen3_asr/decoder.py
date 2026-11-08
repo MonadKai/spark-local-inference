@@ -11,7 +11,8 @@ import torch
 from ignition.components.embedding import PreparedEmbedding
 from ignition.components.collectives import PreparedAllGather
 from ignition.components.decode_rows import PreparedDecodeRows
-from ignition.components.canonical_projection import PreparedCanonicalProjection, PreparedRowwiseProjection
+from ignition.components.canonical_projection import PreparedCanonicalProjection
+from ignition.components.reduction_projection import PreparedReductionProjection
 from ignition.components.paged_attention import PagedAttentionMetadata, PreparedPagedKVWriter
 from ignition.components.request_flash import PreparedRequestFlashAttention
 
@@ -41,11 +42,13 @@ class _Projection(torch.nn.Module):
         return self.operation(source)
 
 
-class _RowwiseProjection(_Projection):
+class _DecodeProjection(_Projection):
     def __init__(self, source, module, output, count, *, session, name, buffers, workspace):
         torch.nn.Module.__init__(self)
-        self.operation = PreparedRowwiseProjection(source, module.weight, output, count,
-            bias=module.bias)
+        if module.bias is not None:
+            raise ValueError("decode reduction requires the checkpoint's bias-free projection")
+        self.operation = PreparedReductionProjection(source, module.weight, output, count,
+            session=session, name=name)
 
 
 @dataclass(frozen=True)
@@ -180,12 +183,12 @@ class PreparedDecoder:
         # All layers run sequentially. Q/K/V and branch outputs survive only
         # until the corresponding canonical residual addition consumes them.
         layer_scratch = _LayerScratch.allocate(scratch.activations.shape[0], buffers)
-        # Singleton matrix products are an arithmetic attribution baseline,
-        # not a cross-row optimization or qualified serving configuration.
+        # Decode uses the prepared cross-row fixed reduction. Model admission
+        # is qualified separately from the component arithmetic controls.
         # The 38/40-token frozen controls differ at M=64 versus M>=128.
         # Larger prefill graphs retain that measured arithmetic group too.
         extents = (19, 27, 32, *((64,) if scratch.activations.shape[0] > 64 else ()))
-        projection = (_RowwiseProjection if mode == "decode" else
+        projection = (_DecodeProjection if mode == "decode" else
             partial(_Projection, subrow_extents=extents))
         for index, layer in enumerate(tree.layers):
             prefix = f"{name}.layers.{index}"

@@ -340,3 +340,30 @@ because it expected only the earlier fence assertion; that failed attempt is
 retained and the later predicate explicitly names the following prerequisite
 check. These finite controls do not qualify HTTP disconnect, all cache
 lifecycles, the new attention package, final source or performance.
+
+The gzip JSON files `batched-attention-teacher-small-audio.json.gz` and
+`batched-attention-teacher-large-audio.json.gz` retain the complete earlier
+preparation-only teacher/state reports. Each contains twelve B1/2/4/8 schedule
+cells and 240 all-position prefill/production-state bridges with the largest
+prefill capacity, using a different audio-capacity selection. Their scalar and
+meaningful-state gates pass; their full-model numerical flag remains false.
+Compression preserves the original JSON bytes.
+
+`network-node-observations-sm121.json.gz` retains the subsequent focused B1
+report: all twenty frozen inputs pass 423 audio and 650 decoder node budgets,
+audio/prefill production bridges and the saved teacher rows. It uses smaller
+legal prefill capacities and the largest audio bucket. This is one schedule
+cell; complete teacher/state and full-model qualification remain false. A comment
+change alters the conservative all-source preparation hash from `72a5c9da…` to
+`b646d970…` and the cached legal projection tactics differ. The complete CPU
+comparison in `network-node-candidate-comparison.json` finds all 120 retained B1
+files, 3,660 tensors and 1,434,607,040 bytes equal across those runs.
+
+`network-head-node-budgets-sm121.json` applies both unchanged vocabulary-node
+budgets to the same retained GPU observations. The actual BF16 `scratch.hidden`
+inputs were already saved as the norm-output observation after each captured
+position-head call; the collector does not recompute them. Full-position BF16
+head results come from the corresponding saved logits. All twenty input/output
+checks pass. Together these records cover the 1,075 named network stages per
+input, while independent local arithmetic, the new configuration's complete
+schedule/native lifecycles, final-source and performance gates remain open.

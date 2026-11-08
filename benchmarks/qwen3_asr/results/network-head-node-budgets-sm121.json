@@ -1,0 +1,352 @@
+{
+  "scope": "CPU application of the unchanged two LM-head network budgets to actual retained GPU position-head observations. Actual BF16 scratch.hidden inputs were retained under thinker.model.norm.output; these are not new norm evaluations or replacement reference operands. No new GPU model execution, independent local arithmetic or full schedule qualification.",
+  "status": "complete_passed",
+  "started_at": "2026-11-08T01:48:43.455531+00:00",
+  "candidate_executed_by_this_tool": false,
+  "source_gpu_prepared_identity": "b646d9707914d03f8278e9eb302fcad0e2df0045c709824fd713d757b3cc333e",
+  "cases": [
+    {
+      "id": "en-777-126732-0081",
+      "stages": {
+        "thinker.lm_head.input.0": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        },
+        "thinker.lm_head.output": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        }
+      },
+      "passed": true,
+      "local_operator_qualification": false
+    },
+    {
+      "id": "en-422-122949-0013",
+      "stages": {
+        "thinker.lm_head.input.0": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        },
+        "thinker.lm_head.output": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        }
+      },
+      "passed": true,
+      "local_operator_qualification": false
+    },
+    {
+      "id": "zh-BAC009S0727W0418",
+      "stages": {
+        "thinker.lm_head.input.0": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        },
+        "thinker.lm_head.output": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        }
+      },
+      "passed": true,
+      "local_operator_qualification": false
+    },
+    {
+      "id": "zh-BAC009S0729W0241",
+      "stages": {
+        "thinker.lm_head.input.0": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        },
+        "thinker.lm_head.output": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        }
+      },
+      "passed": true,
+      "local_operator_qualification": false
+    },
+    {
+      "id": "en-422-122949-0013-first-13f",
+      "stages": {
+        "thinker.lm_head.input.0": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        },
+        "thinker.lm_head.output": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        }
+      },
+      "passed": true,
+      "local_operator_qualification": false
+    },
+    {
+      "id": "en-422-122949-0013-first-99f",
+      "stages": {
+        "thinker.lm_head.input.0": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        },
+        "thinker.lm_head.output": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        }
+      },
+      "passed": true,
+      "local_operator_qualification": false
+    },
+    {
+      "id": "en-422-122949-0013-first-100f",
+      "stages": {
+        "thinker.lm_head.input.0": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        },
+        "thinker.lm_head.output": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        }
+      },
+      "passed": true,
+      "local_operator_qualification": false
+    },
+    {
+      "id": "en-422-122949-0013-first-101f",
+      "stages": {
+        "thinker.lm_head.input.0": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        },
+        "thinker.lm_head.output": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        }
+      },
+      "passed": true,
+      "local_operator_qualification": false
+    },
+    {
+      "id": "en-422-122949-0013-first-799f",
+      "stages": {
+        "thinker.lm_head.input.0": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        },
+        "thinker.lm_head.output": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        }
+      },
+      "passed": true,
+      "local_operator_qualification": false
+    },
+    {
+      "id": "en-422-122949-0013-first-800f",
+      "stages": {
+        "thinker.lm_head.input.0": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        },
+        "thinker.lm_head.output": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        }
+      },
+      "passed": true,
+      "local_operator_qualification": false
+    },
+    {
+      "id": "en-422-122949-0013-first-801f",
+      "stages": {
+        "thinker.lm_head.input.0": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        },
+        "thinker.lm_head.output": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        }
+      },
+      "passed": true,
+      "local_operator_qualification": false
+    },
+    {
+      "id": "zh-BAC009S0729W0241-first-13f",
+      "stages": {
+        "thinker.lm_head.input.0": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        },
+        "thinker.lm_head.output": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        }
+      },
+      "passed": true,
+      "local_operator_qualification": false
+    },
+    {
+      "id": "zh-BAC009S0729W0241-first-99f",
+      "stages": {
+        "thinker.lm_head.input.0": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        },
+        "thinker.lm_head.output": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        }
+      },
+      "passed": true,
+      "local_operator_qualification": false
+    },
+    {
+      "id": "zh-BAC009S0729W0241-first-100f",
+      "stages": {
+        "thinker.lm_head.input.0": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        },
+        "thinker.lm_head.output": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        }
+      },
+      "passed": true,
+      "local_operator_qualification": false
+    },
+    {
+      "id": "zh-BAC009S0729W0241-first-101f",
+      "stages": {
+        "thinker.lm_head.input.0": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        },
+        "thinker.lm_head.output": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        }
+      },
+      "passed": true,
+      "local_operator_qualification": false
+    },
+    {
+      "id": "zh-BAC009S0729W0241-first-799f",
+      "stages": {
+        "thinker.lm_head.input.0": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        },
+        "thinker.lm_head.output": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        }
+      },
+      "passed": true,
+      "local_operator_qualification": false
+    },
+    {
+      "id": "zh-BAC009S0729W0241-first-800f",
+      "stages": {
+        "thinker.lm_head.input.0": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        },
+        "thinker.lm_head.output": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        }
+      },
+      "passed": true,
+      "local_operator_qualification": false
+    },
+    {
+      "id": "zh-BAC009S0729W0241-first-801f",
+      "stages": {
+        "thinker.lm_head.input.0": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        },
+        "thinker.lm_head.output": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        }
+      },
+      "passed": true,
+      "local_operator_qualification": false
+    },
+    {
+      "id": "en-422-122949-0013-first-2f",
+      "stages": {
+        "thinker.lm_head.input.0": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        },
+        "thinker.lm_head.output": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        }
+      },
+      "passed": true,
+      "local_operator_qualification": false
+    },
+    {
+      "id": "zh-BAC009S0729W0241-first-2f",
+      "stages": {
+        "thinker.lm_head.input.0": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        },
+        "thinker.lm_head.output": {
+          "passed": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0
+        }
+      },
+      "passed": true,
+      "local_operator_qualification": false
+    }
+  ],
+  "errors": [],
+  "passed": true,
+  "finished_at": "2026-11-08T01:48:51.383422+00:00"
+}

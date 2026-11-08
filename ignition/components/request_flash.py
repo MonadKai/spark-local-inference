@@ -130,11 +130,84 @@ def _fake(query, key, value, pages, lengths, cu, output, errors, lookup, plans, 
     pass
 
 
-class PreparedRequestFlashAttention(PreparedPagedFlashAttention):
-    """A request-independent arithmetic baseline, not a launch optimization.
 
-    All prepared split/partition groups execute. Device lengths select their
-    represented BF16 results by bits. Empty request slots cannot overwrite a
+def _attend_batched(query: torch.Tensor, key: torch.Tensor, value: torch.Tensor,
+            pages: torch.Tensor, lengths: torch.Tensor, cu: torch.Tensor,
+            output: torch.Tensor, errors: torch.Tensor, lookup: torch.Tensor,
+            plans: list[int], max_query: int) -> None:
+    # The fixed catalog is visible to complete-forward compilation. Exported
+    # execution contains CUDA nodes, with no Python dispatch in Rust serving.
+    slots = pages.shape[0]
+    positions = torch.arange(query.shape[0], device=query.device, dtype=torch.int32)
+    query_bits, output_bits = query.view(torch.int16), output.view(torch.int16)
+    output_bits.zero_()
+    ordered = ((cu[0] == 0) & (cu >= 0).all() & (cu <= query.shape[0]).all()
+        & (cu[1:] >= cu[:-1]).all())
+    errors.zero_()
+    errors[0].copy_((~ordered).int())
+    counts = cu[1:] - cu[:-1]
+    valid = ((counts > 0) & (counts <= max_query) & (lengths >= counts)
+        & (lengths <= pages.shape[1] * key.shape[1]) & ordered)
+    page_positions = torch.arange(pages.shape[1], device=query.device, dtype=torch.int32)
+    bad_pages = (((pages < 0) | (pages >= key.shape[0]))
+        & (page_positions[None, :] < (lengths[:, None] + key.shape[1] - 1) // key.shape[1])).any(1)
+    members = (positions[None, :] >= cu[:-1, None]) & (positions[None, :] < cu[1:, None])
+    finite_query = torch.isfinite(query).all(dim=(1, 2))
+    valid &= ~bad_pages & ~((~finite_query)[None, :] & members).any(1)
+    row = torch.where(counts == 1, 0, (counts + 63) // 64).clamp(0, lookup.shape[0] - 1)
+    column = ((lengths + 127) // 128).clamp(0, lookup.shape[1] - 1)
+    chosen = torch.index_select(lookup.reshape(-1), 0, (row * lookup.shape[1] + column).long())
+    valid &= (chosen >= 0) & (chosen < len(plans) // 3)
+    bad = (counts > 0) & ~valid
+    row_bits = torch.zeros((slots, max_query, *query.shape[1:]), device=query.device, dtype=torch.int16)
+    zero = cu[0] * 0
+    slot_indices = torch.arange(slots, device=query.device, dtype=torch.int32)
+    for identifier, begin in enumerate(range(0, len(plans), 3)):
+        capacity, split, bound = plans[begin:begin + 3]
+        selected = valid & (chosen == identifier)
+        indices = torch.arange(capacity, device=query.device, dtype=torch.int32)
+        source_indices = cu[:-1, None] + indices[None, :] - (capacity - counts[:, None])
+        live = (indices[None, :] >= capacity - counts[:, None]) & valid[:, None]
+        gathered = torch.index_select(query_bits, 0,
+            source_indices.clamp(0, query.shape[0] - 1).reshape(-1).long()).reshape(
+                slots, capacity, *query.shape[1:])
+        padded = torch.where(live[:, :, None, None], gathered, 0).view(torch.bfloat16).reshape(
+            slots * capacity, *query.shape[1:])
+        used = torch.where(selected, lengths, zero)
+        cumulative_q = torch.arange(slots + 1, device=query.device, dtype=torch.int32) * capacity
+        cumulative_k = torch.cat((zero.reshape(1), torch.cumsum(used, 0, dtype=torch.int32)))
+        result = torch.ops.aten._flash_attention_forward.default(
+            padded, key, value, cumulative_q, cumulative_k, capacity, bound,
+            0., True, False, seqused_k=used, block_table=pages, num_splits=split)[0]
+        # Fixed split geometry is still chosen per request from the original
+        # catalog. A family call contains every independent request instead
+        # of issuing a separate FA2 call for each slot.
+        restored_indices = ((capacity - counts[:, None] + indices[None, :]).clamp(0, capacity - 1)
+            + slot_indices[:, None] * capacity).reshape(-1).long()
+        original_order = torch.index_select(result.view(torch.int16), 0, restored_indices).reshape(
+            slots, capacity, *query.shape[1:])
+        row_bits[:, :capacity].copy_(torch.where(
+            ((indices[None, :] < counts[:, None]) & selected[:, None])[:, :, None, None],
+            original_order, row_bits[:, :capacity]))
+    row_positions = torch.arange(max_query, device=query.device, dtype=torch.int32)
+    bad |= ((row_positions[None, :] < counts[:, None])
+        & ~torch.isfinite(row_bits.view(torch.bfloat16)).all(dim=(2, 3))).any(1)
+    errors[1:].copy_(bad.int())
+    bad_rows = torch.zeros_like(positions, dtype=torch.bool)
+    for slot in range(slots):
+        bad_rows |= members[slot] & bad[slot]
+        restored = torch.index_select(row_bits[slot], 0,
+            (positions - cu[slot]).clamp(0, max_query - 1).long())
+        output_bits.copy_(torch.where((members[slot] & valid[slot])[:, None, None], restored, output_bits))
+    output.masked_fill_((bad_rows | ~ordered)[:, None, None], float("nan"))
+
+
+class PreparedRequestFlashAttention(PreparedPagedFlashAttention):
+    """Keep request arithmetic while batching compatible Q1/GQA launches.
+
+    All prepared split/partition groups execute. Compatible Q1/GQA rows share
+    one FA2 call per family; prefill and MHA retain their original calls.
+    Device lengths select their represented BF16 results by bits. Empty request slots cannot overwrite a
     packed live query. Padding never changes KV or recomputes rotary positions.
     """
 
@@ -142,13 +215,20 @@ class PreparedRequestFlashAttention(PreparedPagedFlashAttention):
         super().__init__(query, key, value, pages, lengths, cu_query, cu_key, output, max_query=max_query)
         if query.shape[2] != 128:
             raise ValueError("request flash requires head dimension 128")
+        if max_query == 1 and query.shape[1] > key.shape[2] \
+                and pages.shape[0] * self.max_key > 2**31 - 1:
+            raise ValueError("batched request cumulative key extents must fit int32")
         self.logical_max_query = max_query
         self.errors = torch.zeros((pages.shape[0] + 1,), dtype=torch.int32, device=query.device)
-        table, self.plans = _catalog(max_query, self.max_key, query.shape[1], key.shape[2],
+        table, self.family_geometry = _catalog(max_query, self.max_key, query.shape[1], key.shape[2],
             2 * torch.cuda.get_device_properties(query.device).multi_processor_count)
         self.lookup = torch.tensor(table, dtype=torch.int32, device=query.device)
 
     def __call__(self):
-        _attend(self.query, self.key, self.value, self.pages, self.lengths, self.cu_query,
-            self.output, self.errors, self.lookup, self.plans, self.logical_max_query)
+        # Pinned FA2's GQA host swap sets the batch output stride only for
+        # this query geometry. Varlen prefill/MHA retain their original calls.
+        operation = (_attend_batched if self.logical_max_query == 1
+            and self.query.shape[1] > self.key.shape[2] else _attend)
+        operation(self.query, self.key, self.value, self.pages, self.lengths, self.cu_query,
+            self.output, self.errors, self.lookup, self.family_geometry, self.logical_max_query)
         return self.output

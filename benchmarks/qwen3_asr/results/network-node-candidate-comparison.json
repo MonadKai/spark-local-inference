@@ -1,0 +1,612 @@
+{
+  "scope": "CPU byte comparison of every saved B1 numerical observation against the retained batched-attention teacher run, including all-position prefill matrices and meaningful states. Source comments changed the conservative preparation hash and cached tactic selections; this does not qualify native or complete schedule/operator performance.",
+  "status": "complete_equal",
+  "started_at": "2026-11-08T01:33:41.948376+00:00",
+  "files": [
+    {
+      "file": "b1-en-422-122949-0013-first-100f-layer0-v-projection.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-en-422-122949-0013-first-101f-layer0-v-projection.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-en-422-122949-0013-first-13f-layer0-v-projection.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-en-422-122949-0013-first-2f-layer0-v-projection.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-en-422-122949-0013-first-799f-layer0-v-projection.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-en-422-122949-0013-first-800f-layer0-v-projection.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-en-422-122949-0013-first-801f-layer0-v-projection.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-en-422-122949-0013-first-99f-layer0-v-projection.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-en-422-122949-0013-layer0-v-projection.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-en-777-126732-0081-layer0-v-projection.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-encoder-state.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-100f-encoder-state.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-100f-first-decode-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-100f-full-prefill.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-100f-prefix-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-100f.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-101f-encoder-state.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-101f-first-decode-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-101f-full-prefill.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-101f-prefix-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-101f.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-13f-encoder-state.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-13f-first-decode-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-13f-full-prefill.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-13f-prefix-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-13f.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-2f-encoder-state.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-2f-first-decode-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-2f-full-prefill.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-2f-prefix-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-2f.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-799f-encoder-state.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-799f-first-decode-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-799f-full-prefill.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-799f-prefix-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-799f.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-800f-encoder-state.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-800f-first-decode-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-800f-full-prefill.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-800f-prefix-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-800f.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-801f-encoder-state.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-801f-first-decode-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-801f-full-prefill.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-801f-prefix-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-801f.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-99f-encoder-state.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-99f-first-decode-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-99f-full-prefill.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-99f-prefix-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-99f.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-first-decode-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-full-prefill.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013-prefix-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-422-122949-0013.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-777-126732-0081-encoder-state.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-777-126732-0081-first-decode-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-777-126732-0081-full-prefill.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-777-126732-0081-prefix-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-en-777-126732-0081.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0727W0418-encoder-state.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0727W0418-first-decode-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0727W0418-full-prefill.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0727W0418-prefix-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0727W0418.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-encoder-state.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-100f-encoder-state.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-100f-first-decode-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-100f-full-prefill.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-100f-prefix-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-100f.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-101f-encoder-state.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-101f-first-decode-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-101f-full-prefill.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-101f-prefix-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-101f.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-13f-encoder-state.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-13f-first-decode-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-13f-full-prefill.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-13f-prefix-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-13f.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-2f-encoder-state.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-2f-first-decode-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-2f-full-prefill.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-2f-prefix-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-2f.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-799f-encoder-state.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-799f-first-decode-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-799f-full-prefill.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-799f-prefix-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-799f.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-800f-encoder-state.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-800f-first-decode-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-800f-full-prefill.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-800f-prefix-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-800f.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-801f-encoder-state.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-801f-first-decode-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-801f-full-prefill.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-801f-prefix-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-801f.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-99f-encoder-state.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-99f-first-decode-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-99f-full-prefill.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-99f-prefix-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-99f.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-first-decode-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-full-prefill.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241-prefix-kv.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-reverse0-retire0-zh-BAC009S0729W0241.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-zh-BAC009S0727W0418-layer0-v-projection.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-zh-BAC009S0729W0241-first-100f-layer0-v-projection.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-zh-BAC009S0729W0241-first-101f-layer0-v-projection.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-zh-BAC009S0729W0241-first-13f-layer0-v-projection.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-zh-BAC009S0729W0241-first-2f-layer0-v-projection.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-zh-BAC009S0729W0241-first-799f-layer0-v-projection.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-zh-BAC009S0729W0241-first-800f-layer0-v-projection.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-zh-BAC009S0729W0241-first-801f-layer0-v-projection.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-zh-BAC009S0729W0241-first-99f-layer0-v-projection.safetensors",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "file": "b1-zh-BAC009S0729W0241-layer0-v-projection.safetensors",
+      "passed": true,
+      "failures": []
+    }
+  ],
+  "tensor_count": 3660,
+  "bytes_compared": 1434607040,
+  "errors": [],
+  "passed": true,
+  "finished_at": "2026-11-08T01:33:44.761174+00:00"
+}
