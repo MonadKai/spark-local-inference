@@ -27,6 +27,7 @@ mod runtime;
 mod stops;
 pub(crate) mod token_spans;
 pub use config::Bootstrap;
+pub(crate) use config::frontend_capacities;
 pub use dashboard::view;
 pub use metrics::Snapshot;
 pub use runtime::{Generation, GenerationEvent, ModelRuntime, Prompt};

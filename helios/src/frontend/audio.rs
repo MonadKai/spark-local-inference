@@ -330,6 +330,47 @@ impl Drop for PlanLease<'_> {
 }
 
 impl AudioProcessor {
+    /// Future host payloads at the declared HTTP/frontend capacities. Parent PCM
+    /// outlives its worker lease; a parent can also retain one prepared child
+    /// while the shared runtime holds other children. Serialized InputStore
+    /// records/read leases are budgeted separately by the package loader.
+    pub(crate) fn host_working_set_bytes(settings: &super::AudioSettings,
+        ingress: u64, workers: u64, max_body_bytes: u64) -> Result<u64> {
+        settings.validate()?;
+        if ingress == 0 || !(1..=64).contains(&workers) || max_body_bytes == 0 {
+            return Err(invalid("invalid audio frontend memory capacities"));
+        }
+        let overflow = || invalid("audio frontend working set overflows host memory");
+        let multiply = |a: u64, b: u64| a.checked_mul(b).ok_or_else(overflow);
+        let frames = |samples: usize| match settings.sample_padding {
+            crate::model::contract::AudioSamplePadding::Unpadded => (samples / HOP) as u64,
+            crate::model::contract::AudioSamplePadding::HopMultiple => samples.div_ceil(HOP) as u64,
+        };
+        let whole_frames = frames(settings.max_samples);
+        let whole_mel = whole_frames * MELS as u64 * 4;
+        let chunk_mel = frames(settings.service_chunk_samples) * MELS as u64 * 4;
+        let live_workers = workers.min(ingress);
+        let pcm = multiply(ingress, (settings.max_samples as u64 + 1) * 4)?;
+        let retained_mel = multiply(ingress, whole_mel + chunk_mel)?;
+        // Vec -> Arc conversion can temporarily retain both Mel backings.
+        let mel_copy = multiply(live_workers, whole_mel)?;
+        let padding = if settings.sample_padding == crate::model::contract::AudioSamplePadding::HopMultiple {
+            multiply(live_workers, whole_frames * HOP as u64 * 4)?
+        } else { 0 };
+        let stft = if settings.numerics == crate::model::contract::AudioNumerics::Fp32Fma {
+            // The native transform retains the complete STFT, including its
+            // final frame before slicing: FP32 time data and complex spectrum.
+            multiply(live_workers, (whole_frames + 1) * (FFT as u64 * 4 + BINS as u64 * 8))?
+        } else { 0 };
+        let uploads = multiply(live_workers, settings.max_file_bytes as u64 * 2 + (64 << 10))?;
+        // Raw/compressed bodies, parsed strings and normalized audio payloads
+        // can coexist before a worker permit. Keep generic host headroom too:
+        // this payload allowance is not an exact bound on JSON/allocator RSS.
+        let bodies = multiply(multiply(ingress, max_body_bytes)?, 4)?;
+        [pcm, retained_mel, mel_copy, padding, stft, uploads, bodies].into_iter()
+            .try_fold(0u64, |sum, bytes| sum.checked_add(bytes).ok_or_else(overflow))
+    }
+
     pub fn new(settings: super::AudioSettings, workers: usize) -> Result<Self> {
         settings.validate()?;
         if !(1..=64).contains(&workers) {
@@ -627,6 +668,40 @@ mod tests {
             silence_search_samples: 16000, silence_window_samples: 1600,
             sample_padding: crate::model::contract::AudioSamplePadding::HopMultiple,
             numerics: crate::model::contract::AudioNumerics::Legacy,
+        }
+    }
+
+    #[test]
+    fn host_working_set_retains_parent_pcm_and_waiting_child_mel() {
+        let mut settings = settings();
+        settings.numerics = crate::model::contract::AudioNumerics::Fp32Fma;
+        let actual = AudioProcessor::host_working_set_bytes(&settings, 40, 8, 32 << 20).unwrap();
+        // 40 ingress credits, 600-second parents, 30-second children, eight
+        // active frontend workers. The previous single staging window misses
+        // already-decoded parents after their worker permits have returned.
+        assert_eq!(actual, 10_707_729_632);
+        assert!(actual > (2 << 30) + 31_948_800);
+        settings.numerics = crate::model::contract::AudioNumerics::Legacy;
+        let legacy = AudioProcessor::host_working_set_bytes(&settings, 40, 8, 32 << 20).unwrap();
+        assert_eq!(actual - legacy, 1_539_865_664);
+        // Retained parents still grow after the worker count has saturated.
+        let fewer = AudioProcessor::host_working_set_bytes(&settings, 39, 8, 32 << 20).unwrap();
+        assert_eq!(legacy - fewer, 204_873_732);
+    }
+
+    #[test]
+    fn host_working_set_respects_padding_worker_and_integer_boundaries() {
+        let mut settings = settings();
+        settings.max_samples = 480_001;
+        settings.service_chunk_samples = 480_000;
+        let padded = AudioProcessor::host_working_set_bytes(&settings, 1, 1, 1).unwrap();
+        assert_eq!(padded, AudioProcessor::host_working_set_bytes(&settings, 1, 64, 1).unwrap());
+        settings.sample_padding = crate::model::contract::AudioSamplePadding::Unpadded;
+        let unpadded = AudioProcessor::host_working_set_bytes(&settings, 1, 1, 1).unwrap();
+        assert_eq!(padded - unpadded, 1_921_664);
+        for (ingress, workers, body) in [(0, 1, 1), (1, 0, 1), (1, 65, 1), (1, 1, 0),
+            (u64::MAX, 64, 32 << 20), (1, 1, u64::MAX)] {
+            assert!(AudioProcessor::host_working_set_bytes(&settings, ingress, workers, body).is_err());
         }
     }
 

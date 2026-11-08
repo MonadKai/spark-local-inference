@@ -17,6 +17,21 @@ use crate::{
 };
 use serde_json::Value;
 
+/// Parse the same serving capacities before cache sizing and HTTP startup.
+/// Defaults come from ServerConfig; this does not load frontend assets.
+pub(crate) fn frontend_capacities(object: &serde_json::Map<String, Value>) -> Result<(usize, usize, usize)> {
+    let defaults = ServerConfig::default();
+    let integer = |name: &str, default: usize| -> Result<usize> {
+        let value = object.get(name).map(|value| value.as_u64()
+            .ok_or_else(|| format!("server configuration {name} must be a nonnegative integer")))
+            .transpose()?.unwrap_or(default as u64);
+        usize::try_from(value).map_err(|_| format!("server configuration {name} exceeds usize").into())
+    };
+    Ok((integer("queue_capacity", defaults.queue_capacity)?,
+        integer("frontend_workers", defaults.frontend_workers)?,
+        integer("max_body_bytes", defaults.max_body_bytes)?))
+}
+
 pub struct Bootstrap {
     pub model: ModelConfig,
     pub frontend: Frontend,
@@ -329,6 +344,7 @@ impl Bootstrap {
                 format!("prefix_cache_reuse: {error}"))?,
             Some(_) => return Err("prefix_cache_reuse must be shared or request".into()),
         };
+        let (queue_capacity, frontend_workers, max_body_bytes) = frontend_capacities(object)?;
         let server = ServerConfig {
             scheduling_policy,
             prefix_cache_reuse,
@@ -358,14 +374,7 @@ impl Bootstrap {
                         error,
                     ))
                 })?,
-            queue_capacity: usize::try_from(integer("queue_capacity", Some(16))?).map_err(
-                |error| {
-                    crate::ExecutionError::Manifest(crate::Failure::caused_by(
-                        "request queue capacity overflow",
-                        error,
-                    ))
-                },
-            )?,
+            queue_capacity,
             event_capacity: usize::try_from(integer("event_capacity", Some(128))?).map_err(
                 |error| {
                     crate::ExecutionError::Manifest(crate::Failure::caused_by(
@@ -374,21 +383,8 @@ impl Bootstrap {
                     ))
                 },
             )?,
-            frontend_workers: usize::try_from(integer("frontend_workers", Some(2))?).map_err(
-                |error| {
-                    crate::ExecutionError::Manifest(crate::Failure::caused_by(
-                        "frontend capacity overflow",
-                        error,
-                    ))
-                },
-            )?,
-            max_body_bytes: usize::try_from(integer("max_body_bytes", Some(32 * 1024 * 1024))?)
-                .map_err(|error| {
-                    crate::ExecutionError::Manifest(crate::Failure::caused_by(
-                        "HTTP body capacity overflow",
-                        error,
-                    ))
-                })?,
+            frontend_workers,
+            max_body_bytes,
         };
         server.validate_thinking_budget(&frontend, &model)?;
         Ok(Self {

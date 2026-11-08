@@ -586,6 +586,20 @@ On integrated GPUs such as GB10, that budget is Linux `MemAvailable`, capped
 by CUDA's device total. CPU allocations, registered buffers, and GPU allocations
 share physical DRAM; reclaimable page cache contributes to available memory,
 while swap does not. Discrete GPUs use CUDA's free device-memory query.
+Before sizing caches, audio frontends reserve future host payloads using the
+authenticated audio limits and selected serving concurrency. Ingress capacity is
+the HTTP queue plus active requests; decoded parent PCM can remain live after a
+frontend worker returns its permit. The reserve includes retained parent and
+child Mel matrices, worker-local Mel copies and sample padding, full STFT
+temporaries for FP32 FMA processing, encoded upload buffers, and a body-payload
+allowance. Serialized input-store records, read windows, and encoded staging
+retain their separate charges. Generic host headroom remains necessary: the
+body allowance is not an exact bound on JSON or allocator RSS. These future host
+allocations reduce the integrated GPU's cache budget; they do not reduce a
+discrete GPU's device budget. Packages without an audio frontend keep their
+existing reserve. Missing audio numerics retain the legacy transform's storage
+charge. Capacity overflow or invalid audio settings fail startup.
+
 Dedicated rows comprise one null row and the selected request capacity times
 the recipe's execution rows per request. KV pages receive the remaining budget,
 within their virtual maximum. The planner accounts for mapping alignment and
