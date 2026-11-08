@@ -26,6 +26,7 @@ def prepare(signatures, buffers, pool, state, audio_inputs):
     for kind in ("prefill", "scored_prefill"):
         if kind in inputs:
             inputs[kind].update({
+                "original_prompt_tokens": c.binding("original_prompt_tokens", p.INITIAL_PROMPT_TOKENS),
                 "audio_token_indices": c.binding("audio_token_indices", p.AUDIO_FEATURE_INDEX, p.PACKED_TOKEN, padding=-1),
                 "audio_feature_slot": c.binding("audio_feature_slot", p.AUDIO_FEATURE_SLOT, p.SCALAR, padding=-1),
             })
@@ -57,7 +58,7 @@ def prepare(signatures, buffers, pool, state, audio_inputs):
     return c.model_contract(vocabulary=151936, page_tokens=PAGE_TOKENS,
         page_tables=[dict(buffer="page_tables", page_offset=0)],
         regions=[dict(kind=p.CONTINUATION_STATE, storage=continuation, tokens_per_record=1, window_tokens=0), *regions],
-        graphs=graphs, frontend=FRONTEND,
+        graphs=graphs, frontend=FRONTEND, immutable_request_values=[p.INITIAL_PROMPT_TOKENS],
         audio=dict(feature_slots=state.arena.shape[0], features_per_request=FEATURES, feature_width=2048,
             frame_capacities=FRAME_CAPACITIES, mel_bins=128, frames_per_chunk=100, features_per_chunk=13,
             subsampling_factor=8, attention_window_frames=800,

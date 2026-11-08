@@ -8,17 +8,18 @@ import torch
 
 from ignition.components.audio_inputs import AudioInputs, PrefillAudioInputs
 from ignition.components.feature_state import FeatureState
-from ignition.components.paged_batch import BatchInputs
+from ignition.components.paged_batch import BatchInputs, Metadata
 from ignition.components.sampling import DeviceRequestState
 from ignition.recipes.qwen3_asr.audio_generation import validate_window
 
 
-def state():
+def state(prompt_lengths=None):
     inputs = BatchInputs.allocate(4, 1, "cpu", capacity=2)
     requests = DeviceRequestState.allocate("cpu", vocab_size=100, capacity=2)
     prefill = PrefillAudioInputs.allocate(4, "cpu")
     features = FeatureState(inputs, requests, indices=prefill.audio_token_indices,
-        feature_slot=prefill.audio_feature_slot, feature_token=99, slots=1, features=208, hidden=4)
+        feature_slot=prefill.audio_feature_slot, feature_token=99, slots=1, features=208, hidden=4,
+        prompt_lengths=prompt_lengths)
     inputs.row_slot_ids[0], inputs.row_generations[0] = 1, 12
     requests.generation[1], requests.status[1] = 12, 1
     features.feature_slot.fill_(0)
@@ -127,3 +128,33 @@ def test_prefill_injects_exact_features_and_rejects_stale_or_out_of_range_state(
     features.generation[1], features.count[1] = 12, 2
     features.feature_slot.fill_(1)
     assert not features.validate_prefill(inputs.token_ids, torch.tensor([3]))
+
+
+def test_feature_token_in_generated_history_keeps_ordinary_embedding():
+    original = torch.tensor([2], dtype=torch.int32)
+    inputs, requests, prefill, features = state(original)
+    requests.consumed_tokens[1] = 1
+    inputs.token_ids.copy_(torch.tensor([99, 99, 7, 0]))
+    prefill.audio_token_indices.copy_(torch.tensor([0, -1, -1, -1]))
+    features.generation[1], features.count[1] = 12, 1
+    features.arena[0, 0].fill_(3)
+    metadata = Metadata.allocate(4, 1, 1, "cpu")
+    metadata.token_ids.copy_(inputs.token_ids)
+    metadata.positions.copy_(torch.tensor([1, 2, 3, -1]))
+    assert features.validate_prefill(inputs.token_ids, torch.tensor([3]))
+    embedding = torch.ones((4, 4), dtype=torch.bfloat16)
+    features.inject(metadata, embedding)
+    assert torch.equal(embedding, torch.tensor([[3]*4, [1]*4, [1]*4, [1]*4], dtype=torch.bfloat16))
+    prefill.audio_token_indices[0] = -1
+    assert not features.validate_prefill(inputs.token_ids, torch.tensor([3]))
+    prefill.audio_token_indices[:2].copy_(torch.tensor([0, 0]))
+    assert not features.validate_prefill(inputs.token_ids, torch.tensor([3]))
+    # An entirely generated fragment needs no feature owner or window.
+    requests.consumed_tokens[1] = 2
+    prefill.audio_token_indices.fill_(-1)
+    features.generation.zero_(); features.count.zero_(); features.feature_slot.fill_(-1)
+    metadata.positions.copy_(torch.tensor([2, 3, 4, -1]))
+    assert features.validate_prefill(inputs.token_ids, torch.tensor([3]))
+    embedding.fill_(1)
+    features.inject(metadata, embedding)
+    assert embedding.eq(1).all()

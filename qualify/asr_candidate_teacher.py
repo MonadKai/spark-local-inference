@@ -181,6 +181,8 @@ def main():
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--compile-workers", type=int, default=2,
         help="bound preparation compiler processes, including diagnostic captures")
+    parser.add_argument("--prefill-chunk-size", type=int, default=4096,
+        help="explicit prepared prefill capacity; smaller diagnostic catalogs do not qualify larger capacities")
     parser.add_argument("--contract", type=Path, default=Path("benchmarks/qwen3_asr/numerical-contract.json"))
     parser.add_argument("--sdk-observations", type=Path, action="append", required=True)
     parser.add_argument("--canonical-observations", type=Path, action="append", required=True)
@@ -231,9 +233,9 @@ def main():
     # preparation libraries, just as the CLI does.
     from ignition.cli.config import Configuration
     from ignition.cli.environment import apply
-    from ignition.planning import discover_gpus
+    from ignition.cli.preparation import Host
 
-    configuration, gpus = Configuration.load(args.config), discover_gpus()
+    configuration, gpus = Configuration.load(args.config), Host.discover().gpus
     if len(gpus) != 1:
         raise ValueError("assign one physical GPU to the teacher diagnostic")
     apply(configuration, gpus)
@@ -373,7 +375,10 @@ def main():
 
     publish()
     config = PreparationConfig(kernel_cache=configuration.directory("kernel_cache"), compile_workers=args.compile_workers,
+        prefill_chunk_size=args.prefill_chunk_size,
         headroom_bytes=12 << 30)
+    record["requested_prefill_chunk_size"] = args.prefill_chunk_size
+    publish()
     with diagnostic_signals(), torch.inference_mode(), fp32_reductions(), ModuleImages():
         torch.cuda.set_device(0)
         with PackageStorage(device=0) as storage:
@@ -733,6 +738,8 @@ def main():
                         uploads.row_slot_ids[0] = slot
                         uploads.row_generations.fill_(epoch)
                         uploads.query_lengths.fill_(len(prompt))
+                        prepared.buffers["original_prompt_tokens"].zero_()
+                        prepared.buffers["original_prompt_tokens"][:1].fill_(len(case["prompt_ids"]))
                         uploads.token_ids.zero_()
                         uploads.token_ids[:len(prompt)].copy_(torch.tensor(prompt))
                         features.indices.fill_(-1)

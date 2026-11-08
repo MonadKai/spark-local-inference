@@ -521,11 +521,24 @@ real CUDA fence/allocation checks described in [verification](verification.md)
 and [Helios lifecycle](../verification/helios-lifecycle/README.md). Neither an
 abstract model nor checkpoint inspection establishes native GPU correctness.
 
-### Immutable original-prompt values and proposed graph geometry
+### Immutable original-prompt values and captured graph geometry
 
-The typed immutable value, cache dependency and native staging are implemented;
-the ASR recipe does not yet consume them. The full original-prompt arithmetic
-and graph-geometry design below remains unqualified. CPU tests cover cache-key
+The ASR recipe binds the typed immutable count during every text prefill and
+declares its cache dependency. The first implementation uses the configured
+context extent, at most 8192 rows, for every original-prompt projection. That
+extent is part of the producer identity; it does not change with a request's
+fragment size or queue state. A shared pair of flat BF16 buffers stages the
+current fragment at its original positions, executes the canonical projection,
+and publishes its result before another projection reuses the scratch.
+Generated history uses the ordinary fixed-reduction decode arithmetic. Attention
+similarly separates original-prompt geometry from one-query generated positions;
+actual consumed lengths bound every KV read, and current KV is written once.
+Feature injection stops at the original boundary, including when generated text
+contains the feature-token ID. The vocabulary projection retains its separate
+fixed-eight-row BF16 result before sampling.
+
+Captured teacher/state diagnostics, native readmission, recognition and serving
+performance remain separate qualification gates. CPU tests cover cache-key
 vectors, partial checkpoint isolation, retained usage, admission-plan mismatch
 rejection, row packing and slot reuse. Complete GPU input/state transfers,
 historical-package serving and full-model qualification remain separate gates.

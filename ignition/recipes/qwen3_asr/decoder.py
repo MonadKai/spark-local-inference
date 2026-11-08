@@ -17,6 +17,7 @@ from ignition.components.paged_attention import PagedAttentionMetadata, Prepared
 from ignition.components.request_flash import PreparedRequestFlashAttention
 
 from .pool import PAGE_TOKENS
+from .replay import PreparedReplayAttention, PreparedReplayProjection, ReplayScratch
 
 
 @dataclass(frozen=True)
@@ -92,7 +93,8 @@ class _MLP(torch.nn.Module):
 
 class _Attention(torch.nn.Module):
     def __init__(self, canonical, source, metadata, cache_metadata, pool, layer, *, mode,
-                 session, workspace, scratch, name, buffers, cumulative_keys, projection):
+                 session, workspace, scratch, name, buffers, cumulative_keys, projection,
+                 original=None, prompt_count=None):
         super().__init__()
         self.canonical = canonical
         tokens = source.shape[0]
@@ -110,9 +112,14 @@ class _Attention(torch.nn.Module):
         key, value = pool.attention(layer)
         self.writer = PreparedPagedKVWriter(self.key, self.value, key, value, cache_metadata.slots,
             session=session, name=name + ".cache_write")
-        self.attention = PreparedRequestFlashAttention(self.query, key, value, metadata.page_table,
-            cache_metadata.lengths, metadata.query_start_loc, cumulative_keys, self.attended.view(tokens, 16, 128),
-            max_query=1 if mode == "decode" else tokens)
+        if mode == "prefill":
+            self.attention = PreparedReplayAttention(self.query, key, value, metadata,
+                cache_metadata.lengths, self.attended.view(tokens, 16, 128), original=original,
+                prompt_count=prompt_count, buffers=buffers)
+        else:
+            self.attention = PreparedRequestFlashAttention(self.query, key, value, metadata.page_table,
+                cache_metadata.lengths, metadata.query_start_loc, cumulative_keys,
+                self.attended.view(tokens, 16, 128), max_query=1)
 
     def forward(self, hidden_states, position_embeddings, **kwargs):
         from transformers.models.qwen3.modeling_qwen3 import apply_rotary_pos_emb
@@ -161,11 +168,21 @@ class _Vocabulary:
 
 class PreparedDecoder:
     def __init__(self, weights, tree, scratch, metadata, pool, *, mode, session, name,
-                 workspace, buffers, feature_state=None):
+                 workspace, buffers, feature_state=None, original_prompt_tokens=None,
+                 original_capacity=None):
         if mode not in ("prefill", "decode"):
             raise ValueError("ASR decoder prepares ordinary prefill and decode")
         self.weights, self.tree, self.scratch = weights, tree, scratch
         self.metadata, self.pool = metadata, pool
+        self.original, self.original_capacity = original_prompt_tokens, original_capacity
+        if mode == "prefill" and (original_prompt_tokens is None
+                or original_prompt_tokens.shape != (1,) or original_prompt_tokens.dtype != torch.int32
+                or original_prompt_tokens.device != metadata.token_ids.device
+                or not original_prompt_tokens.is_contiguous() or type(original_capacity) is not int
+                or not scratch.activations.shape[0] <= original_capacity <= 8192):
+            raise ValueError("ASR prefill requires its immutable original prompt count and context extent")
+        if mode == "decode" and original_prompt_tokens is not None:
+            raise ValueError("ordinary ASR decode does not select original-prompt arithmetic")
         self.decode_rows = None
         if mode == "decode":
             from ignition.components.paged_batch import Metadata
@@ -183,22 +200,28 @@ class PreparedDecoder:
         # All layers run sequentially. Q/K/V and branch outputs survive only
         # until the corresponding canonical residual addition consumes them.
         layer_scratch = _LayerScratch.allocate(scratch.activations.shape[0], buffers)
-        # Decode uses the prepared cross-row fixed reduction. Model admission
-        # is qualified separately from the component arithmetic controls.
-        # The 38/40-token frozen controls differ at M=64 versus M>=128.
-        # Larger prefill graphs retain that measured arithmetic group too.
-        extents = (19, 27, 32, *((64,) if scratch.activations.shape[0] > 64 else ()))
-        projection = (_DecodeProjection if mode == "decode" else
-            partial(_Projection, subrow_extents=extents))
+        self.prompt_count = None
+        projection = _DecodeProjection
+        if mode == "prefill":
+            self.prompt_count = buffers.zeros((1,), torch.int32)
+            replay = ReplayScratch.allocate(scratch.activations.shape[0], original_capacity, buffers)
+            projection = partial(PreparedReplayProjection, prompt_count=self.prompt_count,
+                positions=metadata.positions, original=original_prompt_tokens, scratch=replay)
+        sequential = buffers.fork()
+        stages = []
         for index, layer in enumerate(tree.layers):
             prefix = f"{name}.layers.{index}"
+            stage = sequential.fork()
+            stages.append(stage)
             layer.self_attn = _Attention(layer.self_attn, scratch.activations, metadata,
                 self.cache_metadata, pool, index, mode=mode, session=session, workspace=workspace,
-                scratch=layer_scratch, name=prefix + ".self_attn", buffers=buffers,
-                cumulative_keys=self.cumulative_keys, projection=projection)
+                scratch=layer_scratch, name=prefix + ".self_attn", buffers=stage,
+                cumulative_keys=self.cumulative_keys, projection=projection,
+                original=original_prompt_tokens, prompt_count=self.prompt_count)
             layer.mlp = _MLP(layer.mlp, scratch.activations, layer_scratch, metadata.live_counts[:1],
                 session=session, name=prefix + ".mlp", buffers=buffers, workspace=workspace,
                 projection=projection)
+        buffers.join(*stages)
         # BF16 is the required LM-head result node. Sampling may convert this
         # tensor to FP32 afterwards; the projection must not bypass its rounding.
         # These are request rows, which may have inactive holes. Compute their
@@ -210,6 +233,11 @@ class PreparedDecoder:
 
     def __call__(self):
         self.execution_errors.zero_()
+        if self.original is not None:
+            invalid = (self.original <= 0) | (self.original > self.original_capacity)
+            self.execution_errors.bitwise_or_(invalid.int() * (self.metadata.lengths > 0).int())
+            self.prompt_count.copy_(torch.minimum(self.metadata.live_counts[:1],
+                (self.original.long() - self.metadata.positions[:1]).clamp(min=0)).int())
         if self.decode_rows is not None:
             self.decode_rows()
         self.cache_metadata()

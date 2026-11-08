@@ -141,6 +141,7 @@ def _prepare(snapshot, config, *, progress, package_storage, transient, failed_o
         headers=[shard.header_sha256 for shard in checkpoint.index.shards],
         config=json.loads((snapshot / "config.json").read_bytes()),
         contract="qwen3-asr.bf16.graph-inputs.v1", numerical_policy=POLICY,
+        original_prompt_capacity=config.context,
         bf16_reduction_split_k=torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction_split_k),
         sort_keys=True).encode()).hexdigest()
     with phase(progress, "Allocate ASR state"):
@@ -153,11 +154,13 @@ def _prepare(snapshot, config, *, progress, package_storage, transient, failed_o
         commands = StateCommands.allocate(device, capacity=slots)
         frame = torch.zeros(1, dtype=torch.int32, device=device)
         sequence = torch.zeros(1, dtype=torch.int64, device=device)
+        original_prompt_tokens = torch.zeros(slots, dtype=torch.int32, device=device)
         completion = CompletionOutputs.allocate((2, slots, VECTOR_TOKENS_FIELD + 1), device=device)
         prefill_audio = PrefillAudioInputs.allocate(config.prefill_chunk_size, device)
         feature_state = FeatureState(inputs, requests, indices=prefill_audio.audio_token_indices,
             feature_slot=prefill_audio.audio_feature_slot, feature_token=151676,
-            slots=slots, features=FEATURES, hidden=2048)
+            slots=slots, features=FEATURES, hidden=2048,
+            prompt_lengths=original_prompt_tokens[:1])
         session = RecordedPreparationSession(device=device, checkpoint=identity, workload_schema="qwen3-asr",
             numerical_policy=POLICY, coordinator=None, headroom_bytes=config.headroom_bytes,
             compile_workers=config.compile_workers, collective_tuning=config.collective_tuning,
@@ -175,7 +178,8 @@ def _prepare(snapshot, config, *, progress, package_storage, transient, failed_o
             **{name: getattr(admission, name) for name in admission.__dataclass_fields__},
             state_pool=pool.backing, memory_capacity=pool.memory_capacity,
             request_pending_token=requests.pending_token, sampling_grammar_mask=requests.grammar_mask,
-            frame_index=frame, submission_sequence=sequence, **completion.buffers())
+            frame_index=frame, submission_sequence=sequence,
+            original_prompt_tokens=original_prompt_tokens, **completion.buffers())
     forwards, signatures, metadata, raw_audio = {}, {}, {}, {}
     prefills = (64, *prefill_capacities(config.prefill_chunk_size))
     batches = batch_capacities(config.max_active)
@@ -206,7 +210,9 @@ def _prepare(snapshot, config, *, progress, package_storage, transient, failed_o
                     rows, device, buffers=graph_buffers.cursor())
                 decoder = PreparedDecoder(weights, weights.capacity_tree().model.language_model,
                     scratch, current, pool, mode=mode, session=session, name=name,
-                    workspace=arena, buffers=private, feature_state=feature_state)
+                    workspace=arena, buffers=private, feature_state=feature_state,
+                    original_prompt_tokens=original_prompt_tokens[:1] if mode == "prefill" else None,
+                    original_capacity=config.context)
                 batch = PreparedBatch(inputs, requests, current, mode=mode, shard=weights.shard, pool=pool,
                     validate_prefill=feature_state.validate_prefill if mode == "prefill" else None,
                     page_tokens=PAGE_TOKENS, buffers=private)
@@ -214,7 +220,8 @@ def _prepare(snapshot, config, *, progress, package_storage, transient, failed_o
                     coordinator=None, session=session, name=name + ".generation", workspace=arena, buffers=private,
                     sampling_selection=SamplingSelection.FIRST_MAXIMUM,
                     execution_errors=decoder.execution_errors)
-                fields = (*inputs.buffers(), "sampling_grammar_mask", *(() if mode == "decode" else prefill_audio.buffers()))
+                fields = (*inputs.buffers(), "sampling_grammar_mask",
+                    *(() if mode == "decode" else (*prefill_audio.buffers(), "original_prompt_tokens")))
                 add(name, forward, mode, rows, capacity if mode == "prefill" else 1, fields)
         row_inputs = ("request_state_rows", "row_slot_ids", "row_generations", "live_rows")
         for capacity in reversed(batches):
@@ -265,6 +272,7 @@ def _prepare(snapshot, config, *, progress, package_storage, transient, failed_o
         numerical_policy=POLICY, bf16_reduced_precision_reduction=False,
         decoder_projection_physical_rows=8,
         decoder_compute_physical_rows=8,
+        prefill_original_prompt_physical_rows=config.context,
         bf16_reduction_split_k=torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction_split_k)
     roots = dict(audio=weights.tree.model.audio_tower, projector=weights.tree.model.multi_modal_projector,
                  decoder=weights.tree.model.language_model, head=weights.head)
@@ -274,5 +282,5 @@ def _prepare(snapshot, config, *, progress, package_storage, transient, failed_o
         export_zero_ranges=(*storage_ranges([metadata, graph_buffers.chunks, private_buffers.chunks,
                                              arena.tensor, feature_state.arena]), *completion.zero_ranges()),
         resources=(weights, pool, requests, inputs, admission, commands, frame, sequence, completion,
-                   prefill_audio, feature_state, session, arena, graph_buffers, private_buffers,
+                   prefill_audio, feature_state, original_prompt_tokens, session, arena, graph_buffers, private_buffers,
                    forwards, metadata, raw_audio, compiled, stream, graph_pool))

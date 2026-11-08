@@ -96,6 +96,8 @@ def check(prepared, path):
                         uploads.row_slot_ids[0] = slot
                         uploads.row_generations.fill_(epoch)
                         uploads.query_lengths.fill_(32)
+                        prepared.buffers["original_prompt_tokens"].zero_()
+                        prepared.buffers["original_prompt_tokens"][:1].fill_(len(prompt))
                         uploads.token_ids.zero_()
                         uploads.token_ids[:32].fill_(1000 + page)
                         uploads.sample_enabled.zero_()
