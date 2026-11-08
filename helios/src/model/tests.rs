@@ -57,6 +57,94 @@ pub(super) fn config() -> ModelConfig {
 }
 
 #[test]
+fn immutable_prompt_length_uploads_follow_submission_rows_and_original_input() {
+    let mut config = config();
+    config.limits.request_slots = 8;
+    config.limits.max_active = 8;
+    let wider: Vec<_> = config.contract.graphs.iter().filter(|g| g.graph.contains("-4-"))
+        .map(|g| { let mut g = g.clone(); g.graph = g.graph.replace("-4-", "-8-"); g }).collect();
+    config.contract.graphs.extend(wider);
+    config.contract.cache.immutable_request_values = vec![ValueSource::InitialPromptTokens];
+    for graph in &mut config.contract.graphs {
+        graph.inputs.push(super::testing::binding("original_length", ValueSource::InitialPromptTokens,
+            InputIndexing::SubmissionRow, 0, 0));
+    }
+    let manifest = manifest(&config);
+    config.contract.validate(&manifest).unwrap();
+    let mut scheduler = RequestScheduler::new(config.identity, config.limits, scheduler_capabilities(&config)).unwrap();
+    scheduler.measured_graph_durations(&manifest.graphs).unwrap();
+    let mut admissions: [Option<Admission>; 8] = std::array::from_fn(|_| None);
+    for original in 19..27 {
+        let prompt = vec![7; original + 17];
+        let handle = scheduler.admit(RequestSpec {
+            initial_prompt_tokens: original, prompt: prompt.clone(), prefix_scope: None,
+            conditioning: vec![], message_boundaries: vec![], max_new_tokens: 4,
+            grammar_constrained: false, host_stops: false, prompt_logprobs: false, growable_output: false,
+        }).unwrap();
+        admissions[handle.slot as usize] = Some(Admission {
+            handle, sampling: SamplingParameters::default(), max_new_tokens: 4,
+            data: PromptData { positions: (0..prompt.len()).map(|p| [p as i64; 3]).collect(),
+                vision_token_indices: vec![-1; prompt.len()], ..Default::default() },
+            prompt, grammar_mask: None, ignore_eos: false, prompt_logprobs: false,
+        });
+    }
+    let original_step = scheduler.plan().unwrap();
+    assert_eq!(original_step.kind, GraphKind::Init);
+    assert_eq!(original_step.lanes.len(), 8);
+    let mut inputs = Inputs::new(&config, &manifest).unwrap();
+    for count in [8, 1, 2, 4, 3, 8] {
+        for reverse in [false, true] {
+            let mut step = (*original_step).clone();
+            if reverse { step.lanes.reverse(); }
+            step.lanes.truncate(count);
+            step.batch_capacity = count.next_power_of_two();
+            pack_inputs(&mut inputs, &config, &scheduler, &step, &admissions).unwrap();
+            let uploads = inputs.uploads();
+            let upload = uploads.iter().find(|u| u.buffer == "original_length").unwrap();
+            let actual: Vec<_> = upload.bytes.chunks_exact(4)
+                .map(|b| i32::from_le_bytes(b.try_into().unwrap())).collect();
+            assert_eq!(actual.len(), 8);
+            for (row, lane) in step.lanes.iter().enumerate() {
+                assert_eq!(actual[row] as usize, scheduler.request(lane.request).unwrap().initial_prompt_tokens());
+                assert_ne!(actual[row] as usize, admissions[lane.request.slot as usize].as_ref().unwrap().prompt.len());
+            }
+            assert!(actual[count..].iter().all(|n| *n == 0));
+        }
+    }
+}
+
+#[test]
+fn immutable_request_bindings_require_cache_dependency_and_exact_geometry() {
+    let mut config = config();
+    for graph in &mut config.contract.graphs {
+        graph.inputs.push(super::testing::binding("original_length", ValueSource::InitialPromptTokens,
+            InputIndexing::SubmissionRow, 0, 0));
+    }
+    let manifest = manifest(&config);
+    assert!(config.contract.validate(&manifest).unwrap_err().to_string().contains("condition cache history"));
+    config.contract.cache.immutable_request_values = vec![ValueSource::InitialPromptTokens];
+    config.contract.validate(&manifest).unwrap();
+    Inputs::new(&config, &manifest).unwrap();
+    for invalid in [vec![ValueSource::InitialPromptTokens; 2], vec![ValueSource::QueryLength]] {
+        let mut bad = config.clone();
+        bad.contract.cache.immutable_request_values = invalid;
+        assert!(bad.contract.validate(&manifest).is_err());
+    }
+    for (indexing, offset, padding) in [(InputIndexing::RequestRow, 0, 0),
+        (InputIndexing::SubmissionRow, 1, 0), (InputIndexing::SubmissionRow, 0, -1)] {
+        let mut bad = config.clone();
+        let binding = bad.contract.graphs[0].inputs.last_mut().unwrap();
+        binding.indexing = indexing;
+        binding.value_offset = offset;
+        binding.padding = padding;
+        assert!(Inputs::new(&bad, &manifest).is_err());
+    }
+    let mut wide = manifest.clone();
+    wide.buffers.iter_mut().find(|b| b.name == "original_length").unwrap().dtype = crate::execution::Dtype::Int64;
+    assert!(Inputs::new(&config, &wide).is_err());
+}
+
+#[test]
 fn admission_histogram_seed_and_partial_page_uploads_preserve_native_semantics() {
     let config = config();
     let mut scheduler = RequestScheduler::new(
@@ -72,7 +160,7 @@ fn admission_histogram_seed_and_partial_page_uploads_preserve_native_semantics()
         .admit(RequestSpec {
             prefix_scope: None,
             message_boundaries: vec![],
-            prompt: vec![7; 65],
+            initial_prompt_tokens: 65, prompt: vec![7; 65],
             conditioning: vec![],
             max_new_tokens: 4,
             grammar_constrained: false,
@@ -221,7 +309,7 @@ fn large_prefill_uploads_preserve_token_position_and_image_indices_without_tail_
         .admit(RequestSpec {
             prefix_scope: None,
             message_boundaries: vec![],
-            prompt: prompt.clone(),
+            initial_prompt_tokens: prompt.len(), prompt: prompt.clone(),
             conditioning: vec![],
             max_new_tokens: 4,
             grammar_constrained: false,
@@ -534,7 +622,7 @@ fn packing_follows_value_bindings_after_buffers_and_model_are_renamed() {
         .admit(RequestSpec {
             prefix_scope: None,
             message_boundaries: vec![],
-            prompt: vec![7; 65],
+            initial_prompt_tokens: 65, prompt: vec![7; 65],
             conditioning: vec![],
             max_new_tokens: 4,
             grammar_constrained: true,
@@ -672,7 +760,7 @@ fn copy_staging_uses_physical_slots_stochastic_defaults_and_bonus_mask() {
                 .admit(RequestSpec {
                     prefix_scope: None,
                     message_boundaries: vec![],
-                    prompt: vec![7; 65],
+                    initial_prompt_tokens: 65, prompt: vec![7; 65],
                     conditioning: vec![],
                     max_new_tokens: 16,
                     grammar_constrained: slot == 2,
@@ -909,7 +997,7 @@ fn mixed_native_uploads_pack_prompt_after_the_decode_extent_and_sample_only_elig
             let h = scheduler
                 .admit(RequestSpec {
                     prefix_scope: None,
-                    prompt: prompt.clone(),
+                    initial_prompt_tokens: prompt.len(), prompt: prompt.clone(),
                     message_boundaries: vec![],
                     conditioning: vec![],
                     max_new_tokens: 16,
@@ -1118,7 +1206,7 @@ fn state_transfer_and_resume_upload_fixture() {
             .admit(RequestSpec {
                 prefix_scope: None,
                 message_boundaries: vec![],
-                prompt: prompt.clone(),
+                initial_prompt_tokens: prompt.len(), prompt: prompt.clone(),
                 conditioning: vec![],
                 max_new_tokens: 2,
                 grammar_constrained: false,
@@ -1334,7 +1422,7 @@ fn grammar_packing_fixture() -> (
             .admit(RequestSpec {
                 prefix_scope: None,
                 message_boundaries: vec![],
-                prompt: vec![7; 66],
+                initial_prompt_tokens: 66, prompt: vec![7; 66],
                 conditioning: vec![],
                 max_new_tokens: 512,
                 grammar_constrained: false,
@@ -1567,7 +1655,7 @@ fn prefill_compacts_execution_feature_indices_and_preserves_admission_metadata()
     let handle = scheduler
         .admit(RequestSpec {
             prefix_scope: None,
-            prompt: vec![7; 4],
+            initial_prompt_tokens: 4, prompt: vec![7; 4],
             message_boundaries: vec![],
             conditioning: vec![],
             max_new_tokens: 1,
@@ -1682,7 +1770,7 @@ fn committed_generation_cursors_require_feedback_while_unused_prompt_positions_d
                 scheduler.fixed_speculative_width(Some(8)).unwrap();
             }
             scheduler.measured_graph_durations(&manifest.graphs).unwrap();
-            let handle = scheduler.admit(RequestSpec { prefix_scope: None, message_boundaries: vec![], prompt: vec![7; 64], conditioning: vec![],
+            let handle = scheduler.admit(RequestSpec { prefix_scope: None, message_boundaries: vec![], initial_prompt_tokens: 64, prompt: vec![7; 64], conditioning: vec![],
                 max_new_tokens: 64, grammar_constrained: false, host_stops: false, prompt_logprobs: false, growable_output: false }).unwrap();
             let mut admissions: [Option<Admission>; 4] = std::array::from_fn(|_| None);
             admissions[handle.slot as usize] = Some(Admission { handle, sampling: SamplingParameters::default(),

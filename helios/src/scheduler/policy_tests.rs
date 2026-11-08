@@ -78,7 +78,7 @@ fn engine_with_geometry(
             pages: 1024,
             snapshots: 256,
         },
-        SchedulerCapabilities { audio: None,
+        SchedulerCapabilities { immutable_request_values: vec![], audio: None,
             completion_token_capacity: 16,
             vocabulary: 1024,
             page_tokens,
@@ -111,7 +111,7 @@ fn engine_with_geometry(
 fn add(s: &mut RequestScheduler, id: u32, prompt: usize, output: u32) -> RequestHandle {
     s.admit(RequestSpec {
         prefix_scope: None,
-        prompt: vec![id; prompt],
+        initial_prompt_tokens: prompt, prompt: vec![id; prompt],
         message_boundaries: vec![],
         conditioning: vec![],
         max_new_tokens: output,
@@ -1126,7 +1126,7 @@ fn interactive_engine(active: usize, speculative: bool) -> RequestScheduler {
             pages: 32768,
             snapshots: 256,
         },
-        SchedulerCapabilities { audio: None,
+        SchedulerCapabilities { immutable_request_values: vec![], audio: None,
             completion_token_capacity: 16,
             vocabulary: 1024,
             page_tokens: 64,
@@ -1185,7 +1185,7 @@ fn long_conversations_budget_checkpoints_and_cross_unselected_messages() {
     for id in 1..=4 {
         handles.push(s.admit(RequestSpec {
             prefix_scope: None,
-            prompt: vec![id; 32768],
+            initial_prompt_tokens: 32768, prompt: vec![id; 32768],
             message_boundaries: (32..32768).step_by(32).collect(),
             conditioning: vec![],
             max_new_tokens: 2,
@@ -1691,7 +1691,7 @@ fn prerequisite_cohort_accounts_for_ready_batch_mates() {
     let prefill = s
         .admit(RequestSpec {
             prefix_scope: None,
-            prompt: vec![16; 32768],
+            initial_prompt_tokens: 32768, prompt: vec![16; 32768],
             message_boundaries: vec![512],
             conditioning: vec![],
             max_new_tokens: 128,
@@ -2255,7 +2255,7 @@ fn mixed_cancellation_keeps_other_rows_live_and_retires_pages_only_after_complet
     assert!(
         s.admit(RequestSpec {
             prefix_scope: None,
-            prompt: vec![3; 64],
+            initial_prompt_tokens: 64, prompt: vec![3; 64],
             message_boundaries: vec![],
             conditioning: vec![],
             max_new_tokens: 128,
@@ -2719,7 +2719,7 @@ fn terminal_snapshot_publishes_exact_partial_page_for_shared_cache_geometries() 
         let publications = s.stats().snapshot_publications;
         let fence = Fence(s.submitted.0 + 1);
         s.commit(&plan, fence).unwrap();
-        let spec = RequestSpec { prefix_scope: None, prompt: vec![1; page_tokens + 1], message_boundaries: vec![],
+        let spec = RequestSpec { prefix_scope: None, initial_prompt_tokens: page_tokens + 1, prompt: vec![1; page_tokens + 1], message_boundaries: vec![],
             conditioning: vec![], max_new_tokens: 1, grammar_constrained: false,
             host_stops: false, prompt_logprobs: false, growable_output: false };
         assert_eq!(s.plan_admission(&spec).unwrap().resident_tokens(), 0);
@@ -2770,7 +2770,7 @@ fn feedback_window_engine(rows: Option<usize>, policy: PolicyConfig) -> RequestS
             pages: 1024,
             snapshots: 256,
         },
-        SchedulerCapabilities { audio: None,
+        SchedulerCapabilities { immutable_request_values: vec![], audio: None,
             completion_token_capacity: 16,
             vocabulary: 1024,
             page_tokens: 64,
@@ -2810,7 +2810,7 @@ fn feedback_prefill_tails_progress_before_existing_generations_finish() {
                 .map(|id| {
                     s.admit(RequestSpec {
                         prefix_scope: None,
-                        prompt: vec![id; 87],
+                        initial_prompt_tokens: 87, prompt: vec![id; 87],
                         message_boundaries: vec![42, 82, 87],
                         conditioning: vec![],
                         max_new_tokens: 256,

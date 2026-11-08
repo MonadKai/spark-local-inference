@@ -25,7 +25,7 @@ fn scheduler_with_concurrency(snapshots: u32, mtp: bool, page_tokens: usize, act
             pages: 256,
             snapshots,
         },
-        SchedulerCapabilities { audio: None,
+        SchedulerCapabilities { immutable_request_values: vec![], audio: None,
             completion_token_capacity: 16,
             vocabulary: 248320,
             page_tokens,
@@ -54,7 +54,7 @@ fn spec(system: Option<usize>, prompt: usize, output: u32) -> RequestSpec {
     RequestSpec {
         prefix_scope: None,
         message_boundaries: system.into_iter().collect(),
-        prompt: (0..prompt as u32).collect(),
+        initial_prompt_tokens: prompt, prompt: (0..prompt as u32).collect(),
         conditioning: vec![],
         max_new_tokens: output,
         grammar_constrained: false,

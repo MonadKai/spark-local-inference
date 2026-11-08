@@ -217,7 +217,7 @@ pub fn metadata() -> PreparedContract {
         input_vocabulary: 248320,
         vision: VisionCapabilities::disabled(),
         audio: None,
-        cache: CacheContract {
+        cache: CacheContract { immutable_request_values: vec![],
             page_tokens: 64,
             regions: vec![],
             page_tables: vec![PageTableView {
@@ -285,7 +285,7 @@ pub fn manifest(config: &ModelConfig) -> ExecutionManifest {
                 }
                 CopyTokenCount | CopyGrammarMask | CopyGrammarCount | QueryLength | LiveRows
                 | SampleEnabled | SamplingTopK | EosCount | PromptHistogram | GrammarMask
-                | GrammarEnabled | ImageFeatureIndex | ImageFeatureSlot | PageTable => Dtype::Int32,
+                | GrammarEnabled | ImageFeatureIndex | ImageFeatureSlot | PageTable | InitialPromptTokens => Dtype::Int32,
                 Constant
                     if matches!(
                         b.buffer.as_str(),

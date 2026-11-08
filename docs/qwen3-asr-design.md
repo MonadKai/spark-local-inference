@@ -521,16 +521,29 @@ real CUDA fence/allocation checks described in [verification](verification.md)
 and [Helios lifecycle](../verification/helios-lifecycle/README.md). Neither an
 abstract model nor checkpoint inspection establishes native GPU correctness.
 
-### Proposed immutable original-prompt geometry
+### Immutable original-prompt values and proposed graph geometry
 
-This is a proposal, not an implemented native contract or qualified path.
+The typed immutable value, cache dependency and native staging are implemented;
+the ASR recipe does not yet consume them. The full original-prompt arithmetic
+and graph-geometry design below remains unqualified. CPU tests cover cache-key
+vectors, partial checkpoint isolation, retained usage, admission-plan mismatch
+rejection, row packing and slot reuse. GPU upload/transfers, historical-package
+serving and full-model qualification remain separate gates.
+The real DRAM store and reopened, freshly scanned direct-I/O disk store now pass
+same-N reuse and different-N isolation at 63/65-token checkpoints with 64/256-token
+pages, including generated-history admission and slot reuse. Those tests use a
+CPU byte copier in place of device transfers; they establish host/disk records
+and scheduler integration, not CUDA transfer correctness. The complete native
+CPU suite passes 1,382 tests with 29 ignored. Bounded lifecycle conformance and
+all 34 planted model/Rust faults pass detection, followed by the restored-source
+conformance rerun. These checks do not establish model arithmetic or GPU lifetime.
 The native 165-token versus `128+37` replay control exposed different decoder
 histories. Independent canonical forwards also use length-dependent projection
 and attention reductions. Six fixed projection rejection controls have not
 passed the frozen node gates. None of those observations proves that every
 uniform arithmetic implementation is impossible.
 
-The proposed input `INITIAL_PROMPT_TOKENS` is the immutable number of tokens in
+The input `INITIAL_PROMPT_TOKENS` is the immutable number of tokens in
 the first fully validated, expanded prompt, including actual image/audio feature
 tokens. Freeze it before the first queue admission or cache lookup. Carry it
 through parking, readmission, branching and offload; never reconstruct it from
@@ -540,7 +553,7 @@ read the same authoritative fact rather than maintaining a second independent
 initial count. The source is ordinary request data, not a recipe identifier or
 an instruction for native arithmetic.
 
-An additive `ValueSource` would bind that count as a positive int32 per active
+The additive `ValueSource` binds that count as a positive int32 per active
 submission row, zero for inactive rows, using ordinary submission staging and
 completion fences. No native callback, expression evaluator or per-model policy
 is introduced. The recipe owns every use of this input. In particular, rows
@@ -585,8 +598,8 @@ checks active poison rejection, recovery, repeatability and allocation stability
 A passing component proof would still require full-model and native qualification.
 
 Arithmetic depending on the immutable count creates a real cache dependency.
-Add an explicit list of immutable request-value dependencies to `CacheContract`;
-initially accept only this concrete source. Its consumers canonically hash the
+`CacheContract.immutable_request_values` declares request-value dependencies;
+it currently accepts only this concrete source. Its consumers canonically hash the
 exact count and resolved physical capacity as a domain/version/source-tagged
 condition before every nonempty history boundary is constructed or looked up.
 In the initial single-extent design, the existing producer identity binds that

@@ -329,6 +329,13 @@ request-state, page-table, positional and sampling input names are additional
 named buffers and bindings. Shared input packing validates their semantic
 bindings before serving requests.
 
+An optional `INITIAL_PROMPT_TOKENS` input uses a contiguous Int32 submission-row
+buffer, width one, zero offset and zero inactive padding. Each active row carries
+the request's original expanded prompt count, including after readmission with
+generated history. Its cache dependency is declared in the prepared model
+contract. Existing manifests without this input retain their binding and cache
+semantics. The value does not introduce a graph-selection dimension.
+
 ## Native runtime package
 
 `ignition export MODEL --gpus N[,N...]` prepares a native package in the shared

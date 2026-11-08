@@ -100,6 +100,25 @@ registered transport destination and an enum-selected source:
 | Constants | Declared integer values and inactive-row padding |
 | Image tensors | Named outputs of the selected image layout implementation |
 
+`INITIAL_PROMPT_TOKENS` is the token count of the first validated, fully expanded
+prompt. The request queue freezes it before cache lookup and retains it through
+parking and readmission; it does not grow with generated replay history. Original
+prompt usage reads the same retained count. A binding is a contiguous Int32
+submission-row value with width one, zero offset and zero inactive padding. It
+is not a physical request-slot index. The separate image/audio encoding packers
+do not supply this text-request value.
+
+Programs reading this value must declare it in
+`CacheContract.immutable_request_values`. The list currently accepts only
+`INITIAL_PROMPT_TOKENS`, without duplicates. Shared admission places its exact
+source-tagged, versioned value before frontend conditions in the effective cache
+history. Every nonempty prefix boundary, partial checkpoint and extended replay
+history therefore retains that dependency across GPU and offload cache lookup.
+It does not modify the frontend's conditioning events or audio feature identity.
+An absent or empty list preserves the old history and hash bytes. Native packing
+and cache identity do not choose any model arithmetic or graph geometry; captured
+programs own how they consume the immutable value.
+
 Indexing is explicit: scalar, submission row, active row, physical request row,
 or packed token. Active rows omit inactive tails; submission rows initialize
 padding across the request capacity. Packed-token indices follow each lane's

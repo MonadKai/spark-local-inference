@@ -226,6 +226,9 @@ message CacheContract {
   uint64 page_tokens = 1;
   repeated HistoryRegion regions = 2;
   repeated PageTableView page_tables = 3;
+  // Immutable request inputs that condition every nonempty history boundary.
+  // Empty preserves existing prefix and offload identity bytes.
+  repeated ValueSource immutable_request_values = 4;
 }
 message HistoryRegion {
   HistoryKind kind = 1;
@@ -283,6 +286,8 @@ enum ValueSource {
   AUDIO_TENSOR = 41;
   AUDIO_FEATURE_INDEX = 42;
   AUDIO_FEATURE_SLOT = 43;
+  // Token count after the initial prompt's feature expansion, before generation.
+  INITIAL_PROMPT_TOKENS = 44;
 }
 enum AudioTensorKind {
   AUDIO_TENSOR_UNSPECIFIED = 0;

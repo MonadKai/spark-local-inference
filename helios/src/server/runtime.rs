@@ -216,6 +216,7 @@ struct Incoming {
     arrival_ns: u64,
     publications: std::cell::Cell<u64>,
     prompt: Prompt,
+    initial_prompt_tokens: usize,
     events: async_mpsc::Sender<GenerationEvent>,
     admission: Mutex<Option<oneshot::Sender<Result<()>>>>,
     first_token: std::cell::Cell<Option<oneshot::Sender<Result<()>>>>,
@@ -253,6 +254,7 @@ impl Incoming {
             prefix_scope: self.prefix_scope,
             message_boundaries: self.prompt.message_boundaries.clone(),
             prompt: self.prompt.tokens.clone(),
+            initial_prompt_tokens: self.initial_prompt_tokens,
             conditioning: self.prompt.conditioning.clone(),
             max_new_tokens: self.prompt.max_new_tokens,
             grammar_constrained: self.prompt.grammar.is_some(),
@@ -380,7 +382,6 @@ struct Active<'a> {
 #[derive(Clone, Copy, Default)]
 struct Carried {
     decoded_sequence: crate::scheduler::decoded_history::DecodedSequence,
-    prompt_tokens: Option<usize>,
     reused_prompt_tokens: Option<u64>,
     generated_tokens: u32,
     /// The request's own sampling seed, from which each continuation's seed derives.
@@ -935,6 +936,7 @@ impl ModelRuntime {
                 publications: Default::default(),
                 prompt_score_end: if prompt.prompt_logprobs { prompt.tokens.len() } else { 0 },
                 prompt_scored: 0,
+                initial_prompt_tokens: prompt.tokens.len(),
                 prompt,
                 events,
                 admission: Mutex::new(Some(admission)),
@@ -1838,10 +1840,7 @@ impl<'a> Worker<'a> {
                     request
                         .incoming
                         .emit(GenerationEvent::Finished {
-                            prompt_tokens: request
-                                .carried
-                                .prompt_tokens
-                                .unwrap_or(live.prompt_tokens),
+                            prompt_tokens: request.incoming.initial_prompt_tokens,
                             generated_tokens: request.carried.generated_tokens
                                 + live.generated_tokens,
                             reused_prompt_tokens: request
@@ -1891,9 +1890,8 @@ impl<'a> Worker<'a> {
                 if live.phase == RequestPhase::Finishing
                     && live.last_use() <= self.scheduler.completed()
                 {
-                    let (generated, prompt_tokens, reused) = (
+                    let (generated, reused) = (
                         live.generated_tokens,
-                        live.prompt_tokens,
                         live.reused_prompt_tokens(),
                     );
                     if let Some(error) = live.error_code {
@@ -2003,10 +2001,7 @@ impl<'a> Worker<'a> {
                         request
                             .incoming
                             .emit(GenerationEvent::Finished {
-                                prompt_tokens: request
-                                    .carried
-                                    .prompt_tokens
-                                    .unwrap_or(prompt_tokens),
+                                prompt_tokens: request.incoming.initial_prompt_tokens,
                                 generated_tokens: request.carried.generated_tokens + generated,
                                 reused_prompt_tokens: request
                                     .carried
@@ -2075,9 +2070,8 @@ impl<'a> Worker<'a> {
         let mut tokens = live.tokens().to_vec();
         tokens.extend_from_slice(appended);
         let decoded_sequence = live.decoded_sequence;
-        let (generated, prompt_tokens, reused) = (
+        let (generated, reused) = (
             live.generated_tokens,
-            live.prompt_tokens,
             live.reused_prompt_tokens(),
         );
         self.scheduler.finish(handle)?;
@@ -2101,7 +2095,6 @@ impl<'a> Worker<'a> {
             reasoning: active.reasoning,
             carried: Carried {
                 decoded_sequence,
-                prompt_tokens: Some(active.carried.prompt_tokens.unwrap_or(prompt_tokens)),
                 reused_prompt_tokens: Some(active.carried.reused_prompt_tokens.unwrap_or(reused)),
                 generated_tokens,
                 seed: Some(seed),
@@ -3027,7 +3020,7 @@ mod tests {
                 pages: 4,
                 snapshots: 40,
             },
-            SchedulerCapabilities { audio: None,
+            SchedulerCapabilities { immutable_request_values: vec![], audio: None,
                 completion_token_capacity: 16,
                 speculative_allocations: vec![],
                 vocabulary: 248320,
@@ -3053,7 +3046,7 @@ mod tests {
         let spec = |token, grammar_constrained| RequestSpec {
             prefix_scope: None,
             message_boundaries: vec![],
-            prompt: vec![token],
+            initial_prompt_tokens: 1, prompt: vec![token],
             conditioning: vec![],
             max_new_tokens: 20,
             grammar_constrained,
@@ -3125,6 +3118,7 @@ mod tests {
             queue_capacity: None,
             arrival_ns: super::super::observation::monotonic_ns(),
             publications: Default::default(),
+            initial_prompt_tokens: 1,
             prompt: Prompt {
                 tokens: vec![7],
                 message_boundaries: vec![],
@@ -3289,7 +3283,7 @@ mod tests {
                 pages: 4,
                 snapshots: 40,
             },
-            SchedulerCapabilities { audio: None,
+            SchedulerCapabilities { immutable_request_values: vec![], audio: None,
                 completion_token_capacity: 16,
                 speculative_allocations: vec![],
                 vocabulary: 6,
@@ -3321,7 +3315,7 @@ mod tests {
         RequestSpec {
             prefix_scope: None,
             message_boundaries: vec![],
-            prompt: vec![0],
+            initial_prompt_tokens: 1, prompt: vec![0],
             conditioning: vec![],
             max_new_tokens: 10,
             grammar_constrained,
@@ -3816,7 +3810,7 @@ mod tests {
                 pages: 1,
                 snapshots: 2,
             },
-            SchedulerCapabilities { audio: None,
+            SchedulerCapabilities { immutable_request_values: vec![], audio: None,
                 completion_token_capacity: 16,
                 speculative_allocations: vec![],
                 vocabulary: 248320,
@@ -3839,7 +3833,7 @@ mod tests {
         let spec = || RequestSpec {
             prefix_scope: None,
             message_boundaries: vec![],
-            prompt: vec![7],
+            initial_prompt_tokens: 1, prompt: vec![7],
             conditioning: vec![],
             max_new_tokens: 10,
             grammar_constrained: false,

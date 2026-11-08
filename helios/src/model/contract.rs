@@ -61,6 +61,7 @@ contract_enum!(ValueSource {
     CopyConsumedTokens = 33, CopyGeneration = 34, CopyGrammarMask = 35,
     CopyGrammarCount = 36, ImageTensor = 37, ImageFeatureSlot = 38, PromptTargetToken = 39, SpeculativePrefixLimit = 40,
     AudioTensor = 41, AudioFeatureIndex = 42, AudioFeatureSlot = 43,
+    InitialPromptTokens = 44,
 });
 contract_enum!(InputIndexing { Scalar = 1, SubmissionRow = 2, RequestRow = 3, PackedToken = 4, ActiveRow = 5 });
 contract_enum!(StateAccessKind { Read = 1, Write = 2, ReadWrite = 3 });
@@ -134,6 +135,9 @@ pub struct CacheContract {
     pub page_tokens: usize,
     pub regions: Vec<HistoryRegion>,
     pub page_tables: Vec<PageTableView>,
+    #[cfg_attr(any(feature = "frontend", feature = "runtime-package"),
+        serde(default, skip_serializing_if = "Vec::is_empty"))]
+    pub immutable_request_values: Vec<ValueSource>,
 }
 
 #[derive(Clone, Debug)]
@@ -469,6 +473,12 @@ impl PreparedContract {
         }
         self.vision.validate()?;
         self.frontend.validate()?;
+        if self.cache.immutable_request_values.len() > 1
+            || self.cache.immutable_request_values.iter().any(|source|
+                *source != ValueSource::InitialPromptTokens)
+        {
+            return Err("unsupported or duplicate immutable cache request value".into());
+        }
         if self.audio.is_some() != self.frontend.audio_preparation.is_some()
             || self.audio.is_some() != self.frontend.audio_tokens.is_some()
             || self.audio.is_some() != self.graphs.iter().any(|graph| graph.kind == GraphOperation::AudioEncode)
@@ -612,6 +622,11 @@ impl PreparedContract {
             }
             let mut destinations = std::collections::HashSet::new();
             for input in &graph.inputs {
+                if input.source == ValueSource::InitialPromptTokens
+                    && !self.cache.immutable_request_values.contains(&input.source)
+                {
+                    return Err("immutable graph request value must condition cache history".into());
+                }
                 if (input.source == ValueSource::AudioTensor) != input.audio_tensor.is_some()
                     || (input.audio_tensor.is_some() && !input.tensor.is_empty())
                 {

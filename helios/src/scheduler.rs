@@ -133,6 +133,7 @@ pub struct SchedulerCapabilities {
     pub page_tokens: usize,
     pub vision: crate::model::VisionCapabilities,
     pub audio: Option<crate::model::contract::AudioCapacity>,
+    pub immutable_request_values: Vec<crate::model::contract::ValueSource>,
     pub draft_pages_per_request: usize,
     /// Host completion inputs keyed by kind, batch, draft depth, width, packed rows and prefill rows.
     /// Graphs requiring these values drain before another generation round.
@@ -174,6 +175,8 @@ pub struct RequestSpec {
     /// Stable across this generation's readmissions; absent shares prefixes.
     pub prefix_scope: Option<[u8; 24]>,
     pub prompt: Vec<u32>,
+    /// Fully expanded input length at first submission; unchanged on readmission.
+    pub initial_prompt_tokens: usize,
     pub message_boundaries: Vec<usize>,
     pub conditioning: Vec<ConditioningEvent>,
     pub max_new_tokens: u32,
@@ -301,6 +304,7 @@ pub struct LiveRequest {
     pub consumed_tokens: u64,
     pub generated_tokens: u32,
     pub prompt_tokens: usize,
+    initial_prompt_tokens: usize,
     pub grammar_constrained: bool,
     pub error_code: Option<i64>,
     host_stops: bool,
@@ -336,6 +340,10 @@ pub struct LiveRequest {
 }
 
 impl LiveRequest {
+    pub fn initial_prompt_tokens(&self) -> usize {
+        self.initial_prompt_tokens
+    }
+
     pub(crate) fn encoder_job(&self) -> Option<EncoderJob> {
         self.encoder_jobs.front().copied()
     }
@@ -669,6 +677,7 @@ struct Slot {
 pub struct AdmissionPlan {
     history: PrefixHistory,
     lookup: Lookup,
+    initial_prompt_tokens: usize,
 }
 
 impl AdmissionPlan {
@@ -769,6 +778,12 @@ impl RequestScheduler {
     ) -> Result<Self> {
         limits.validate_prefill()?;
         capabilities.vision.validate()?;
+        if capabilities.immutable_request_values.len() > 1
+            || capabilities.immutable_request_values.iter().any(|source|
+                *source != crate::model::contract::ValueSource::InitialPromptTokens)
+        {
+            return Err("unsupported or duplicate immutable cache request value".into());
+        }
         if let Some(audio) = &capabilities.audio {
             audio.feature_stride()?;
             if audio.feature_slots > limits.request_slots {
@@ -1475,6 +1490,10 @@ impl RequestScheduler {
     /// cache without reserving anything.
     pub fn plan_admission(&mut self, spec: &RequestSpec) -> Result<AdmissionPlan> {
         if spec.prompt.is_empty()
+            || spec.initial_prompt_tokens == 0
+            || spec.initial_prompt_tokens > spec.prompt.len()
+            || (!self.capabilities.immutable_request_values.is_empty()
+                && spec.initial_prompt_tokens > i32::MAX as usize)
             || spec.message_boundaries.first() == Some(&0)
             || spec.message_boundaries.last().is_some_and(|n| *n > spec.prompt.len())
             || spec.message_boundaries.windows(2).any(|pair| pair[0] >= pair[1])
@@ -1492,7 +1511,21 @@ impl RequestScheduler {
         }
         self.free_slot()?;
         let mut history = PrefixHistory::new_scoped(self.identity, spec.prefix_scope);
-        history.append(&spec.prompt, &spec.conditioning)?;
+        if self.capabilities.immutable_request_values.is_empty() {
+            history.append(&spec.prompt, &spec.conditioning)?;
+        } else {
+            let mut events = Vec::with_capacity(self.capabilities.immutable_request_values.len()
+                + spec.conditioning.len());
+            for source in &self.capabilities.immutable_request_values {
+                let value = match source {
+                    crate::model::contract::ValueSource::InitialPromptTokens => spec.initial_prompt_tokens as u64,
+                    _ => return Err("unsupported immutable cache request value".into()),
+                };
+                events.push(ConditioningEvent::request_value(*source as i32, value));
+            }
+            events.extend_from_slice(&spec.conditioning);
+            history.append(&spec.prompt, &events)?;
+        }
         if spec.prompt_logprobs && self.scored_prefill_catalog.is_empty() {
             return Err(crate::Error::admission(crate::AdmissionError::Invalid,
                 "prompt logprobs are not available in this model package"));
@@ -1500,7 +1533,7 @@ impl RequestScheduler {
         let lookup = if spec.prompt_logprobs {
             Lookup { checkpoint: None, consumed_tokens: 0, pages: Vec::new(), snapshot: None }
         } else { self.cache.lookup(&history)? };
-        Ok(AdmissionPlan { history, lookup })
+        Ok(AdmissionPlan { history, lookup, initial_prompt_tokens: spec.initial_prompt_tokens })
     }
 
     /// Recheck GPU residency while retaining a queued request's validated history.
@@ -1509,6 +1542,7 @@ impl RequestScheduler {
         Ok(AdmissionPlan {
             history: plan.history.clone(),
             lookup: self.cache.lookup(&plan.history)?,
+            initial_prompt_tokens: plan.initial_prompt_tokens,
         })
     }
 
@@ -1542,7 +1576,13 @@ impl RequestScheduler {
         plan: AdmissionPlan,
         inbound: Option<InboundRequest>,
     ) -> Result<Admitted> {
-        let AdmissionPlan { history, lookup } = plan;
+        let AdmissionPlan { history, lookup, initial_prompt_tokens } = plan;
+        if spec.initial_prompt_tokens != initial_prompt_tokens
+            || initial_prompt_tokens > spec.prompt.len()
+        {
+            return Err(crate::Error::admission(crate::AdmissionError::Invalid,
+                "initial prompt length differs from its validated admission plan"));
+        }
         // Lookups count once per admitted request, not per attempt of a waiting one.
         let (hit, reused) = (lookup.checkpoint.is_some(), lookup.consumed_tokens);
         let page_tokens = self.capabilities.page_tokens as u64;
@@ -1697,6 +1737,7 @@ impl RequestScheduler {
             consumed_tokens: consumed,
             generated_tokens: 0,
             prompt_tokens: spec.prompt.len(),
+            initial_prompt_tokens,
             grammar_constrained: spec.grammar_constrained,
             host_stops: spec.host_stops,
             prompt_logprobs: spec.prompt_logprobs,

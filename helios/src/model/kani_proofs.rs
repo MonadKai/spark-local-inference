@@ -61,7 +61,7 @@ fn completion_fixture(tokens_below_vocabulary: bool) -> CompletionFixture {
             input_vocabulary: vocabulary as usize,
             vision: VisionCapabilities::disabled(),
             audio: None,
-            cache: CacheContract {
+            cache: CacheContract { immutable_request_values: vec![],
                 page_tokens: 64,
                 regions: Vec::new(),
                 page_tables: Vec::new(),

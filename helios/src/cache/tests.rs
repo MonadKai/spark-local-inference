@@ -53,7 +53,7 @@ fn created(
     }
 }
 
-fn hexadecimal(digest: [u8; 16]) -> String {
+fn hexadecimal<const N: usize>(digest: [u8; N]) -> String {
     digest.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
@@ -122,6 +122,30 @@ fn hash_matches_independent_blake2b128_vectors() {
         hexadecimal(history.key_at(128).unwrap().digest),
         "df75df435a8efc99d5e398479fdf2519"
     );
+}
+
+#[test]
+fn immutable_request_values_match_independent_blake2b_vectors() {
+    // Python hashlib, domain || struct.pack("<iQ", source, value), and the
+    // existing documented root/block/tail formats over token IDs 0..65.
+    for (value, identity, block, tail) in [
+        (1, "6ec27932a7d7553e1172c465370b848346ea43b4e96ba7575474671ab1c5b687",
+            "ee250c5db44b5be684307a1a26772aaf", "95485a40dc7972b16c89fe1d4429e0dd"),
+        (65, "0f52fd09138a9d242e81d87fd93ea0e08bf81084279b0534e0df98aee9be90f5",
+            "40aa648ea8ab0df34e9fe277245b9439", "6d635d27d7328c6864902ddecee07988"),
+        (66, "05c1b53ca0152a4ec68cd8d76a10105268183549c172723926ea9b59bd57013f",
+            "fad736b3b184fa3bbfc08bb8592533dc", "fd9a66021791381bb18261783b24b664"),
+        (8192, "a74a63dc9e4cc3b9fdb7ee40005693f0fc1f2888602b1b3612a8005f1131aabe",
+            "5c8acbcee1087934ded58066ff27339a", "0f9f9a5c5f899d58bf7cf48e09ae277d"),
+    ] {
+        let event = ConditioningEvent::request_value(44, value);
+        assert_eq!(event.position, 0);
+        assert_eq!(hexadecimal(event.identity), identity);
+        let mut history = PrefixHistory::new([9; 32]);
+        history.append(&(0..65).collect::<Vec<_>>(), &[event]).unwrap();
+        assert_eq!(hexadecimal(history.key_at(64).unwrap().digest), block);
+        assert_eq!(hexadecimal(history.key_at(65).unwrap().digest), tail);
+    }
 }
 
 #[test]

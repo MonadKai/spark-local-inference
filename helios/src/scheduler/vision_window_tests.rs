@@ -30,7 +30,7 @@ fn scheduler_with_resources(
             pages: (65_536 / page_tokens * active) as u32,
             snapshots,
         },
-        SchedulerCapabilities { audio: None,
+        SchedulerCapabilities { immutable_request_values: vec![], audio: None,
             completion_token_capacity: 16,
             vocabulary: 248_320,
             page_tokens,

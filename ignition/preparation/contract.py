@@ -117,10 +117,14 @@ def prefix_boundary(roles, *, append_role=None, minimum_messages=1, required_sta
 
 
 def model_contract(*, vocabulary, input_vocabulary=None, vision=None, audio=None, page_tokens, page_tables, graphs, frontend,
-                   regions):
+                   regions, immutable_request_values=()):
+    if (len(immutable_request_values) > 1
+            or any(value != p.INITIAL_PROMPT_TOKENS for value in immutable_request_values)):
+        raise ValueError("unsupported or duplicate immutable cache request value")
     return dict(version=3, vocabulary=vocabulary, input_vocabulary=input_vocabulary or vocabulary,
         vision={"feature_slots": 0, **(vision or dict(features_per_request=0, max_images=0, patches_per_feature=0, patch_capacities=[]))},
-        cache=dict(page_tokens=page_tokens, page_tables=page_tables, regions=regions), graphs=graphs, frontend=frontend,
+        cache=dict(page_tokens=page_tokens, page_tables=page_tables, regions=regions,
+            **(dict(immutable_request_values=list(immutable_request_values)) if immutable_request_values else {})), graphs=graphs, frontend=frontend,
         **({"audio": audio} if audio is not None else {}))
 
 

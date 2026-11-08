@@ -138,6 +138,10 @@ impl Inputs {
                                 && matches!(graph.kind, GraphKind::AudioEncode | GraphKind::Prefill | GraphKind::ScoredPrefill | GraphKind::Mixed),
                             AudioFeatureIndex => config.contract.audio.is_some() && binding.indexing == PackedToken && binding.value_offset == 0
                                 && matches!(graph.kind, GraphKind::Prefill | GraphKind::ScoredPrefill | GraphKind::Mixed),
+                            InitialPromptTokens => binding.indexing == SubmissionRow && width == 1
+                                && binding.value_offset == 0 && binding.padding == 0
+                                && binding.tensor.is_empty()
+                                && !matches!(graph.kind, GraphKind::Vision | GraphKind::AudioEncode),
                             PageTable | LiveStateRows => binding.indexing == RequestRow,
                             PromptToken | PromptTargetToken
                             | PromptAndPendingToken
@@ -223,7 +227,7 @@ impl Inputs {
                         };
                         if width == 0
                             || width != expected_width
-                            || (matches!(binding.source, AudioFeatureIndex | AudioFeatureSlot) && buffer.dtype != Dtype::Int32)
+                            || (matches!(binding.source, AudioFeatureIndex | AudioFeatureSlot | InitialPromptTokens) && buffer.dtype != Dtype::Int32)
                             || (binding.source == ValueSource::PageTable
                                 && buffer.dtype != Dtype::Int32)
                             || (matches!(
@@ -565,6 +569,7 @@ impl Inputs {
                     Constant => values.resize(input.width, 0),
                     RequestSlot => values.push(slot as i64),
                     RequestGeneration => values.push(lane.request.generation as i64),
+                    InitialPromptTokens => values.push(live.initial_prompt_tokens() as i64),
                     QueryLength | SpeculativePrefixLimit => values.push(lane.tokens as i64),
                     SampleEnabled => values.push(frame.samples[row] as i64),
                     PromptTargetToken => {

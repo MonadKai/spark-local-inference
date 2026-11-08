@@ -253,7 +253,7 @@ mod tests {
         for requests in [3, 5] {
             while admitted < requests {
                 scheduler.admit(crate::scheduler::RequestSpec {
-                    prefix_scope: None, message_boundaries: vec![], prompt: vec![admitted as u32 + 1],
+                    prefix_scope: None, message_boundaries: vec![], initial_prompt_tokens: 1, prompt: vec![admitted as u32 + 1],
                     conditioning: vec![], max_new_tokens: 2, grammar_constrained: false,
                     host_stops: false, prompt_logprobs: false, growable_output: false,
                 }).unwrap();

@@ -42,6 +42,17 @@ pub struct ConditioningEvent {
     pub identity: [u8; 32],
 }
 
+impl ConditioningEvent {
+    /// Request data conditioning every nonempty prefix, before frontend events.
+    pub(crate) fn request_value(source: i32, value: u64) -> Self {
+        let mut hash = Blake2b::<blake2::digest::consts::U32>::new();
+        hash.update(b"flare-prefix-request-value-v1\0");
+        hash.update(source.to_le_bytes());
+        hash.update(value.to_le_bytes());
+        Self { position: 0, identity: hash.finalize().into() }
+    }
+}
+
 /// Incremental token and conditioning identity for a single model/recipe.
 /// Hash blocks contain 64 tokens independently of physical cache page geometry.
 ///

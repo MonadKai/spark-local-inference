@@ -439,7 +439,7 @@ these inputs in the regression. An earlier collector's wrong 40-token identity
 failed its 165-row reshape before the first projection; that failed attempt is
 retained separately and is not counted as coverage.
 
-The [design proposal](qwen3-asr-design.md#proposed-immutable-original-prompt-geometry)
+The [design proposal](qwen3-asr-design.md#immutable-original-prompt-values-and-proposed-graph-geometry)
 describes the additional native immutable-input and real cache dependency needed
 before using this mechanism in serving. Neither is implemented by these component
 controls. Existing full-model, native batch/slot and performance gates remain open.

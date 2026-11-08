@@ -265,6 +265,7 @@ impl Fixture {
                 queue_capacity: None,
                 arrival_ns: super::super::observation::monotonic_ns(),
                 publications: Default::default(),
+                initial_prompt_tokens: tokens.len(),
                 prompt: Self::prompt_for(tokens, limit, data),
                 events,
                 admission: Mutex::new(Some(admission)),
@@ -735,6 +736,7 @@ fn prepared_budget_request(
     );
     let (mut incoming, generation) = fixture.incoming(vec![], 0);
     incoming.prompt = prepared.prompt;
+    incoming.initial_prompt_tokens = incoming.prompt.tokens.len();
     (incoming, generation, decoder, prompt_tokens)
 }
 
@@ -3430,7 +3432,7 @@ fn exercise_text_preemption(
             .scheduler
             .admit(RequestSpec {
                 prefix_scope: None,
-                prompt: vec![3; page_tokens * 5],
+                initial_prompt_tokens: page_tokens * 5, prompt: vec![3; page_tokens * 5],
                 max_new_tokens: 1,
                 growable_output: false,
                 message_boundaries: vec![],
@@ -4525,7 +4527,7 @@ fn host_prefix_selects_whole_required_images_and_compacts_feature_indices() {
                 .scheduler
                 .admit(RequestSpec {
                     prefix_scope: None,
-                    prompt: vec![1; 2],
+                    initial_prompt_tokens: 2, prompt: vec![1; 2],
                     message_boundaries: vec![],
                     conditioning: vec![],
                     max_new_tokens: 1,
@@ -4578,6 +4580,7 @@ fn failed_host_restore_replans_all_images_from_the_shallower_prefix() {
         .frontend;
     let (sender, receiver) = mpsc::channel();
     let (mut incoming, _generation) = fixture.incoming(vec![0; 100], 4);
+    incoming.initial_prompt_tokens = 90;
     incoming.prompt.conditioned_inputs = vec![
         described_image(10..26, 0..16),
         described_image(40..56, 16..32),
@@ -4593,7 +4596,6 @@ fn failed_host_restore_replans_all_images_from_the_shallower_prefix() {
     assert_eq!(worker.active[0].as_ref().unwrap().selected_images.len(), 0);
     worker.active[0].as_mut().unwrap().carried = Carried {
         decoded_sequence: Default::default(),
-        prompt_tokens: Some(90),
         reused_prompt_tokens: Some(56),
         generated_tokens: 7,
         seed: Some(99),
@@ -4621,7 +4623,8 @@ fn failed_host_restore_replans_all_images_from_the_shallower_prefix() {
     assert_eq!(active.next_image, 0);
     assert!(active.incoming.readmitted);
     assert!(!active.incoming.host_lookup);
-    assert_eq!(active.carried.prompt_tokens, Some(90));
+    assert_eq!(active.incoming.initial_prompt_tokens, 90);
+    assert_eq!(worker.scheduler.request(active.request).unwrap().initial_prompt_tokens(), 90);
     assert_eq!(active.carried.reused_prompt_tokens, Some(56));
     assert_eq!(active.carried.generated_tokens, 7);
     assert_eq!(active.carried.seed, Some(99));
@@ -5072,7 +5075,7 @@ fn unpinned_checkpoint(
 ) -> crate::cache::CheckpointId {
     let spec = RequestSpec {
         prefix_scope: None,
-        prompt: vec![token; end + 1],
+        initial_prompt_tokens: end + 1, prompt: vec![token; end + 1],
         message_boundaries: vec![],
         conditioning: vec![],
         max_new_tokens: 1,
@@ -5235,7 +5238,7 @@ fn publication_copy_pins_survive_ancestor_compaction() {
     let (incoming, generation) = fixture.incoming(vec![1; 70], 4);
     let spec = RequestSpec {
         prefix_scope: None,
-        prompt: incoming.prompt.tokens.clone(),
+        initial_prompt_tokens: incoming.initial_prompt_tokens, prompt: incoming.prompt.tokens.clone(),
         message_boundaries: vec![],
         conditioning: vec![],
         max_new_tokens: 4,
@@ -5385,7 +5388,7 @@ fn publication_retries_wait_for_progress_and_abandon_evicted_ids() {
         assert_eq!(worker.deferred_stores, [(id, reason)]);
         let spec = RequestSpec {
             prefix_scope: None,
-            prompt: vec![1; 70],
+            initial_prompt_tokens: 70, prompt: vec![1; 70],
             message_boundaries: vec![],
             conditioning: vec![],
             max_new_tokens: 1,

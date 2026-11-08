@@ -329,6 +329,26 @@ mod tests {
     use prost::Message;
 
     #[test]
+    fn immutable_cache_dependencies_preserve_old_wire_and_json_defaults() {
+        let legacy = [0x08, 0x40];
+        let old = wire::CacheContract::decode(legacy.as_slice()).unwrap();
+        assert!(old.immutable_request_values.is_empty());
+        assert_eq!(old.encode_to_vec(), legacy);
+        let decoded: wire::CacheContract = serde_json::from_value(serde_json::json!({
+            "page_tokens": 64, "regions": [], "page_tables": []
+        })).unwrap();
+        assert_eq!(decoded.encode_to_vec(), legacy);
+        let domain: crate::model::contract::CacheContract = serde_json::from_value(
+            serde_json::to_value(decoded).unwrap()).unwrap();
+        assert!(serde_json::to_value(domain).unwrap().get("immutable_request_values").is_none());
+        let mut current = old;
+        current.immutable_request_values = vec![wire::ValueSource::InitialPromptTokens as i32];
+        assert_eq!(current.encode_to_vec(), [0x08, 0x40, 0x22, 0x01, 0x2c]);
+        assert_eq!(wire::CacheContract::decode(current.encode_to_vec().as_slice()).unwrap()
+            .immutable_request_values, vec![44]);
+    }
+
+    #[test]
     fn rebuild_catalogs_do_not_change_native_bundle_loading() {
         // SM120 architecture and an empty CUDA context, serialized without a catalog.
         let bytes = [10, 2, 12, 0, 66, 0];

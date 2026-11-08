@@ -316,6 +316,7 @@ pub fn scheduler_capabilities(config: &ModelConfig) -> SchedulerCapabilities {
         page_tokens: config.contract.cache.page_tokens,
         vision: config.contract.vision.clone(),
         audio: config.contract.audio.clone(),
+        immutable_request_values: config.contract.cache.immutable_request_values.clone(),
         draft_pages_per_request: config
             .contract
             .cache
