@@ -1,0 +1,285 @@
+diff --git a/torch/_inductor/fx_passes/post_grad.py b/torch/_inductor/fx_passes/post_grad.py
+--- a/torch/_inductor/fx_passes/post_grad.py
++++ b/torch/_inductor/fx_passes/post_grad.py
+@@ -1544,221 +1544,280 @@
+             continue
+ 
+         keep = []
+         for idx in only_clone_these:
+             if idx >= len(all_bases):
+                 keep.append(idx)
+                 continue
+             base = all_bases[idx]
+             if not isinstance(base, torch.fx.Node):
+                 keep.append(idx)
+                 continue
+             base_storage = get_node_storage(base)
+             if base_storage is None or base_storage not in storage_to_input:
+                 keep.append(idx)
+                 continue
+             input_val = storage_to_input[base_storage].meta["val"]
+             if input_val.dtype == base.meta["val"].dtype:
+                 keep.append(idx)
+                 continue
+             counters["inductor"]["fix_auto_functionalized_dtype_views"] += 1
+ 
+         if len(keep) != len(only_clone_these):
+             node.meta["only_clone_these_tensors"] = keep
+ 
+ 
+ def decompose_auto_functionalized(graph):
+     """Decomposes auto_functionalized nodes into clones and the underlying
+     mutation node.
+ 
+     We assume that the reinplacing pass runs before this; the reinplacing pass
+     tells us (via rewriting the arguments or .meta to those nodes) which
+     Tensors we should clone and which Tensors are safe to reinplace.
+     """
+     apply_pass_to_control_deps_subgraphs(decompose_auto_functionalized, graph)
+ 
+     graph_pass = PatternMatcherPass()
+ 
+     @register_graph_pattern(
+         CallFunctionVarArgs(torch.ops.higher_order.auto_functionalized),
+         # pyrefly: ignore [bad-argument-type]
+         pass_dict=graph_pass,
+     )
+     def _(match: Match, *args, **kwargs):
+         from torch._higher_order_ops.auto_functionalize import auto_functionalized_dense
+ 
+         only_clone_these_tensors = match.nodes[0].meta.get("only_clone_these_tensors")
+         if only_clone_these_tensors is not None:
+             only_clone_these_tensors = tuple(only_clone_these_tensors)
+ 
+         flat_args, spec = pytree.tree_flatten((args, kwargs))
+ 
+         # NB: we combine (args, kwargs) into flat args for replacing.
+         # This is replace_by_example uses make_fx which does not support
+         # tracing a function with kwargs.
+         def decomp(*flat_args):
+             args, kwargs = pytree.tree_unflatten(flat_args, spec)
+             if len(args) != 1:
+                 raise AssertionError(f"expected 1 arg, got {len(args)}")
+             mode = args[0]
+             return auto_functionalized_dense(mode, only_clone_these_tensors, **kwargs)
+ 
+         # pyrefly: ignore [bad-argument-type]
+         match.replace_by_example(decomp, flat_args, run_functional_passes=False)
+ 
+     @register_graph_pattern(
+         CallFunctionVarArgs(torch.ops.higher_order.auto_functionalized_v2),
+         # pyrefly: ignore [bad-argument-type]
+         pass_dict=graph_pass,
+     )
+     def _(match: Match, *args, **kwargs):
+         from torch._higher_order_ops.auto_functionalize import (
+             auto_functionalized_v2_dense,
+         )
+ 
+         only_clone_these_bases = match.nodes[0].meta.get("only_clone_these_tensors")
+         if only_clone_these_bases is not None:
+             only_clone_these_bases = tuple(only_clone_these_bases)
+ 
+         flat_args, spec = pytree.tree_flatten((args, kwargs))
+ 
+         def _maybe_resolve_constant_get_attr(node):
+             # Resolve getattr node to its value because they don't always have meta["val"]
+             if (
+                 isinstance(node, torch.fx.Node)
+                 and node.op == "get_attr"
+                 and "val" not in node.meta
+             ):
+                 const_attr = getattr(graph.owning_module, node.target)  # type: ignore[arg-type]
+                 if not isinstance(const_attr, (torch.fx.GraphModule, pytree.TreeSpec)):
+                     raise AssertionError((type(const_attr), const_attr))
+                 return const_attr
+             return node
+ 
+         flat_args = [_maybe_resolve_constant_get_attr(arg) for arg in flat_args]
+ 
+         # NB: we combine (args, kwargs) into flat args for replacing.
+         # This is replace_by_example uses make_fx which does not support
+         # tracing a function with kwargs.
+         def decomp(*flat_args):
+             args, kwargs = pytree.tree_unflatten(flat_args, spec)
+             if len(args) != 1:
+                 raise AssertionError(f"expected 1 arg, got {len(args)}")
+             mutable_op = args[0]
+             return auto_functionalized_v2_dense(
+                 mutable_op, only_clone_these_bases, **kwargs
+             )
+ 
+         # pyrefly: ignore [bad-argument-type]
+         match.replace_by_example(decomp, flat_args, run_functional_passes=False)
+ 
+-    graph_pass.apply(graph)
++    # Both handlers above match exactly one wrapper and do not inspect region
++    # IDs. Keep the original mutation/stream/type guards and clone handlers,
++    # but refresh their derived region metadata once after this closed pass.
++    # Generic PatternMatcherPass and all other passes retain their behavior.
++    pm = pattern_matcher
++    targets = (torch.ops.higher_order.auto_functionalized,
++               torch.ops.higher_order.auto_functionalized_v2)
++    if set(graph_pass.patterns) != {("call_function", target) for target in targets}:
++        raise AssertionError("auto-functionalization requires its two fixed patterns")
++    for entries in graph_pass.patterns.values():
++        if (len(entries) != 1 or type(entries[0]) is not pm.GraphPatternEntry
++                or type(entries[0].pattern) is not pm.CallFunctionVarArgs
++                or entries[0].extra_check is not pm._return_true):
++            raise AssertionError("auto-functionalization requires original singleton handlers")
++    if pm.should_compute_mutation_region_ids(graph):
++        pm.compute_mutation_region_ids(graph)
++    region = functools.partial(pm.get_mutation_region_id, graph)
++    nodes = [node for target in targets
++             for node in graph.find_nodes(op="call_function", target=target, sort=False)]
++    gm = graph.owning_module
++    if not isinstance(gm, torch.fx.GraphModule):
++        raise AssertionError("auto-functionalization requires an owning GraphModule")
++    changed_regions = False
++    pass_name = graph_pass.pass_name or "pattern_matcher"
++    with pm.GraphTransformObserver(gm, pass_name, graph_pass.subsystem):
++        for node in sorted(nodes, reverse=True):
++            if node._erased:
++                continue
++            if pm.fallback_node_due_to_unsupported_type(node, allow_cpu_inputs=False):
++                continue
++            entry = graph_pass.patterns[(node.op, pm.extract_target(node))][0]
++            match = entry.pattern.match(node)
++            if not pm.is_match(match):
++                continue
++            if match.nodes != [node]:
++                raise AssertionError("auto-functionalization must match only its wrapper")
++            if len(OrderedSet(map(region, match.nodes))) != 1:
++                continue
++            if len(OrderedSet((n.meta.get("custom", {}).get("stream", 0),
++                    n.meta.get("custom", {}).get("mempool"),
++                    n.meta.get("custom", {}).get("mempool_device"))
++                    for n in match.nodes)) != 1:
++                continue
++            if pm._should_debug_node(node.name):
++                pm.log.warning("%s%s %s %s", node, node.args, match, entry.pattern)
++            if not pm.guard_or_false(entry.extra_check(match)):
++                continue
++            with pm._track_graph_mutation_ops(graph,
++                    pm._common_custom_context(match.nodes)) as tracker:
++                entry.apply(match, graph, node)
++            changed_regions |= tracker.changed_mutation_regions()
++            counters[pm.backend]["pattern_matcher_count"] += 1
++            counters[pm.backend]["pattern_matcher_nodes"] += len(match.nodes)
++            if pm.os.environ.get("TORCHINDUCTOR_PATTERN_MATCH_DEBUG"):
++                name = getattr(entry, "pattern_name", None)
++                if not name:
++                    name = f"{entry.pattern.__class__.__name__}_{str(node.target)}"
++                counters[pm.backend + "_pattern_matcher_per_pattern"][name] += 1
++    if changed_regions:
++        pm.compute_mutation_region_ids(graph)
+ 
+     # Remove unused get_attr nodes and their corresponding attributes from the graph module.
+     # When auto_functionalizing a hop, we need to clean up get_attr nodes for _constant_schema
+     # and the auto_functionalized graph module that are no longer referenced.
+     unused_get_attr_nodes = []
+     removable_attrs: OrderedSet[torch.fx.node.Target] = OrderedSet()
+     protected_attrs: OrderedSet[torch.fx.node.Target] = OrderedSet()
+ 
+     # First pass: identify unused get_attr nodes and track attribute usage
+     for node in graph.nodes:
+         if node.op != "get_attr":
+             continue
+ 
+         if len(node.users) == 0:
+             # Node is unused, mark for removal
+             unused_get_attr_nodes.append(node)
+ 
+             # Check if the attribute can be removed from the module
+             if (
+                 hasattr(graph.owning_module, node.target)
+                 and isinstance(
+                     getattr(graph.owning_module, node.target), torch.fx.GraphModule
+                 )
+                 and node.target not in protected_attrs
+             ):
+                 removable_attrs.add(node.target)
+         else:
+             # Node is used, protect its attribute from removal
+             if node.target in removable_attrs:
+                 removable_attrs.remove(node.target)
+             protected_attrs.add(node.target)
+ 
+     # Second pass: clean up unused nodes and attributes
+     for node in unused_get_attr_nodes:
+         graph.erase_node(node)
+ 
+     for attr_name in removable_attrs:
+         if not isinstance(attr_name, str):
+             raise AssertionError(f"expected str, got {type(attr_name).__name__}")
+         delattr(graph.owning_module, attr_name)
+ 
+     graph.lint()
+ 
+     for _ in graph.find_nodes(
+         op="call_function", target=torch.ops.higher_order.auto_functionalized
+     ):
+         raise AssertionError("auto_functionalized was not removed")
+ 
+     for _ in graph.find_nodes(
+         op="call_function", target=torch.ops.higher_order.auto_functionalized_v2
+     ):
+         raise AssertionError("auto_functionalized_v2 was not removed")
+ 
+ 
+ @register_lowering_pattern(
+     CallFunction(
+         aten.cat,
+         ListOf(
+             CallFunction(
+                 operator.getitem,
+                 CallFunction(
+                     aten.split_with_sizes,
+                     KeywordArg("input_"),
+                     Ignored(),
+                     Ignored(),
+                     _users=MULTIPLE,
+                 ),
+                 Ignored(),
+             ),
+         ),
+         Ignored(),
+     ),
+     pass_number=2,
+     extra_check=is_valid_splitwithsizes_cat,
+     output_metadata_is_input="input_",
+ )
+ def splitwithsizes_cat_replace(match, input_):
+     return input_
+ 
+ 
+ def is_valid_cat_splitwithsizes(match):
+     cat_nodes = filter_nodes(match.nodes, aten.cat)
+     split_nodes = filter_nodes(match.nodes, aten.split_with_sizes)
+     if len(split_nodes) != 1 or len(cat_nodes) != 1:
+         return False
+     split_node, cat_node = split_nodes[0], cat_nodes[0]
+ 
+     # the cat node has other users: can't eliminate
+     if len(cat_node.users) > 1:
+         return False
+ 
+     # the dim of the cat and split should match
+     dim = get_arg_value(split_node, 2, "dim")
+     if dim != get_arg_value(cat_node, 1, "dim"):
+         return False
+ 
+     cat_inputs = list(get_arg_value(cat_node, 0))
+     split_sizes = get_arg_value(split_node, 1, "split_sizes")
+     # the number of input tensors in cat and the
+     # length of the split sizes should match
+     if len(cat_inputs) != len(split_sizes):
+         return False
+ 
+     for cat_input, split_size in zip(cat_inputs, split_sizes):
+         # each cat input tensor's size along dim
+         # should match the corresponding split size
+         if "val" not in cat_input.meta:
+             return False
+         cat_input_size = cat_input.meta["val"].size(dim)
+         if cat_input_size != split_size:

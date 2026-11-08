@@ -336,7 +336,16 @@ def test_frozen_restore_ignores_conflicting_enabled_local_cache(tmp_path, monkey
             # caches or disabling their use on the subsequent frozen restore.
             alternative = copy.deepcopy(selected.config)
             alternative.num_warps = 8 if alternative.num_warps != 8 else 16
-            compiled_alternative = tuner._precompile_config(alternative)
+            # Portable artifacts deliberately strip Python/JIT state. Restore
+            # source only while preparing this real conflicting cache entry,
+            # using the same prerequisite as Torch's recompilation paths.
+            original_fn = tuner.fn
+            try:
+                tuner._ensure_kernel_loaded()
+                assert tuner.fn.fn is not None and tuner.fn._hash_lock is not None
+                compiled_alternative = tuner._precompile_config(alternative)
+            finally:
+                tuner.fn = original_fn
             portable = pickle.loads(_portable(compiled_alternative))
             assert portable.kernel.cubin_raw
             assert portable.config.all_kwargs() != selected.config.all_kwargs()

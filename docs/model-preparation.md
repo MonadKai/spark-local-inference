@@ -74,7 +74,7 @@ uv sync --locked --extra prepare --extra test
 cargo build --release --manifest-path flare/Cargo.toml
 ```
 
-Ignition applies three bundled preparation patches to the pinned PyTorch 2.14.1 and
+Ignition applies four bundled preparation patches to the pinned PyTorch 2.14.1 and
 Triton 3.8 preparation environment before importing preparation libraries in
 `export`, `debug-serve`, `bench`, and `join`, including commands launched through `uv run`.
 `ignition/patches/torch-inductor-triton-cache-filenames.patch` matches
@@ -88,6 +88,12 @@ Nsight Systems injection can conflict with `file`'s seccomp sandbox and hang
 startup ([NVIDIA known issues](https://docs.nvidia.com/nsight-systems/ReleaseNotes/index.html#general-issues)).
 The pointer-width key retains machine and operating-system identity and
 invalidates compiled helper caches that used executable linkage metadata.
+`ignition/patches/torch-inductor-singleton-decomposition.patch` avoids repeated
+whole-graph mutation-region scans inside Inductor's closed auto-functionalization
+decomposition pass. Its two original singleton handlers, clone decisions, guards,
+custom stream contexts and cleanup remain intact; derived region metadata is
+refreshed after the pass. The generic pattern matcher is unchanged. This addresses
+preparation cost, and does not establish model correctness or serving performance.
 Patch application checks dependency versions and exact source context, accepts
 already applied hunks, and replaces installation files atomically without
 modifying uv's shared wheel cache. Each preparation host needs a writable,
