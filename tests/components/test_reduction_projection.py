@@ -20,3 +20,21 @@ def test_projection_query_accepts_representable_extents(columns, reduction):
 def test_projection_query_rejects_overflow_or_invalid_geometry(columns, reduction):
     with pytest.raises(ValueError, match="int32 element indexing"):
         Query(columns, reduction)
+
+
+@pytest.mark.parametrize("rows", [8, 16, 40, 128, 4096, 8192])
+def test_projection_rows_enter_the_prepared_query(rows):
+    query = Query(151936, 2048, rows)
+    assert query.rows == rows
+
+
+@pytest.mark.parametrize("rows", [True, 0, -8, 4, 9, 2**24, 2**31])
+def test_projection_rows_reject_invalid_or_overflowing_storage(rows):
+    with pytest.raises(ValueError, match="int32 element indexing"):
+        Query(151936, 2048, rows)
+
+
+def test_projection_rows_reject_grid_y_overflow_before_compilation():
+    assert Query(1, 16, 8 * 65535).rows == 8 * 65535
+    with pytest.raises(ValueError, match="CUDA row-group bounds"):
+        Query(1, 16, 8 * 65536)

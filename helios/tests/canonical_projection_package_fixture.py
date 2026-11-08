@@ -174,13 +174,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if not 0 <= args.count <= args.capacity:
         parser.error("count must fit capacity")
-    if args.reduction and (args.capacity != 8 or args.with_bias or args.rowwise):
-        parser.error("fixed reduction requires capacity eight without bias or rowwise execution")
+    if args.reduction and (args.capacity % 8 or args.with_bias or args.rowwise):
+        parser.error("fixed reduction requires eight-row groups without bias or rowwise execution")
     if args.positioned:
         if args.with_bias or args.rowwise or args.reduction or not 0 <= args.start <= args.sequence <= 8192 \
                 or args.start + args.count > args.sequence:
             parser.error("positioned fixture requires a bounded fragment without other projection modes")
-    elif args.capacity not in (8, 64) or args.start != 0 or args.sequence != 165:
+    elif (args.capacity not in (8, 64) and not args.reduction) or args.start != 0 or args.sequence != 165:
         parser.error("extended capacities and positions require the positioned fixture")
     args.directory.mkdir(parents=True, exist_ok=False)
     import sys
