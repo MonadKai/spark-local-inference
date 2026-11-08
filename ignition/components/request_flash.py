@@ -54,14 +54,12 @@ def _catalog(max_query, max_key, heads, kv_heads, sms):
     return table, [value for group in groups for value in group]
 
 
-@torch.library.custom_op("flare::request_flash", mutates_args=("output", "errors"))
-def _attend(query: torch.Tensor, key: torch.Tensor, value: torch.Tensor,
+def _attend_general(query: torch.Tensor, key: torch.Tensor, value: torch.Tensor,
             pages: torch.Tensor, lengths: torch.Tensor, cu: torch.Tensor,
             output: torch.Tensor, errors: torch.Tensor, lookup: torch.Tensor,
             plans: list[int], max_query: int) -> None:
-    # Keep the catalog opaque to full-forward compilation. Every call below
-    # runs during preparation/capture; exported execution contains CUDA nodes.
-    # There is no Python dispatch in the Rust serving process.
+    # Expose integer packing and bit selection to complete-forward compilation.
+    # The original FA2 calls and their split/partition geometry stay unchanged.
     positions = torch.arange(query.shape[0], device=query.device, dtype=torch.int32)
     query_bits = query.view(torch.int16)
     output_bits = output.view(torch.int16)
@@ -88,7 +86,8 @@ def _attend(query: torch.Tensor, key: torch.Tensor, value: torch.Tensor,
             (row * lookup.shape[1] + column).reshape(1).long())[0]
         valid &= (chosen >= 0) & (chosen < len(plans) // 3)
         bad = (count > 0) & ~valid
-        row_bits = torch.zeros_like(query_bits[:max_query])
+        row_bits = torch.zeros((max(plans[::3]), *query.shape[1:]),
+            device=query.device, dtype=torch.int16)
         zero = count * 0
         for identifier, begin in enumerate(range(0, len(plans), 3)):
             capacity, split, bound = plans[begin:begin + 3]
@@ -125,6 +124,17 @@ def _attend(query: torch.Tensor, key: torch.Tensor, value: torch.Tensor,
     output.masked_fill_((bad_rows | ~ordered)[:, None, None], float("nan"))
 
 
+@torch.library.custom_op("flare::request_flash", mutates_args=("output", "errors"))
+def _attend(query: torch.Tensor, key: torch.Tensor, value: torch.Tensor,
+            pages: torch.Tensor, lengths: torch.Tensor, cu: torch.Tensor,
+            output: torch.Tensor, errors: torch.Tensor, lookup: torch.Tensor,
+            plans: list[int], max_query: int) -> None:
+    # Retain the original opaque operation for existing compiled artifacts and
+    # direct arithmetic controls. Serving graphs compile the visible program.
+    _attend_general(query, key, value, pages, lengths, cu, output, errors, lookup,
+        plans, max_query)
+
+
 @_attend.register_fake
 def _fake(query, key, value, pages, lengths, cu, output, errors, lookup, plans, max_query):
     pass
@@ -159,7 +169,8 @@ def _attend_batched(query: torch.Tensor, key: torch.Tensor, value: torch.Tensor,
     chosen = torch.index_select(lookup.reshape(-1), 0, (row * lookup.shape[1] + column).long())
     valid &= (chosen >= 0) & (chosen < len(plans) // 3)
     bad = (counts > 0) & ~valid
-    row_bits = torch.zeros((slots, max_query, *query.shape[1:]), device=query.device, dtype=torch.int16)
+    row_bits = torch.zeros((slots, max(plans[::3]), *query.shape[1:]),
+        device=query.device, dtype=torch.int16)
     zero = cu[0] * 0
     slot_indices = torch.arange(slots, device=query.device, dtype=torch.int32)
     for identifier, begin in enumerate(range(0, len(plans), 3)):
@@ -209,9 +220,16 @@ class PreparedRequestFlashAttention(PreparedPagedFlashAttention):
     one FA2 call per family; prefill and MHA retain their original calls.
     Device lengths select their represented BF16 results by bits. Empty request slots cannot overwrite a
     packed live query. Padding never changes KV or recomputes rotary positions.
+    An explicit single split uses one full-capacity family and at least two
+    physical queries, preserving the general FA2 reduction across prefill
+    partitions and single-query continuation. The extra query is a causal
+    prefix dummy; only logical request rows are published.
     """
 
-    def __init__(self, query, key, value, pages, lengths, cu_query, cu_key, output, *, max_query):
+    def __init__(self, query, key, value, pages, lengths, cu_query, cu_key, output, *, max_query,
+                 num_splits=None):
+        if num_splits is not None and (type(num_splits) is not int or num_splits != 1):
+            raise ValueError("request flash accepts automatic request geometry or one fixed split")
         super().__init__(query, key, value, pages, lengths, cu_query, cu_key, output, max_query=max_query)
         if query.shape[2] != 128:
             raise ValueError("request flash requires head dimension 128")
@@ -222,13 +240,19 @@ class PreparedRequestFlashAttention(PreparedPagedFlashAttention):
         self.errors = torch.zeros((pages.shape[0] + 1,), dtype=torch.int32, device=query.device)
         table, self.family_geometry = _catalog(max_query, self.max_key, query.shape[1], key.shape[2],
             2 * torch.cuda.get_device_properties(query.device).multi_processor_count)
+        if num_splits == 1:
+            # A prefill can be partitioned differently as other requests arrive.
+            # Keep one reduction geometry rather than selecting splits from the
+            # current chunk size. Physical padding retains causal alignment.
+            table = [[0 for _ in row] for row in table]
+            self.family_geometry = [max(2, max_query), 1, self.max_key]
         self.lookup = torch.tensor(table, dtype=torch.int32, device=query.device)
 
     def __call__(self):
         # Pinned FA2's GQA host swap sets the batch output stride only for
         # this query geometry. Varlen prefill/MHA retain their original calls.
         operation = (_attend_batched if self.logical_max_query == 1
-            and self.query.shape[1] > self.key.shape[2] else _attend)
+            and self.query.shape[1] > self.key.shape[2] else _attend_general)
         operation(self.query, self.key, self.value, self.pages, self.lengths, self.cu_query,
             self.output, self.errors, self.lookup, self.family_geometry, self.logical_max_query)
         return self.output

@@ -29,7 +29,7 @@ class _Forward:
 
 
 @torch.no_grad()
-def prepare(root, mode, count, arithmetic="paged"):
+def prepare(root, mode, count, arithmetic="paged", num_splits=None):
     from b12x.preparation import PreparationSession
     from fixed_package_fixture import allocation_reference
     from fixture_frontend import server_config
@@ -87,7 +87,8 @@ def prepare(root, mode, count, arithmetic="paged"):
                     attention_type = {"paged": PreparedPagedFlashAttention,
                         "request": PreparedRequestFlashAttention}[arithmetic]
                     operation = attention_type(q, k, v, pages, lengths, cu, cu_key, output,
-                        max_query=1 if mode == "decode" else capacity)
+                        max_query=1 if mode == "decode" else capacity,
+                        **({"num_splits": num_splits} if arithmetic == "request" else {}))
                     retained.append(operation)
                     forward = _Forward(operation)
                     retained.append(forward)
@@ -135,11 +136,14 @@ if __name__ == "__main__":
     parser.add_argument("--mode", choices=("decode", "prefill"), required=True)
     parser.add_argument("--count", type=int, required=True)
     parser.add_argument("--arithmetic", choices=("paged", "request"), default="paged")
+    parser.add_argument("--num-splits", type=int, choices=(1,))
     args = parser.parse_args()
     if args.count not in ((0, 2) if args.mode == "decode" else (13,)):
         parser.error("use decode count 0/2 or prefill count 13")
+    if args.num_splits is not None and args.arithmetic != "request":
+        parser.error("explicit split geometry requires request arithmetic")
     args.directory.mkdir(parents=True, exist_ok=False)
     import sys
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from helios.tests.paged_flash_package_fixture import prepare as prepare_importable
-    prepare_importable(args.directory, args.mode, args.count, args.arithmetic)
+    prepare_importable(args.directory, args.mode, args.count, args.arithmetic, args.num_splits)

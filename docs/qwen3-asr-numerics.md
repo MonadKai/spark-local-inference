@@ -322,6 +322,33 @@ query/key asymmetry, nonfinite operands, malformed lengths/pages, recovery and
 allocation stability. Three synthetic packages replay after preparation exits.
 These checks do not qualify every general-query geometry near context 8192.
 
+An explicitly prepared `num_splits=1` variant uses one full-key-capacity family
+and at least two physical query rows, with dummy queries preceding the live
+rows. This avoids the one-query GQA shortcut while preserving the live query's
+lower-right causal position. The default catalog and its existing bytewise
+regressions remain unchanged. This is a separate arithmetic configuration;
+neither variant promises bitwise equality to the other.
+
+The first four continuation tests incorrectly required byte equality to
+standard fixed-length SDPA. All four batch cases failed first at 165 keys.
+The retained [path attribution](../benchmarks/qwen3_asr/results/request-attention-path-attribution.json)
+shows 588 differing BF16 values there, with maximum difference 0.000244140625.
+Explicit varlen split counts 0/1/2, paged layouts, padded queries and capture
+agree with each other and satisfy the unchanged FP64 bounds. The evidence does
+not isolate split count as the cause of the fixed-length/varlen difference.
+
+The corrected tests separately require byte identity against captured prefill
+with the same fixed-split configuration and numerical agreement with independent
+standard SDPA and FP64 softmax. Both numerical comparisons retain absolute
+tolerance .002 and relative tolerance .02. B1/2/4/8 share CPU baseline rows;
+prefill capacities 512/4096/8192, repeated replay, row permutations, holes,
+inactive poison, storage guards, input immutability and allocation counters are
+checked. The 22 CUDA tests pass. Six synthetic packages each load in a separate Rust
+process for five replays after their preparer exits. These results do not establish
+model logits, full request scheduling, recognition quality or service performance.
+The original four failures remain failures of that first comparison contract;
+no existing default-path or model scalar threshold was relaxed.
+
 The component clears and writes global/per-row execution errors on every
 replay. Shared `PreparedGeneration` optionally reduces current-generation row
 errors before publishing hidden state, consuming tokens or sampling. Failed

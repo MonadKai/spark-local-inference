@@ -1,0 +1,699 @@
+{
+  "scope": "Actual first failing Q2 versus full-prefill reference split/packing attribution; all variants retained, no model qualification or oracle change",
+  "status": "completed_split_attribution_only",
+  "cases": [
+    {
+      "keys": 123,
+      "variants": {
+        "sdk_auto": {
+          "max_abs": 0.0001657895262634282,
+          "rms": 3.714714765953375e-05,
+          "within_existing_fp64_bound": true
+        },
+        "full_nonpaged_split0": {
+          "max_abs": 0.0001657895262634282,
+          "rms": 3.714714765953375e-05,
+          "within_existing_fp64_bound": true
+        },
+        "full_nonpaged_split1": {
+          "max_abs": 0.0001657895262634282,
+          "rms": 3.714714765953375e-05,
+          "within_existing_fp64_bound": true
+        },
+        "full_nonpaged_split2": {
+          "max_abs": 0.0001657895262634282,
+          "rms": 3.714714765953375e-05,
+          "within_existing_fp64_bound": true
+        },
+        "full_paged_split1": {
+          "max_abs": 0.0001657895262634282,
+          "rms": 3.714714765953375e-05,
+          "within_existing_fp64_bound": true
+        },
+        "padded2_paged_split1": {
+          "max_abs": 0.0001657895262634282,
+          "rms": 3.714714765953375e-05,
+          "within_existing_fp64_bound": true
+        },
+        "padded128_paged_split1": {
+          "max_abs": 0.0001657895262634282,
+          "rms": 3.714714765953375e-05,
+          "within_existing_fp64_bound": true
+        },
+        "padded512_paged_split1": {
+          "max_abs": 0.0001657895262634282,
+          "rms": 3.714714765953375e-05,
+          "within_existing_fp64_bound": true
+        },
+        "captured_q2_split1": {
+          "max_abs": 0.0001657895262634282,
+          "rms": 3.714714765953375e-05,
+          "within_existing_fp64_bound": true
+        }
+      },
+      "comparisons": {
+        "sdk_auto vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "sdk_auto vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "sdk_auto vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split0 vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split0 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split0 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split1 vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split1 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split1 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split2 vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split2 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split2 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_paged_split1 vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_paged_split1 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_paged_split1 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded2_paged_split1 vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded2_paged_split1 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded2_paged_split1 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded128_paged_split1 vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded128_paged_split1 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded128_paged_split1 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded512_paged_split1 vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded512_paged_split1 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded512_paged_split1 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "captured_q2_split1 vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "captured_q2_split1 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "captured_q2_split1 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        }
+      },
+      "prepared_automatic_catalog_family": [
+        123,
+        1,
+        8192
+      ]
+    },
+    {
+      "keys": 165,
+      "variants": {
+        "sdk_auto": {
+          "max_abs": 0.00015400359642044753,
+          "rms": 3.275527515939231e-05,
+          "within_existing_fp64_bound": true
+        },
+        "full_nonpaged_split0": {
+          "max_abs": 0.00014995358565115385,
+          "rms": 3.278503947287085e-05,
+          "within_existing_fp64_bound": true
+        },
+        "full_nonpaged_split1": {
+          "max_abs": 0.00014995358565115385,
+          "rms": 3.278503947287085e-05,
+          "within_existing_fp64_bound": true
+        },
+        "full_nonpaged_split2": {
+          "max_abs": 0.00014995358565115385,
+          "rms": 3.278503947287085e-05,
+          "within_existing_fp64_bound": true
+        },
+        "full_paged_split1": {
+          "max_abs": 0.00014995358565115385,
+          "rms": 3.278503947287085e-05,
+          "within_existing_fp64_bound": true
+        },
+        "padded2_paged_split1": {
+          "max_abs": 0.00014995358565115385,
+          "rms": 3.278503947287085e-05,
+          "within_existing_fp64_bound": true
+        },
+        "padded128_paged_split1": {
+          "max_abs": 0.00014995358565115385,
+          "rms": 3.278503947287085e-05,
+          "within_existing_fp64_bound": true
+        },
+        "padded512_paged_split1": {
+          "max_abs": 0.00014995358565115385,
+          "rms": 3.278503947287085e-05,
+          "within_existing_fp64_bound": true
+        },
+        "captured_q2_split1": {
+          "max_abs": 0.00014995358565115385,
+          "rms": 3.278503947287085e-05,
+          "within_existing_fp64_bound": true
+        }
+      },
+      "comparisons": {
+        "sdk_auto vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "sdk_auto vs full_paged_split1": {
+          "changed": 588,
+          "max_abs": 0.000244140625
+        },
+        "sdk_auto vs padded512_paged_split1": {
+          "changed": 588,
+          "max_abs": 0.000244140625
+        },
+        "full_nonpaged_split0 vs sdk_auto": {
+          "changed": 588,
+          "max_abs": 0.000244140625
+        },
+        "full_nonpaged_split0 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split0 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split1 vs sdk_auto": {
+          "changed": 588,
+          "max_abs": 0.000244140625
+        },
+        "full_nonpaged_split1 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split1 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split2 vs sdk_auto": {
+          "changed": 588,
+          "max_abs": 0.000244140625
+        },
+        "full_nonpaged_split2 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split2 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_paged_split1 vs sdk_auto": {
+          "changed": 588,
+          "max_abs": 0.000244140625
+        },
+        "full_paged_split1 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_paged_split1 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded2_paged_split1 vs sdk_auto": {
+          "changed": 588,
+          "max_abs": 0.000244140625
+        },
+        "padded2_paged_split1 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded2_paged_split1 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded128_paged_split1 vs sdk_auto": {
+          "changed": 588,
+          "max_abs": 0.000244140625
+        },
+        "padded128_paged_split1 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded128_paged_split1 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded512_paged_split1 vs sdk_auto": {
+          "changed": 588,
+          "max_abs": 0.000244140625
+        },
+        "padded512_paged_split1 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded512_paged_split1 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "captured_q2_split1 vs sdk_auto": {
+          "changed": 588,
+          "max_abs": 0.000244140625
+        },
+        "captured_q2_split1 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "captured_q2_split1 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        }
+      },
+      "prepared_automatic_catalog_family": [
+        165,
+        2,
+        256
+      ]
+    },
+    {
+      "keys": 443,
+      "variants": {
+        "sdk_auto": {
+          "max_abs": 9.17259587277855e-05,
+          "rms": 1.9719018397221818e-05,
+          "within_existing_fp64_bound": true
+        },
+        "full_nonpaged_split0": {
+          "max_abs": 9.17259587277855e-05,
+          "rms": 1.9719018397221818e-05,
+          "within_existing_fp64_bound": true
+        },
+        "full_nonpaged_split1": {
+          "max_abs": 9.17259587277855e-05,
+          "rms": 1.9719018397221818e-05,
+          "within_existing_fp64_bound": true
+        },
+        "full_nonpaged_split2": {
+          "max_abs": 9.17259587277855e-05,
+          "rms": 1.9719018397221818e-05,
+          "within_existing_fp64_bound": true
+        },
+        "full_paged_split1": {
+          "max_abs": 9.17259587277855e-05,
+          "rms": 1.9719018397221818e-05,
+          "within_existing_fp64_bound": true
+        },
+        "padded2_paged_split1": {
+          "max_abs": 9.17259587277855e-05,
+          "rms": 1.9719018397221818e-05,
+          "within_existing_fp64_bound": true
+        },
+        "padded128_paged_split1": {
+          "max_abs": 9.17259587277855e-05,
+          "rms": 1.9719018397221818e-05,
+          "within_existing_fp64_bound": true
+        },
+        "padded512_paged_split1": {
+          "max_abs": 9.17259587277855e-05,
+          "rms": 1.9719018397221818e-05,
+          "within_existing_fp64_bound": true
+        },
+        "captured_q2_split1": {
+          "max_abs": 9.17259587277855e-05,
+          "rms": 1.9719018397221818e-05,
+          "within_existing_fp64_bound": true
+        }
+      },
+      "comparisons": {
+        "sdk_auto vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "sdk_auto vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "sdk_auto vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split0 vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split0 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split0 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split1 vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split1 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split1 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split2 vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split2 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split2 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_paged_split1 vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_paged_split1 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_paged_split1 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded2_paged_split1 vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded2_paged_split1 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded2_paged_split1 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded128_paged_split1 vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded128_paged_split1 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded128_paged_split1 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded512_paged_split1 vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded512_paged_split1 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded512_paged_split1 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "captured_q2_split1 vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "captured_q2_split1 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "captured_q2_split1 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        }
+      },
+      "prepared_automatic_catalog_family": [
+        443,
+        1,
+        8192
+      ]
+    },
+    {
+      "keys": 8192,
+      "variants": {
+        "sdk_auto": {
+          "max_abs": 2.7008888034810857e-05,
+          "rms": 4.705230922009202e-06,
+          "within_existing_fp64_bound": true
+        },
+        "full_nonpaged_split0": {
+          "max_abs": 2.7008888034810857e-05,
+          "rms": 4.705230922009202e-06,
+          "within_existing_fp64_bound": true
+        },
+        "full_nonpaged_split1": {
+          "max_abs": 2.7008888034810857e-05,
+          "rms": 4.705230922009202e-06,
+          "within_existing_fp64_bound": true
+        },
+        "full_nonpaged_split2": {
+          "max_abs": 2.7008888034810857e-05,
+          "rms": 4.705230922009202e-06,
+          "within_existing_fp64_bound": true
+        },
+        "full_paged_split1": {
+          "max_abs": 2.7008888034810857e-05,
+          "rms": 4.705230922009202e-06,
+          "within_existing_fp64_bound": true
+        },
+        "padded2_paged_split1": {
+          "max_abs": 2.7008888034810857e-05,
+          "rms": 4.705230922009202e-06,
+          "within_existing_fp64_bound": true
+        },
+        "padded128_paged_split1": {
+          "max_abs": 2.7008888034810857e-05,
+          "rms": 4.705230922009202e-06,
+          "within_existing_fp64_bound": true
+        },
+        "padded512_paged_split1": {
+          "max_abs": 2.7008888034810857e-05,
+          "rms": 4.705230922009202e-06,
+          "within_existing_fp64_bound": true
+        },
+        "captured_q2_split1": {
+          "max_abs": 2.7008888034810857e-05,
+          "rms": 4.705230922009202e-06,
+          "within_existing_fp64_bound": true
+        }
+      },
+      "comparisons": {
+        "sdk_auto vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "sdk_auto vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "sdk_auto vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split0 vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split0 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split0 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split1 vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split1 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split1 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split2 vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split2 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_nonpaged_split2 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_paged_split1 vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_paged_split1 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "full_paged_split1 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded2_paged_split1 vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded2_paged_split1 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded2_paged_split1 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded128_paged_split1 vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded128_paged_split1 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded128_paged_split1 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded512_paged_split1 vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded512_paged_split1 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "padded512_paged_split1 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "captured_q2_split1 vs sdk_auto": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "captured_q2_split1 vs full_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        },
+        "captured_q2_split1 vs padded512_paged_split1": {
+          "changed": 0,
+          "max_abs": 0.0
+        }
+      },
+      "prepared_automatic_catalog_family": [
+        8192,
+        1,
+        8192
+      ]
+    }
+  ],
+  "errors": [],
+  "seed": 20261106,
+  "started_at": "2026-11-08T05:37:45.740431+00:00",
+  "finished_at": "2026-11-08T05:37:47.936852+00:00",
+  "torch_revision": "5c4886908584029761b579af026dcfb627c84070",
+  "dtype": "bfloat16",
+  "hardware": "NVIDIA GB10 / sm_121",
+  "operand_generation": {
+    "seed": 20261106,
+    "generator": "torch.Generator(device=\"cuda\")",
+    "normal_std": 0.2,
+    "query": [
+      1,
+      16,
+      128
+    ],
+    "key_and_value": [
+      8192,
+      8,
+      128
+    ],
+    "draw_order": [
+      "query",
+      "key",
+      "value"
+    ]
+  },
+  "prior_component_attempt": {
+    "outcome": "18 passed, 4 failed, 3 package tests deselected",
+    "failure": "The newly added same-path assertion incorrectly used standard fixed-length SDPA as its byte reference; all four B cases failed first at K=165.",
+    "retained": true
+  },
+  "qualified_scope": "Four attention attribution inputs only. Explicit varlen equality does not imply fixed-length SDK byte equality, model logits, recognition or service performance."
+}

@@ -138,8 +138,175 @@ def test_actual_gqa_long_keys_and_packed_holes_are_exact(batch):
         graph.reset()
 
 
+@pytest.mark.parametrize("num_splits", [None, 1])
 @torch.no_grad()
-def test_bad_metadata_is_visible_and_recovers_without_allocating():
+def test_compiled_general_query_catalog_preserves_every_original_family(num_splits):
+    from ignition.components.request_flash import _attend
+
+    owners, graphs = [], []
+    with retain_on_failed_drain(0, owners, graphs), ModuleImages() as images:
+        owners.append(images)
+        def allocate(shape, dtype=torch.bfloat16):
+            tensor = torch.zeros(shape, dtype=dtype, device="cuda")
+            owners.append(tensor)
+            return tensor
+        query = allocate((128, 16, 128))
+        key, value = allocate((32, 256, 8, 128)), allocate((32, 256, 8, 128))
+        guard, original = allocate((130, 16, 128)), allocate(query.shape)
+        output = guard[1:-1]
+        pages, lengths = allocate((1, 32), torch.int32), allocate((1,), torch.int32)
+        cu, cu_key = allocate((2,), torch.int32), allocate((2,), torch.int32)
+        operation = PreparedRequestFlashAttention(query, key, value, pages, lengths, cu, cu_key,
+            output, max_query=128, num_splits=num_splits)
+        owners.append(operation)
+        errors = allocate(operation.errors.shape, torch.int32)
+        compiled = compile_forward(operation)
+        owners.append(compiled)
+        compiled()
+        graph = torch.cuda.CUDAGraph()
+        graphs.append(graph)
+        with torch.cuda.graph(graph):
+            compiled()
+        table = operation.lookup.cpu().tolist()
+        representatives = {}
+        for queries in (1, 2, 65, 128):
+            row = 0 if queries == 1 else (queries + 63) // 64
+            for blocks in range(1, len(table[row])):
+                if blocks * 128 >= queries:
+                    representatives.setdefault(table[row][blocks], (queries, blocks * 128))
+        assert set(representatives) == set(range(len(operation.family_geometry) // 3))
+        cases = list(representatives.values()) + [(0, 0), (13, 257), (123, 8192), (128, 8192), (13, 257)]
+        pages.copy_(torch.arange(32, device="cuda", dtype=torch.int32)[None])
+        for pattern in ("signed_zero", "rounding"):
+            query.zero_()
+            query[:, :, 0] = 1
+            key.zero_()
+            value.fill_(1)
+            if pattern == "signed_zero":
+                value.zero_()
+                key[:, -128:, :, 0] = -640
+                value[:, -128:, :, 0] = -2.**-80
+            else:
+                value[:, ::2] += 2.**-7
+            for queries, keys in cases:
+                cu[1], lengths[0] = queries, keys
+                _attend(query, key, value, pages, lengths, cu, original, errors,
+                    operation.lookup, operation.family_geometry, 128)
+                torch.cuda.synchronize()
+                expected = original.cpu().clone()
+                expected_errors = errors.cpu().clone()
+                assert torch.isfinite(expected).all() and expected_errors.eq(0).all()
+                for _ in range(5):
+                    guard.fill_(137)
+                    torch.cuda.synchronize()
+                    before = torch.cuda.memory_stats()
+                    graph.replay()
+                    torch.cuda.synchronize()
+                    after = torch.cuda.memory_stats()
+                    for name in ("allocation.all.allocated", "allocation.all.freed", "segment.all.allocated", "segment.all.freed"):
+                        assert before[name] == after[name], name
+                    assert torch.equal(output.cpu().view(torch.uint8), expected.view(torch.uint8)), (pattern, queries, keys)
+                    assert torch.equal(operation.errors.cpu(), expected_errors)
+                    assert output[queries:].eq(0).all() and guard[[0, -1]].eq(137).all()
+        # Actual error classes, including a nonfinite key whose softmax weight
+        # can be zero, must survive compilation without changes or recapture.
+        cu[1], lengths[0] = 13, 257
+        for tensor, index in ((query, (0, 0, 0)), (key, (0, 0, 0, 0)), (value, (0, 0, 0, 0))):
+            saved = tensor[index].clone()
+            for poison in (float("nan"), float("inf"), -float("inf")):
+                tensor[index] = poison
+                _attend(query, key, value, pages, lengths, cu, original, errors,
+                    operation.lookup, operation.family_geometry, 128)
+                graph.replay()
+                torch.cuda.synchronize()
+                assert torch.equal(operation.errors, errors)
+                assert torch.equal(output.view(torch.uint8), original.view(torch.uint8))
+            tensor[index] = saved
+        for malformed in ("pages", "length", "cu"):
+            if malformed == "pages": pages[0, 0] = -1
+            if malformed == "length": lengths[0] = 12
+            if malformed == "cu": cu[0] = 1
+            _attend(query, key, value, pages, lengths, cu, original, errors,
+                operation.lookup, operation.family_geometry, 128)
+            graph.replay()
+            torch.cuda.synchronize()
+            assert errors.ne(0).any() and torch.equal(operation.errors, errors)
+            assert torch.equal(output.view(torch.uint8), original.view(torch.uint8))
+            pages[0, 0], lengths[0], cu[0] = 0, 257, 0
+        _attend(query, key, value, pages, lengths, cu, original, errors,
+            operation.lookup, operation.family_geometry, 128)
+        graph.replay()
+        torch.cuda.synchronize()
+        assert operation.errors.eq(0).all() and torch.equal(output.view(torch.uint8), original.view(torch.uint8))
+        graph.reset()
+
+
+@torch.no_grad()
+def test_single_split_prefill_partitions_keep_identical_rows():
+    owners, graphs = [], []
+    with retain_on_failed_drain(0, owners, graphs), ModuleImages() as images:
+        owners.append(images)
+        def allocate(shape, dtype=torch.bfloat16):
+            value = torch.zeros(shape, dtype=dtype, device="cuda")
+            owners.append(value)
+            return value
+        generator = torch.Generator(device="cuda").manual_seed(20261106)
+        q = allocate((443, 16, 128)).normal_(std=.2, generator=generator)
+        k = allocate((2, 256, 8, 128)).normal_(std=.2, generator=generator)
+        v = allocate(k.shape).normal_(std=.2, generator=generator)
+        results = []
+        for capacity, begin, count in ((512, 0, 443), (128, 0, 128), (256, 128, 256), (64, 384, 59)):
+            query, guard = allocate((capacity, 16, 128)), allocate((capacity + 2, 16, 128))
+            output = guard[1:-1]
+            query[:count].copy_(q[begin:begin + count])
+            pages = allocate((1, 32), torch.int32).fill_(-1)
+            pages[0, :2] = torch.arange(2, dtype=torch.int32, device="cuda")
+            lengths = allocate((1,), torch.int32).fill_(begin + count)
+            cu, cu_key = allocate((2,), torch.int32), allocate((2,), torch.int32)
+            cu[1], cu_key[1] = count, begin + count
+            operation = PreparedRequestFlashAttention(query, k, v, pages, lengths, cu, cu_key,
+                output, max_query=capacity, num_splits=1)
+            owners.append(operation)
+            compiled = compile_forward(operation)
+            owners.append(compiled)
+            graph = torch.cuda.CUDAGraph()
+            graphs.append(graph)
+            with torch.cuda.graph(graph):
+                compiled()
+            prior = None
+            for _ in range(5):
+                guard.fill_(137)
+                torch.cuda.synchronize()
+                before = torch.cuda.memory_stats()
+                graph.replay()
+                torch.cuda.synchronize()
+                after = torch.cuda.memory_stats()
+                for name in ("allocation.all.allocated", "allocation.all.freed", "segment.all.allocated", "segment.all.freed"):
+                    assert before[name] == after[name]
+                actual = output.cpu()
+                assert operation.errors.eq(0).all() and torch.isfinite(actual).all()
+                assert actual[count:].eq(0).all() and guard[[0, -1]].eq(137).all()
+                if prior is not None:
+                    assert torch.equal(actual.view(torch.uint8), prior.view(torch.uint8))
+                prior = actual
+            results.append(prior[:count].contiguous())
+        full, partitioned = results[0], torch.cat(results[1:])
+        assert torch.equal(full.view(torch.uint8), partitioned.view(torch.uint8))
+        # Independent causal FP64 softmax checks both sides of every boundary.
+        keys, values = k.view(-1, 8, 128).double().repeat_interleave(2, 1), v.view(-1, 8, 128).double().repeat_interleave(2, 1)
+        owners.extend((keys, values))
+        for row in (0, 127, 128, 383, 384, 442):
+            scores = torch.einsum("hd,thd->ht", q[row].double(), keys[:row + 1]) * (128 ** -.5)
+            expected = torch.einsum("ht,thd->hd", scores.softmax(-1), values[:row + 1]).cpu()
+            assert torch.allclose(full[row].double(), expected, atol=.002, rtol=.02)
+        torch.cuda.synchronize()
+        for graph in graphs:
+            graph.reset()
+
+
+@pytest.mark.parametrize("num_splits", [None, 1])
+@torch.no_grad()
+def test_bad_metadata_is_visible_and_recovers_without_allocating(num_splits):
     owners, graphs = [], []
     with retain_on_failed_drain(0, owners, graphs), ModuleImages() as images:
         owners.append(images)
@@ -151,7 +318,8 @@ def test_bad_metadata_is_visible_and_recovers_without_allocating():
         k, v = allocate((1, 256, 8, 128)), allocate((1, 256, 8, 128))
         pages, lengths = allocate((2, 1), torch.int32), allocate((2,), torch.int32)
         cu, cu_key = allocate((3,), torch.int32), allocate((3,), torch.int32)
-        operation = PreparedRequestFlashAttention(q, k, v, pages, lengths, cu, cu_key, output, max_query=1)
+        operation = PreparedRequestFlashAttention(q, k, v, pages, lengths, cu, cu_key,
+            output, max_query=1, num_splits=num_splits)
         owners.append(operation)
         compiled = compile_forward(operation)
         owners.append(compiled)
@@ -189,8 +357,9 @@ def test_bad_metadata_is_visible_and_recovers_without_allocating():
         graph.reset()
 
 
+@pytest.mark.parametrize("num_splits", [None, 1])
 @torch.no_grad()
-def test_mixed_split_families_match_fp64_and_survive_row_movement():
+def test_mixed_split_families_match_fp64_and_survive_row_movement(num_splits):
     owners, graphs = [], []
     with retain_on_failed_drain(0, owners, graphs), ModuleImages() as images:
         owners.append(images)
@@ -204,7 +373,8 @@ def test_mixed_split_families_match_fp64_and_survive_row_movement():
         output = guard[1:-1]
         pages, lengths = allocate((8, 32), torch.int32), allocate((8,), torch.int32)
         cu, cu_key = allocate((9,), torch.int32), allocate((9,), torch.int32)
-        operation = PreparedRequestFlashAttention(query, key, value, pages, lengths, cu, cu_key, output, max_query=1)
+        operation = PreparedRequestFlashAttention(query, key, value, pages, lengths, cu, cu_key,
+            output, max_query=1, num_splits=num_splits)
         owners.append(operation)
         compiled = compile_forward(operation)
         owners.append(compiled)
@@ -384,3 +554,180 @@ def test_all_split_families_preserve_rounding_and_nonfinite_isolation():
                         assert operation.errors.eq(0).all()
                         assert torch.equal(output.cpu().contiguous().view(torch.uint8), expected.view(torch.uint8))
         graph.reset()
+
+
+@pytest.fixture(scope="module")
+def single_split_request_rows():
+    # CPU rows persist across the parametrized B=1/2/4/8 programs.
+    return {}
+
+
+@pytest.mark.parametrize("batch", [1, 2, 4, 8])
+@torch.no_grad()
+def test_single_split_continuation_matches_prefill_and_packed_holes(batch, single_split_request_rows):
+    from torch.nn.attention import sdpa_kernel, SDPBackend
+
+    owners, graphs = [], []
+    with retain_on_failed_drain(0, owners, graphs), ModuleImages() as images, sdpa_kernel(SDPBackend.FLASH_ATTENTION):
+        owners.append(images)
+        def allocate(shape, dtype=torch.bfloat16):
+            tensor = torch.zeros(shape, dtype=dtype, device="cuda")
+            owners.append(tensor)
+            return tensor
+        query = allocate((batch, 16, 128))
+        key, value = allocate((32 * batch, 256, 8, 128)), allocate((32 * batch, 256, 8, 128))
+        guard = allocate((batch + 2, 16, 128))
+        output = guard[1:-1]
+        pages = allocate((batch, 32), torch.int32)
+        lengths = allocate((batch,), torch.int32)
+        cu, cu_key = allocate((batch + 1,), torch.int32), allocate((batch + 1,), torch.int32)
+        operation = PreparedRequestFlashAttention(query, key, value, pages, lengths, cu, cu_key,
+            output, max_query=1, num_splits=1)
+        owners.append(operation)
+        compiled = compile_forward(operation)
+        owners.append(compiled)
+        compiled()
+        graph = torch.cuda.CUDAGraph()
+        graphs.append(graph)
+        with torch.cuda.graph(graph):
+            compiled()
+        # A separately captured prefill program supplies the bytewise baseline
+        # for this same fixed-split arithmetic. Standard fixed-length SDPA below
+        # remains an independent numerical reference, not a varlen byte oracle.
+        prefills = {}
+        for capacity in (512, 4096, 8192):
+            pq = allocate((capacity, 16, 128))
+            pg = allocate((capacity + 2, 16, 128))
+            po = pg[1:-1]
+            pk, pv = allocate((32, 256, 8, 128)), allocate((32, 256, 8, 128))
+            pp = allocate((1, 32), torch.int32)
+            pp[0].copy_(torch.arange(32, device="cuda", dtype=torch.int32))
+            pl = allocate((1,), torch.int32)
+            pc, pck = allocate((2,), torch.int32), allocate((2,), torch.int32)
+            prefill = PreparedRequestFlashAttention(pq, pk, pv, pp, pl, pc, pck,
+                po, max_query=capacity, num_splits=1)
+            owners.append(prefill)
+            prefill_compiled = compile_forward(prefill)
+            owners.append(prefill_compiled)
+            prefill_compiled()
+            prefill_graph = torch.cuda.CUDAGraph()
+            graphs.append(prefill_graph)
+            with torch.cuda.graph(prefill_graph):
+                prefill_compiled()
+            prefills[capacity] = (pq, pk, pv, pp, pl, pc, pck, pg, po, prefill, prefill_graph)
+        source_q = allocate(query.shape)
+        source_k, source_v = allocate((batch, 8192, 8, 128)), allocate((batch, 8192, 8, 128))
+        for identity in range(batch):
+            # Request operands stay identical across the B=1/2/4/8 cases.
+            generator = torch.Generator(device="cuda").manual_seed(20261106 + identity)
+            for source in (source_q[identity], source_k[identity], source_v[identity]):
+                source.normal_(std=.2, generator=generator)
+        baselines, covered = {}, set()
+        # Visit both sides and the exact edge of every 128-key split block.
+        # The original small selection missed most prepared split families.
+        boundaries = [1, 2, 13, 19, 27, 32, 63, 64, 127, 128, 129, 255, 256, 257, 442, 443, 769, 8192]
+        for size in (123, 165, 444, 768, 769, 897, 8192, 769, *boundaries):
+            covered.add(int(operation.lookup[0, (size + 127) // 128]))
+            references, sdk_references = [], []
+            for identity in range(batch):
+                # The independent full causal prefill computes the same last
+                # query at its original absolute key position. It does not use
+                # the request packing or the continuation component.
+                full_query = torch.zeros((1, 16, size, 128), device="cuda", dtype=torch.bfloat16)
+                full_query[0, :, -1].copy_(source_q[identity])
+                reference = torch.nn.functional.scaled_dot_product_attention(
+                    full_query, source_k[identity, :size].transpose(0, 1)[None],
+                    source_v[identity, :size].transpose(0, 1)[None],
+                    is_causal=True, enable_gqa=True)[0, :, -1].cpu()
+                sdk_references.append(reference)
+                capacity = 512 if size <= 512 else 4096 if size <= 4096 else 8192
+                pq, pk, pv, pp, pl, pc, pck, pg, po, prefill, prefill_graph = prefills[capacity]
+                count = size
+                pq.zero_()
+                pq[count - 1].copy_(source_q[identity])
+                pk.fill_(float("nan"))
+                pv.fill_(float("nan"))
+                pk.view(8192, 8, 128)[:size].copy_(source_k[identity, :size])
+                pv.view(8192, 8, 128)[:size].copy_(source_v[identity, :size])
+                pl.fill_(size)
+                pc[1], pck[1] = count, size
+                prefill_inputs = (pq, pk, pv, pp, pl, pc, pck)
+                frozen_prefill = [tensor.contiguous().view(torch.uint8).clone() for tensor in prefill_inputs]
+                previous = None
+                for _ in range(5):
+                    pg.fill_(137)
+                    torch.cuda.synchronize()
+                    before = torch.cuda.memory_stats()
+                    prefill_graph.replay()
+                    torch.cuda.synchronize()
+                    after = torch.cuda.memory_stats()
+                    for name in ("allocation.all.allocated", "allocation.all.freed", "segment.all.allocated", "segment.all.freed"):
+                        assert before[name] == after[name], name
+                    assert prefill.errors.eq(0).all() and torch.isfinite(po).all()
+                    assert po[count:].eq(0).all() and pg[[0, -1]].eq(137).all()
+                    current = po[count - 1].cpu().clone()
+                    if previous is not None:
+                        assert torch.equal(current.view(torch.uint8), previous.view(torch.uint8))
+                    previous = current
+                for tensor, frozen_tensor in zip(prefill_inputs, frozen_prefill, strict=True):
+                    assert torch.equal(tensor.contiguous().view(torch.uint8), frozen_tensor)
+                references.append(previous)
+            independent = []
+            for identity in range(batch):
+                keys = source_k[identity, :size].double().repeat_interleave(2, dim=1)
+                values = source_v[identity, :size].double().repeat_interleave(2, dim=1)
+                scores = torch.einsum("hd,thd->ht", source_q[identity].double(), keys) * (128 ** -.5)
+                independent.append(torch.einsum("ht,thd->hd", torch.softmax(scores, -1), values).cpu())
+            for slots in (list(range(batch)), list(reversed(range(batch))), [batch - 1], [], list(range(batch))):
+                # A request identity moves between slots, while query rows are
+                # packed in ascending slot order and absent slots retain poison.
+                ordered = sorted((slot, identity) for identity, slot in enumerate(slots))
+                query.fill_(float("nan"))
+                key.fill_(float("nan"))
+                value.fill_(float("nan"))
+                pages.fill_(-1)
+                lengths.zero_()
+                cumulative = [0]
+                for slot in range(batch):
+                    cumulative.append(cumulative[-1] + int(slot in slots))
+                cu.copy_(torch.tensor(cumulative, device="cuda", dtype=torch.int32))
+                for packed, (slot, identity) in enumerate(ordered):
+                    query[packed].copy_(source_q[identity])
+                    key[32 * slot:32 * (slot + 1)].view(8192, 8, 128)[:size].copy_(source_k[identity, :size])
+                    value[32 * slot:32 * (slot + 1)].view(8192, 8, 128)[:size].copy_(source_v[identity, :size])
+                    lengths[slot] = size
+                    pages[slot, :(size + 255) // 256].copy_(torch.arange(
+                        32 * slot, 32 * slot + (size + 255) // 256, device="cuda", dtype=torch.int32))
+                frozen = [tensor.view(torch.uint8).clone() for tensor in (query, key, value)]
+                for _ in range(5):
+                    guard.fill_(137)
+                    torch.cuda.synchronize()
+                    before = torch.cuda.memory_stats()
+                    graph.replay()
+                    torch.cuda.synchronize()
+                    after = torch.cuda.memory_stats()
+                    for name in ("allocation.all.allocated", "allocation.all.freed", "segment.all.allocated", "segment.all.freed"):
+                        assert before[name] == after[name], name
+                    actual = output.cpu().contiguous()
+                    assert operation.errors.eq(0).all()
+                    assert torch.isfinite(actual).all() and actual[len(slots):].eq(0).all()
+                    assert guard[[0, -1]].eq(137).all()
+                    for packed, (_, identity) in enumerate(ordered):
+                        assert torch.equal(actual[packed].view(torch.uint8), references[identity].contiguous().view(torch.uint8)), (batch, size, slots, identity)
+                        assert torch.isfinite(sdk_references[identity]).all()
+                        assert torch.allclose(actual[packed], sdk_references[identity], atol=.002, rtol=.02), (batch, size, slots, identity, "SDK")
+                        assert torch.isfinite(independent[identity]).all()
+                        assert torch.allclose(actual[packed].double(), independent[identity], atol=.002, rtol=.02), (batch, size, slots, identity)
+                        identity_key = (size, identity)
+                        if identity_key in baselines:
+                            assert torch.equal(actual[packed].view(torch.uint8), baselines[identity_key].view(torch.uint8))
+                        baselines[identity_key] = actual[packed].clone()
+                        if identity_key in single_split_request_rows:
+                            assert torch.equal(actual[packed].view(torch.uint8),
+                                single_split_request_rows[identity_key].view(torch.uint8)), (batch, size, identity, "cross batch")
+                        single_split_request_rows[identity_key] = actual[packed].clone()
+                    for tensor, original in zip((query, key, value), frozen, strict=True):
+                        assert torch.equal(tensor.view(torch.uint8), original)
+        assert covered == set(range(len(operation.family_geometry) // 3))
+        for captured in graphs:
+            captured.reset()
