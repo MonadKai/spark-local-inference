@@ -231,6 +231,14 @@ Convolution chunks, bidirectional encoder windows and transcription service
 chunks are distinct boundaries. The CPU frontend normalizes Log-Mel separately
 for each service input, then slices already-normalized encoder windows.
 
+`AudioSettings.numerics` declares CPU arithmetic, never scheduling or GPU policy.
+Absent/zero preserves the legacy transform and its serialized cache identity.
+`FP32_FMA` uses FP32 Hann nodes, complete-extent PocketFFT before last-frame
+removal, FMA Mel accumulation and SLEEF log10; it currently requires Linux
+AArch64 SVE and rejects unsupported hosts at startup. Different numerical
+variants have distinct processing identities. Old packages retain their
+original arithmetic without re-export or re-signing.
+
 This data contract does not establish model, HTTP or CUDA qualification. Those
 require the native package, numerical and lifecycle execution checks.
 

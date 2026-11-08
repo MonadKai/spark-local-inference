@@ -22,7 +22,7 @@ fn fixture_with_template(template: &[u8]) -> Fixture {
         audio: Some(AudioSettings { sample_rate: 16000, mel_bins: 128, fft_size: 400, hop_samples: 160,
             max_file_bytes: 25000, max_samples: 20000, decode_timeout_millis: 10000,
             service_chunk_samples: 3200, silence_search_samples: 1600, silence_window_samples: 160,
-            sample_padding: AudioSamplePadding::HopMultiple }),
+            sample_padding: AudioSamplePadding::HopMultiple, numerics: Default::default() }),
     };
     let mut fixture = Fixture::with_template_settings(template,
         &["<eos>", "<audio>", "<feature>", "</audio>"], &[], Some(&settings));

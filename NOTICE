@@ -74,3 +74,12 @@ coercions without a Python runtime dependency. The source release is:
 https://pypi.org/project/pydantic_core/2.46.5/
 Its MIT license is reproduced in helios/licenses/Pydantic.txt and included
 under licenses/Pydantic.txt in binary distributions.
+
+PocketFFT and SLEEF
+------------------
+The explicit FP32 fused Slaney frontend uses PocketFFT revision
+0fa0ef591e38c2758e3184c6c23e497b9f732ffa and SLEEF revision
+5a1d179df9cf652951b59010a2d2075372d67f68. Their original copyright and
+license texts are retained in the vendored sources and reproduced in
+helios/licenses/PocketFFT.txt and helios/licenses/SLEEF.txt, included in
+native binary archives. No Torch or Python library is linked by this frontend.

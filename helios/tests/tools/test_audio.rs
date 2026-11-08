@@ -31,8 +31,8 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         println!("{}", serde_json::json!({"operation":"split", "chunks":ranges.len()}));
         return Ok(());
     }
-    if args.len() != 4 || !matches!(args[1].as_str(), "decode" | "features") {
-        return Err("usage: test_audio {decode|features} INPUT OUTPUT_F32LE; or split INPUT_F32LE OUTPUT_JSON SETTINGS_JSON; or fetch HTTPS_URL OUTPUT_AUDIO SETTINGS_JSON".into());
+    if args.len() != 4 || !matches!(args[1].as_str(), "decode" | "features" | "features-fma") {
+        return Err("usage: test_audio {decode|features|features-fma} INPUT OUTPUT_F32LE; or split INPUT_F32LE OUTPUT_JSON SETTINGS_JSON; or fetch HTTPS_URL OUTPUT_AUDIO SETTINGS_JSON".into());
     }
     let cancelled = AtomicBool::new(false);
     let size = fs::metadata(&args[2])?.len();
@@ -55,7 +55,10 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             .chunks_exact(4)
             .map(|chunk| f32::from_le_bytes(chunk.try_into().unwrap()))
             .collect();
-        LogMelPlan::new()?.features(&samples, &cancelled)?
+        let numerics = if args[1] == "features-fma" {
+            flare_helios::model::contract::AudioNumerics::Fp32Fma
+        } else { flare_helios::model::contract::AudioNumerics::Legacy };
+        LogMelPlan::with_numerics(numerics)?.features(&samples, &cancelled)?
     };
     let mut output = fs::File::create_new(&args[3])?;
     for value in &values {

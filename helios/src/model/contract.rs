@@ -70,6 +70,13 @@ contract_enum!(ImagePreparationKind { Qwen = 1, Mimo = 2, Deepseek = 3, Moonvit 
 contract_enum!(ImageLayoutKind { Qwen = 1, Mimo = 2, Deepseek = 3, Moonvit = 4, Step = 5, Radio = 6, DeepseekRowMajor = 7, Glm = 8, Bracketed = 9 });
 contract_enum!(AudioPreparationKind { CenteredSlaneyLogMel = 1 });
 contract_enum!(AudioSamplePadding { Unpadded = 1, HopMultiple = 2 });
+contract_enum!(AudioNumerics { Legacy = 0, Fp32Fma = 1 });
+impl Default for AudioNumerics {
+    fn default() -> Self { Self::Legacy }
+}
+impl AudioNumerics {
+    pub fn is_legacy(&self) -> bool { *self == Self::Legacy }
+}
 contract_enum!(RequestSeedSyntax { Signed64Optional = 1 });
 contract_enum!(AudioTensorKind { LogMel = 1, ValidFrames = 2, ConvolutionWidth = 3, GatherIndices = 4, CumulativeLengths = 5, FeatureCount = 6, FeatureOffset = 7, TotalInputFrames = 8 });
 contract_enum!(GraphOperation { Init = 1, Restore = 2, Snapshot = 3, Prefill = 4, Decode = 5, Resume = 6, Vision = 7, Speculative = 8, Mixed = 9, ScoredPrefill = 12, AudioEncode = 14 });

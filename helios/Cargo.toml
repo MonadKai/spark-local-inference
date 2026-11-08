@@ -19,7 +19,7 @@ test-tools = []
 runtime-package = ["dep:serde", "dep:serde_json", "dep:prost", "dep:prost-build", "dep:ring", "dep:zstd"]
 frontend = ["dep:serde", "dep:tokenizers", "dep:serde_json", "dep:sha2", "dep:ryu", "dep:regex", "dep:deepseek-recipe-core", "dep:deepseek-recipe-encoding"]
 images = ["frontend", "dep:png", "dep:turbojpeg", "dep:image-webp"]
-audio = ["frontend", "dep:cc", "dep:pkg-config", "dep:ureq", "dep:url"]
+audio = ["frontend", "dep:cc", "dep:cmake", "dep:pkg-config", "dep:ureq", "dep:url"]
 grammar = ["frontend", "dep:llguidance"]
 server = ["dep:serde", "images", "grammar", "dep:axum", "dep:tokio", "dep:async-stream", "dep:base64", "dep:ratatui", "dep:crossterm", "dep:futures-util", "dep:flate2", "dep:zstd", "dep:brotli", "dep:httpdate", "dep:deepseek-recipe"]
 # RoCEnante's RDMA proxy for ranks on separate hosts; links libibverbs.
@@ -75,6 +75,7 @@ minijinja-contrib = { version = "=2.24.0", features = ["pycompat"] }
 flare-selene-manager = { path = "../selene-manager", features = ["test-support"] }
 
 [build-dependencies]
+cmake = { version = "=0.1.58", optional = true }
 prost-build = { version = "0.14", optional = true }
 cc = { version = "1.6", optional = true }
 pkg-config = { version = "0.3", optional = true }

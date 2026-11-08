@@ -28,6 +28,12 @@ through `onig_sys`, zstd through `zstd-sys`, and BoringSSL-derived and fiat code
 through `ring`. The permissive BSD license alternative is used for zstd; retaining
 its upstream COPYING file does not select its alternative GPL license.
 
+The optional native audio feature compiles the pinned PocketFFT header and
+SLEEF static math library used by the FP32 fused Slaney transform. Their source
+revisions are documented in [NOTICE](NOTICE); complete license texts are shipped
+as `licenses/PocketFFT.txt` and `licenses/SLEEF.txt`. The separate FFmpeg shared
+libraries continue to provide audio decoding and legacy feature arithmetic.
+
 ### MPL source availability
 
 `option-ext` 0.2.0 is used unmodified under MPL-2.0. Its covered source is available

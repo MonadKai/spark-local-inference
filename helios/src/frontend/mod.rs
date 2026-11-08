@@ -148,6 +148,8 @@ pub struct AudioSettings {
     pub silence_search_samples: usize,
     pub silence_window_samples: usize,
     pub sample_padding: crate::model::contract::AudioSamplePadding,
+    #[serde(default, skip_serializing_if = "crate::model::contract::AudioNumerics::is_legacy")]
+    pub numerics: crate::model::contract::AudioNumerics,
 }
 
 impl AudioSettings {

@@ -18,6 +18,7 @@ import wave
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", type=Path, required=True)
+    parser.add_argument("--numerics", choices=("legacy", "fp32-fma"), default="legacy")
     parser.add_argument("--reference", type=Path, required=True)
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--pcm-root", type=Path, required=True)
@@ -38,7 +39,7 @@ def main():
     if (reference["max_abs_budget"], reference["rms_budget"]) != (2. ** -13, 2. ** -17):
         raise ValueError("frozen frontend budgets changed")
     originals = {row["id"]: row for row in manifest["utterances"]}
-    cases = {}
+    cases, sdk_paths = {}, {}
     for directory in args.sdk_observations:
         sdk = json.loads((directory / "result.json").read_bytes())
         if sdk["errors"] or sdk["candidate_executed"] \
@@ -47,11 +48,14 @@ def main():
         for case in sdk["cases"]:
             if case["id"] in cases: raise ValueError("duplicate development case")
             cases[case["id"]] = case
+            sdk_paths[case["id"]] = directory / (case["id"] + "-prefill.safetensors")
     if cases.keys() != {row["id"] for row in reference["cases"]}:
         raise ValueError("reference and native cases differ")
     args.output.mkdir(exist_ok=False)
     record = dict(scope=__doc__.strip(), max_abs_budget=2. ** -13, rms_budget=2. ** -17,
-        input_manifest_sha256=reference["input_manifest_sha256"], cases=[], failures=[])
+        input_manifest_sha256=reference["input_manifest_sha256"], numerics=args.numerics,
+        binary_sha256=hashlib.sha256(args.binary.read_bytes()).hexdigest(), cases=[], failures=[],
+        bf16_comparison="Independent original SDK processor boundary; diagnostic only, not a replacement for model scalar gates")
     baseline = {}
 
     def publish():
@@ -80,7 +84,8 @@ def main():
             samples = np.pad(samples, (0, (-len(samples)) % 160))
             input_path, output_path = args.output / (name + ".pcm.f32le"), args.output / (name + f"-{repetition}.mel.f32le")
             if repetition == 0: input_path.write_bytes(samples.astype("<f4").tobytes())
-            process = subprocess.run([str(args.binary.resolve()), "features", str(input_path), str(output_path)],
+            operation = "features-fma" if args.numerics == "fp32-fma" else "features"
+            process = subprocess.run([str(args.binary.resolve()), operation, str(input_path), str(output_path)],
                 capture_output=True, text=True, timeout=60)
             row = dict(id=name, repetition=repetition, exit_code=process.returncode,
                 stdout=process.stdout, stderr=process.stderr)
@@ -102,6 +107,12 @@ def main():
                 continue
             error = actual.double() - expected.double()
             row.update(frames=case["frames"], max_abs=error.abs().max().item(), rms=error.square().mean().sqrt().item())
+            with safe_open(sdk_paths[name], framework="pt") as saved:
+                sdk_features = saved.get_tensor("processor.input_features").flatten()
+            if sdk_features.dtype != torch.bfloat16 or sdk_features.shape != actual.shape \
+                    or not torch.isfinite(sdk_features).all():
+                raise ValueError("independent SDK model-input boundary changed")
+            row["sdk_bf16_changed"] = int((actual.bfloat16() != sdk_features).sum())
             if not row["fresh_process_exact_bytes"] or row["max_abs"] > record["max_abs_budget"] or row["rms"] > record["rms_budget"]:
                 record["failures"].append(dict(id=name, repetition=repetition, reason="frontend gate failed"))
             publish()

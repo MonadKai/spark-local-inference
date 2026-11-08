@@ -17,6 +17,29 @@ fn main() {
             libraries.push(library);
         }
         build.file("native/audio.c").std("c11").warnings(true).compile("flare_audio");
+        println!("cargo:rerun-if-changed=native/audio_mel.cpp");
+        println!("cargo:rerun-if-changed=native/pocketfft_hdronly.h");
+        println!("cargo:rerun-if-changed=native/sleef");
+        let mut mel = cc::Build::new();
+        mel.cpp(true).file("native/audio_mel.cpp").std("c++17").opt_level(2);
+        let target = std::env::var("TARGET").unwrap();
+        if target == "aarch64-unknown-linux-gnu" {
+            mel.flag("-march=armv8.2-a+sve");
+            let sleef = cmake::Config::new("native/sleef")
+                .profile("Release")
+                .define("BUILD_SHARED_LIBS", "OFF")
+                .define("CMAKE_POSITION_INDEPENDENT_CODE", "ON")
+                .define("SLEEF_BUILD_TESTS", "OFF")
+                .define("SLEEF_BUILD_GNUABI_LIBS", "OFF")
+                .define("SLEEF_BUILD_DFT", "OFF")
+                .define("SLEEF_BUILD_QUAD", "OFF")
+                .build();
+            mel.compile("flare_audio_mel");
+            println!("cargo:rustc-link-search=native={}/lib", sleef.display());
+            println!("cargo:rustc-link-lib=static=sleef");
+        } else {
+            mel.compile("flare_audio_mel");
+        }
         // Dynamic dependencies follow the wrapper archive for --as-needed linkers.
         for library in libraries {
             for path in library.link_paths { println!("cargo:rustc-link-search=native={}", path.display()); }

@@ -520,3 +520,26 @@ Lifecycle changes require the affected TLA+/Rust conformance, Kani geometry and
 real CUDA fence/allocation checks described in [verification](verification.md)
 and [Helios lifecycle](../verification/helios-lifecycle/README.md). Neither an
 abstract model nor checkpoint inspection establishes native GPU correctness.
+
+### Native frontend numerical variants
+
+`AudioSettings.numerics` is typed preprocessing data. Absent/zero retains the
+original FFmpeg FFT, analytic FP64-to-FP32 Hann and separate FP32 Mel reduction.
+Legacy settings omit this field when serialized, preserving their feature-cache
+identity bytes. `FP32_FMA` uses explicit FP32 Hann nodes, pinned PocketFFT over
+the complete STFT frame extent before dropping its last frame, sequential FP32
+FMA Mel accumulation and SLEEF log10. Both normalize each input independently.
+The numerical variant participates in audio cache identity; it selects no GPU
+operation, scheduler policy or model-specific native algorithm.
+
+The fused variant currently requires Linux AArch64 SVE and rejects unsupported
+hosts during plan creation. Previously exported packages keep their old typed
+settings and need no re-export or signature change. The recipe declares the
+new variant for newly prepared packages. Native dependency source and licenses
+are pinned with the code; serving does not link Torch or Python.
+
+Twenty frozen CPU inputs matched the independent SDK BF16 frontend boundary in
+the isolated standalone-library experiment, including native Hann generation.
+That is not native model acceptance. The integrated Rust plan, package metadata,
+legacy bytes/cache identity, cancellation and full model gates must pass before
+this variant is described as qualified.

@@ -185,6 +185,10 @@ unsafe extern "C" {
     fn flare_audio_fft_new() -> *mut c_void;
     fn flare_audio_fft_run(plan: *mut c_void, input: *mut f32, output: *mut Complex);
     fn flare_audio_fft_free(plan: *mut c_void);
+    fn flare_audio_mel_new(filters: *const f32) -> *mut c_void;
+    fn flare_audio_mel_run(plan: *mut c_void, pcm: *const f32, samples: usize, output: *mut f32,
+        cancelled: unsafe extern "C" fn(*mut c_void) -> c_int, context: *mut c_void) -> c_int;
+    fn flare_audio_mel_free(plan: *mut c_void);
 }
 
 fn invalid(message: impl Into<String>) -> Error {
@@ -281,8 +285,14 @@ pub fn decode(bytes: &[u8], limits: AudioLimits, cancelled: &AtomicBool) -> Resu
 
 /// One worker owns one transform plan and its mutable FFT scratch. Construct
 /// plans before admitting work; do not share a plan between concurrent calls.
+#[derive(Clone, Copy)]
+enum MelTransform {
+    Legacy(NonNull<c_void>),
+    Fp32Fma(NonNull<c_void>),
+}
+
 pub struct LogMelPlan {
-    fft: NonNull<c_void>,
+    transform: MelTransform,
     hann: [f32; FFT],
     filters: Vec<f32>,
     input: [f32; FFT],
@@ -325,7 +335,7 @@ impl AudioProcessor {
         if !(1..=64).contains(&workers) {
             return Err(invalid("audio preparation requires between 1 and 64 workers"));
         }
-        let plans = (0..workers).map(|_| LogMelPlan::new()).collect::<Result<Vec<_>>>()?;
+        let plans = (0..workers).map(|_| LogMelPlan::with_numerics(settings.numerics)).collect::<Result<Vec<_>>>()?;
         Ok(Self { settings, plans: std::sync::Mutex::new(plans), fetcher: fetch::Fetcher::new(workers) })
     }
 
@@ -447,8 +457,10 @@ fn pairwise_square_sum(input: &[f32]) -> f32 {
 
 impl LogMelPlan {
     pub fn new() -> Result<Self> {
-        let fft = NonNull::new(unsafe { flare_audio_fft_new() })
-            .ok_or_else(|| invalid("cannot prepare native 400-point audio FFT"))?;
+        Self::with_numerics(crate::model::contract::AudioNumerics::Legacy)
+    }
+
+    pub fn with_numerics(numerics: crate::model::contract::AudioNumerics) -> Result<Self> {
         let hann = std::array::from_fn(|i| {
             (0.5 * (1.0 - (2.0 * std::f64::consts::PI * i as f64 / FFT as f64).cos())) as f32
         });
@@ -474,8 +486,22 @@ impl LogMelPlan {
                     (rising.min(falling).max(0.0) * 2.0 / (edges[mel + 2] - edges[mel])) as f32;
             }
         }
+        let transform = match numerics {
+            crate::model::contract::AudioNumerics::Legacy => MelTransform::Legacy(
+                NonNull::new(unsafe { flare_audio_fft_new() })
+                    .ok_or_else(|| invalid("cannot prepare native 400-point audio FFT"))?),
+            crate::model::contract::AudioNumerics::Fp32Fma => {
+                #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+                let supported = std::arch::is_aarch64_feature_detected!("sve");
+                #[cfg(not(all(target_os = "linux", target_arch = "aarch64")))]
+                let supported = false;
+                if !supported { return Err(invalid("FP32 FMA audio numerics require Linux AArch64 SVE")); }
+                MelTransform::Fp32Fma(NonNull::new(unsafe { flare_audio_mel_new(filters.as_ptr()) })
+                    .ok_or_else(|| invalid("cannot prepare FP32 FMA audio transform"))?)
+            }
+        };
         Ok(Self {
-            fft,
+            transform,
             hann,
             filters,
             input: [0.0; FFT],
@@ -511,6 +537,19 @@ impl LogMelPlan {
         }
         let frames = pcm.len() / HOP;
         let mut output = vec![0.0; MELS * frames];
+        if let MelTransform::Fp32Fma(plan) = self.transform {
+            unsafe extern "C" fn is_cancelled(context: *mut c_void) -> c_int {
+                // The native synchronous call borrows this flag until return.
+                unsafe { &*context.cast::<AtomicBool>() }.load(Ordering::Acquire) as c_int
+            }
+            let status = unsafe { flare_audio_mel_run(plan.as_ptr(), pcm.as_ptr(), pcm.len(),
+                output.as_mut_ptr(), is_cancelled, (cancelled as *const AtomicBool).cast_mut().cast()) };
+            if status != 0 || output.iter().any(|value| !value.is_finite()) {
+                return Err(invalid(format!("FP32 FMA audio features failed or cancelled ({status})")));
+            }
+            return Ok(output);
+        }
+        let MelTransform::Legacy(fft) = self.transform else { unreachable!() };
         let mut maximum = f32::NEG_INFINITY;
         for frame in 0..frames {
             if cancelled.load(Ordering::Acquire) {
@@ -529,7 +568,7 @@ impl LogMelPlan {
             }
             unsafe {
                 flare_audio_fft_run(
-                    self.fft.as_ptr(),
+                    fft.as_ptr(),
                     self.input.as_mut_ptr(),
                     self.spectrum.as_mut_ptr(),
                 )
@@ -569,7 +608,10 @@ impl LogMelPlan {
 
 impl Drop for LogMelPlan {
     fn drop(&mut self) {
-        unsafe { flare_audio_fft_free(self.fft.as_ptr()) };
+        match self.transform {
+            MelTransform::Legacy(fft) => unsafe { flare_audio_fft_free(fft.as_ptr()) },
+            MelTransform::Fp32Fma(plan) => unsafe { flare_audio_mel_free(plan.as_ptr()) },
+        }
     }
 }
 
@@ -584,7 +626,59 @@ mod tests {
             decode_timeout_millis: 60000, service_chunk_samples: 480000,
             silence_search_samples: 16000, silence_window_samples: 1600,
             sample_padding: crate::model::contract::AudioSamplePadding::HopMultiple,
+            numerics: crate::model::contract::AudioNumerics::Legacy,
         }
+    }
+
+    #[test]
+    fn audio_numerics_default_preserves_legacy_serialization_and_cache_identity() {
+        use crate::model::contract::AudioNumerics;
+        let legacy = settings();
+        let bytes = serde_json::to_vec(&legacy).unwrap();
+        let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert!(value.get("numerics").is_none());
+        let restored: super::super::AudioSettings = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(restored.numerics, AudioNumerics::Legacy);
+        assert_eq!(serde_json::to_vec(&restored).unwrap(), bytes);
+        let pcm = vec![0.0; 16000];
+        assert_eq!(semantic_identity(&pcm, &legacy).unwrap(), semantic_identity(&pcm, &restored).unwrap());
+        let mut fused = legacy;
+        fused.numerics = AudioNumerics::Fp32Fma;
+        assert_ne!(semantic_identity(&pcm, &fused).unwrap(), semantic_identity(&pcm, &restored).unwrap());
+        let mut unknown = value;
+        unknown["numerics"] = 99.into();
+        assert!(serde_json::from_value::<super::super::AudioSettings>(unknown).is_err());
+    }
+
+    #[test]
+    fn fused_audio_plans_reject_unsupported_hosts_and_preserve_request_isolation() {
+        use crate::model::contract::AudioNumerics;
+        #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+        let supported = std::arch::is_aarch64_feature_detected!("sve");
+        #[cfg(not(all(target_os = "linux", target_arch = "aarch64")))]
+        let supported = false;
+        let result = LogMelPlan::with_numerics(AudioNumerics::Fp32Fma);
+        if !supported { assert!(result.is_err()); return; }
+        let mut plan = result.unwrap();
+        let cancelled = AtomicBool::new(false);
+        for samples in [201, 320, 16000, 16001, 480000] {
+            let actual = plan.features(&vec![0.; samples], &cancelled).unwrap();
+            assert_eq!(actual.len(), 128 * (samples / HOP));
+            assert!(actual.iter().all(|value| *value == -1.5));
+        }
+        let pcm: Vec<_> = (0..16001).map(|index| (index as f32 * 0.19).sin() * 0.1).collect();
+        let first = plan.features(&pcm, &cancelled).unwrap();
+        plan.features(&vec![0.; 201], &cancelled).unwrap();
+        assert_eq!(first, plan.features(&pcm, &cancelled).unwrap());
+        let mut independent = LogMelPlan::with_numerics(AudioNumerics::Fp32Fma).unwrap();
+        assert_eq!(first, independent.features(&pcm, &cancelled).unwrap());
+        for invalid in [vec![0.; 200], vec![f32::NAN; 201], vec![f32::MAX; 201]] {
+            assert!(plan.features(&invalid, &cancelled).is_err());
+        }
+        cancelled.store(true, Ordering::Release);
+        assert!(plan.features(&pcm, &cancelled).is_err());
+        cancelled.store(false, Ordering::Release);
+        assert_eq!(first, plan.features(&pcm, &cancelled).unwrap());
     }
 
     #[test]
@@ -897,7 +991,7 @@ mod tests {
         plan.input[0] = 1.0;
         unsafe {
             flare_audio_fft_run(
-                plan.fft.as_ptr(),
+                match plan.transform { MelTransform::Legacy(fft) => fft.as_ptr(), _ => unreachable!() },
                 plan.input.as_mut_ptr(),
                 plan.spectrum.as_mut_ptr(),
             )

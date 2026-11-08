@@ -104,7 +104,7 @@ def prepare_frontend(snapshot):
     result["audio"] = dict(sample_rate=16000, mel_bins=128, fft_size=400, hop_samples=160,
         max_file_bytes=25 * 1024 * 1024, max_samples=600 * 16000, decode_timeout_millis=60000,
         service_chunk_samples=30 * 16000, silence_search_samples=16000, silence_window_samples=1600,
-        sample_padding=p.AUDIO_SAMPLE_PADDING_HOP_MULTIPLE)
+        sample_padding=p.AUDIO_SAMPLE_PADDING_HOP_MULTIPLE, numerics=p.AUDIO_NUMERICS_FP32_FMA)
     return result
 
 

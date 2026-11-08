@@ -552,6 +552,15 @@ message AudioSettings {
   uint64 silence_search_samples = 9;
   uint64 silence_window_samples = 10;
   AudioSamplePadding sample_padding = 11;
+  AudioNumerics numerics = 12;
+}
+// Numerical semantics of the CPU feature transform, independent of model or
+// scheduler identity. Zero retains every existing package's arithmetic.
+enum AudioNumerics {
+  AUDIO_NUMERICS_LEGACY = 0;
+  // FP32 Hann nodes, vectorized full-extent PocketFFT, FMA Mel and SLEEF log10.
+  // Currently requires Linux AArch64 SVE; unsupported hosts reject startup.
+  AUDIO_NUMERICS_FP32_FMA = 1;
 }
 enum AudioSamplePadding {
   AUDIO_SAMPLE_PADDING_UNSPECIFIED = 0;

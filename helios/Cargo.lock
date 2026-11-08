@@ -905,6 +905,7 @@ dependencies = [
  "blake2",
  "brotli",
  "cc",
+ "cmake",
  "crossterm",
  "deepseek-recipe",
  "deepseek-recipe-core",

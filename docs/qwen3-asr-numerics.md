@@ -381,3 +381,19 @@ and `teacher_history`. The package's signed recipe identity, runtime cache
 identity and authenticated envelope digest are distinct report fields. The
 reader recognizes the measured ordinary ABI6 sampler only; this diagnostic
 restriction does not change engine loading or historical package compatibility.
+
+The explicit `FP32_FMA` CPU frontend has a separate finite qualification:
+[40 native process measurements](../benchmarks/qwen3_asr/results/native-frontend-fma.json)
+cover the same twenty frozen inputs, in forward and reverse order. Every call
+passes the unchanged FP32 budgets and matches the independent SDK BF16 input
+boundary. [Legacy byte controls](../benchmarks/qwen3_asr/results/native-frontend-legacy-bytes.json)
+show the newly linked binary preserves all twenty original legacy outputs.
+These checks execute Rust with standalone native FFT/math dependencies, with
+no Torch runtime linkage. They do not waive the outstanding native model scalar,
+batch/slot equality, package, quality or performance gates.
+
+Reproduce the CPU gate with `python -m qualify.asr_native_frontend`, selecting
+`--numerics fp32-fma`, the native `test_audio` binary, the frozen FP32 reference,
+development manifest/PCM root and all three SDK observation directories. The
+default `legacy` retains the prior gate. BF16 differences are reported separately;
+they are not a substitute for model-level thresholds.
