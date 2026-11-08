@@ -167,6 +167,15 @@ the independent engine observer reconciles every planned chunk and official
 counter. The client always leaves overall performance qualification false;
 the frozen block comparison and all model/lifecycle gates remain separate.
 
+`qualify.asr_performance_statistics.paired_interval` calculates the frozen
+five-block log-ratio Student t interval from already qualified scalar measurements.
+It uses 80-digit decimal arithmetic and rounds binary interval endpoints outward;
+strict throughput and latency boundaries must not gain a passing result from
+conversion error. Its CPU regressions include exact geometric equality, one
+unusually fast block and a latency violation hidden by nearest binary rounding.
+The helper does not establish independence, complete transcription, cache
+equivalence or any model/service gate.
+
 [The decoder-reduction native observation](results/native-recognition-reduction.json)
 retains a fresh exported package served independently by Rust after Python exited:
 256/256 primary requests stop naturally; two development inputs each match
