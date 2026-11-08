@@ -312,3 +312,20 @@ kinds is not asserted. These are submissions, not completions or GPU busy time.
 The new counters supplement the earlier HTTP observations; this remains finite
 functional qualification on modified source, with the same open lifecycle,
 new-attention-package, final-source and performance gates.
+
+`native-recognition-batched-attention.json` retains a subsequent fresh normal CLI
+export with the batched Q1/GQA request-attention candidate. All 21 forwards compile
+and all 33 graph variants capture; the preparer exits before the independent Rust
+server verifies and loads the package. Two development inputs each repeat five
+times exactly, and all 256 primary qualification requests stop naturally. Actual
+token counts reconcile as 5,149 primary + 575 development = 5,724 official counter
+increments. Every primary text and token count equals the retained reduction
+package observation; token IDs are not observed by this transcription collector.
+The English WER 70/2875, English CER 94/15411 and Mandarin CER 35/1861 pass the
+unchanged finite-cohort margins against canonical and both retained vLLM records.
+The native process drains with exit 0 and releases its listener. This package
+uses frozen modified preparation source and a separately identified modified
+native build. Complete network-node/operator gates, new-package concurrency and
+lifecycle checks, final clean-source qualification and sustained performance
+remain open. An earlier compiler-worker CUDA-context OOM is retained separately;
+its absence in this attempt does not establish its root cause or a general fix.
