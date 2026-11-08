@@ -251,3 +251,15 @@ remain raw failed results. No numerical budget, reference, request order or
 natural token was changed. Complete-model/operator, all-input, asynchronous
 cancellation, API/quality, old-package and sustained performance qualification
 remain separate; these observations establish no vLLM performance win.
+
+[The original-prompt native recognition result](results/native-recognition-original-prompt.json)
+retains all256 frozen primary responses from the same ordinary CLI package in
+an independent Rust server. All requests stop naturally; actual terminal counts
+sum to5,147 tokens, with no raw generated IDs observed by this client. All256
+raw texts equal the fixed canonical reference. English WER70/2875, English
+CER91/15411 and Mandarin CER35/1861 satisfy all three unchanged point margins.
+English WER and Mandarin CER also pass the paired-bootstrap margins; English
+CER has no bootstrap interval in the frozen scoring contract. The historical vLLM reference also passes; its result does
+not transfer GPU qualification to a newly rebuilt image. This primary-set
+recognition result does not establish complete numerical/operator, real-long,
+API/lifecycle, old-package or sustained-performance qualification.
