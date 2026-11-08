@@ -3653,3 +3653,24 @@ fn state_slot_extent_uses_storage_geometry_independently_of_completion_capacity(
     assert_eq!(scheduler.execution_rows(), 1024);
     assert_eq!(scheduler.snapshot_slot(SnapshotId(3)).0, 1028);
 }
+
+/// Enter the production snapshot/parking transition after real decode has drained.
+/// This deterministic execution probe does not establish page-pressure policy.
+pub(crate) fn preempt_completed_decode(scheduler: &mut RequestScheduler, handle: RequestHandle) -> Result<()> {
+    let request = scheduler.request(handle)?;
+    if request.phase != RequestPhase::Decode || request.generated_tokens == 0
+        || request.pending != 0 || request.last_use() > scheduler.completed()
+    {
+        return Err("preemption probe requires completed ordinary decode".into());
+    }
+    scheduler.finish_early(handle, true)
+}
+
+/// Logical pages already owned or reserved for a quiescent request's next writes.
+pub(crate) fn owned_execution_pages(scheduler: &RequestScheduler, handle: RequestHandle) -> Result<Vec<u32>> {
+    let request = scheduler.request(handle)?;
+    if request.pending != 0 || request.last_use() > scheduler.completed() {
+        return Err("page inspection requires a quiescent request".into());
+    }
+    Ok(request.pages().chain(request.reserved_pages.iter().rev().copied()).map(|page| page.0).collect())
+}

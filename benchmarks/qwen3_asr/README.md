@@ -219,3 +219,35 @@ The collector checks five identical captured replays, allocation counters,
 unread future KV poison and active-poison recovery. These direct ATen
 observations explain reduction geometry; they do not measure native serving,
 qualify the complete model or establish a performance gain.
+
+
+The native original-prompt measurements use an ordinary installed CLI export
+and separate Rust replay after the Python preparer exits. The
+[run configuration](results/native-original-prompt-run.json) preserves inputs,
+source/package identities, the two preceding failed attempts and unqualified
+scopes. [Generated-history raw observations](results/native-original-prompt-g2.json.gz)
+and [their per-row scalar results](results/native-original-prompt-g2-scalar.json.gz)
+record 12 natural requests, 129 frozen teacher comparisons and 402 observed
+natural logit rows. Eight retained/evicted replays reproduce all 448 consumed KV
+planes. The KV comparator detects the injected future-range poison; real prefill
+then rewrites it without changing earlier committed bytes. Two independent Rust
+runs also reproduce the four B1 traces.
+
+[Batch/slot raw observations](results/native-original-prompt-batch-slot.json.gz)
+and [their scalar results](results/native-original-prompt-batch-slot-scalar.json.gz)
+record the original 11 cohorts/39 requests, 414 teacher comparisons and 1,321
+observed natural rows. Full traces are byte-identical to B1, with zero frozen
+teacher top-1 gaps. These JSON files publish all natural token IDs, frame and
+completion records, comparison results and per-teacher-row metrics. Complete
+BF16, KV and poison files remain locally retained; their relative filenames in
+the JSON do not embed the tensor vectors in these gzip files.
+Actual frames include full B1/2/4/8 and partial B8. Seven/eight-request cohorts
+use a test-only readiness barrier and legal production plans to obtain capacity
+coverage; this is a controlled arithmetic/row-placement check, not evidence
+that automatic production scheduling forms B8. All runs confirm native drain.
+
+The preceding snapshot-fixture and ordinary-scheduler B8-coverage failures
+remain raw failed results. No numerical budget, reference, request order or
+natural token was changed. Complete-model/operator, all-input, asynchronous
+cancellation, API/quality, old-package and sustained performance qualification
+remain separate; these observations establish no vLLM performance win.

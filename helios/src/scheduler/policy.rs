@@ -1231,6 +1231,17 @@ impl RequestScheduler {
         kind: GraphKind,
         request: Option<RequestHandle>,
     ) -> ScheduledPlan {
+        self.try_phase_plan(kind, request, None)
+            .expect("requested lifecycle operation must be feasible")
+    }
+
+    #[cfg(test)]
+    pub(crate) fn try_phase_plan(
+        &self,
+        kind: GraphKind,
+        request: Option<RequestHandle>,
+        batch_capacity: Option<usize>,
+    ) -> Option<ScheduledPlan> {
         let (values, age_price, scale) = self.lane_values(0);
         let mask = self
             .slots
@@ -1250,13 +1261,24 @@ impl RequestScheduler {
             .fold(0, |a, b| a | b);
         let mut candidates = Vec::new();
         if kind.is_prefill() {
+            if batch_capacity.is_some_and(|batch| batch != 1) {
+                return None;
+            }
             for &capacity in self.prefill_catalog(kind) {
+                self.add_candidate(&mut candidates, kind, 1, capacity, mask, &values, age_price);
+            }
+        } else if matches!(kind, GraphKind::Vision | GraphKind::AudioEncode) {
+            if batch_capacity.is_some_and(|batch| batch != 1) {
+                return None;
+            }
+            for &capacity in self.encoder_catalog(kind) {
                 self.add_candidate(&mut candidates, kind, 1, capacity, mask, &values, age_price);
             }
         } else {
             for batch in crate::execution::BATCH_CAPACITIES
                 .into_iter()
                 .take_while(|b| *b <= self.limits.max_active.next_power_of_two())
+                .filter(|batch| batch_capacity.is_none_or(|wanted| wanted == *batch))
             {
                 self.add_candidate(&mut candidates, kind, batch, 1, mask, &values, age_price);
             }
@@ -1268,10 +1290,9 @@ impl RequestScheduler {
                     .compare(b.rate)
                     .then(a.mask.count_ones().cmp(&b.mask.count_ones()))
                     .then(b.batch.cmp(&a.batch))
-            })
-            .expect("requested lifecycle operation must be feasible");
+            })?;
         let origin = if candidate.rate.duration_ns == 0 { PlanOrigin::Discovery } else { PlanOrigin::Ordinary };
-        self.materialize(candidate, scale, origin)
+        Some(self.materialize(candidate, scale, origin))
     }
 }
 

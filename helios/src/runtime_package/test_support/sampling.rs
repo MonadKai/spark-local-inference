@@ -78,8 +78,8 @@ fn locate(package: &Package, files: &dyn Files, graph_name: &str, vocabulary: us
     }
     let descriptor = execution.graphs.iter().find(|g| g.name == graph_name)
         .ok_or_else(|| invalid("sampler graph is absent from execution metadata"))?;
-    if !matches!(descriptor.kind.as_str(), "prefill" | "decode") || descriptor.sampling_mode != "general" {
-        return Err(invalid("sampler inspection requires ordinary prefill or decode"));
+    if !matches!(descriptor.kind.as_str(), "prefill" | "decode" | "resume") || descriptor.sampling_mode != "general" {
+        return Err(invalid("sampler inspection requires ordinary prefill, decode or resume"));
     }
     let rows = usize::try_from(descriptor.batch_capacity).map_err(|_| invalid("sampler rows overflow"))?;
     if !(1..=64).contains(&rows) { return Err(invalid("sampler row capacity is invalid")); }
@@ -147,6 +147,21 @@ pub fn views(package: &AuthorizedPackage, rank: usize, graph: &str, vocabulary: 
                 .ok_or_else(|| invalid("sampler rank is absent"))?.clone())?;
             locate(&rank, archive, graph, vocabulary, names)
         }
+    }
+}
+
+/// Enumerate authenticated sampler graph names without assuming a preparation catalog.
+pub fn graph_names(package: &AuthorizedPackage, rank: usize) -> Result<Vec<String>> {
+    fn names(package: &Package) -> Result<Vec<String>> {
+        let execution = package.execution.as_ref().ok_or_else(|| invalid("sampler execution metadata is absent"))?;
+        Ok(execution.graphs.iter().filter(|graph| matches!(graph.kind.as_str(), "prefill" | "decode" | "resume"))
+            .map(|graph| graph.name.clone()).collect())
+    }
+    match &package.kind {
+        AuthorizedKind::Payload(payload) => names(payload.rank_packages().get(rank)
+            .ok_or_else(|| invalid("sampler rank is absent"))?),
+        AuthorizedKind::Legacy { index, .. } => names(&protobuf::decode(index.ranks.get(rank)
+            .ok_or_else(|| invalid("sampler rank is absent"))?.clone())?),
     }
 }
 
@@ -273,6 +288,13 @@ mod tests {
         let verified = VerifiedPackage::open(Path::new(&path), &publishers, None).unwrap();
         let namespace = verified.publisher().namespace.clone();
         let package = verified.authorize(&namespace, false).unwrap();
+        let catalog = graph_names(&package, 0).unwrap();
+        assert!(catalog.iter().any(|name| name.starts_with("resume")));
+        for graph in catalog {
+            let view = views(&package, 0, &graph, 151936,
+                ["row_slot_ids", "row_generations", "live_rows"]).unwrap();
+            assert_eq!(view.logits.nbytes, view.rows * 151936 * 2);
+        }
         for (graph, rows) in [("prefill64", 1), ("decode1", 1), ("decode2", 2), ("decode4", 4), ("decode8", 8)] {
             let view = views(&package, 0, graph, 151936,
                 ["row_slot_ids", "row_generations", "live_rows"]).unwrap();
@@ -287,4 +309,154 @@ mod tests {
         assert!(views(&package, 0, "decode8", usize::MAX,
             ["row_slot_ids", "row_generations", "live_rows"]).is_err());
     }
+}
+
+// Requires a quiescent executor and request-owned
+// pages. Resolves the actual signed byte-plane layout before any device read.
+#[derive(Clone, Debug)]
+pub struct KvHistoryView {
+    pub buffer: String,
+    allocation: String,
+    base: u64,
+    maximum: u64,
+    page_bytes: usize,
+    page_tokens: usize,
+}
+
+pub fn kv_history_view(package: &AuthorizedPackage, rank: usize,
+    region: &crate::model::contract::HistoryRegion, page_tokens: usize) -> Result<KvHistoryView> {
+    fn resolve(package: &Package, region: &crate::model::contract::HistoryRegion,
+        page_tokens: usize) -> Result<KvHistoryView> {
+        let buffer = package.execution.as_ref().and_then(|e| e.buffers.iter()
+            .find(|b| b.name == region.storage.buffer))
+            .ok_or_else(|| invalid("KV diagnostic signed buffer is absent"))?;
+        let reference = buffer.reference.as_ref().ok_or_else(|| invalid("KV buffer lacks reference"))?;
+        let allocation = package.allocations.iter().find(|a| a.name == reference.allocation)
+            .ok_or_else(|| invalid("KV buffer allocation is absent"))?;
+        let sizing = allocation.sizing.as_ref().ok_or_else(|| invalid("KV allocation is not sized"))?;
+        let base = allocation.address.ok_or_else(|| invalid("KV allocation is not fixed"))?;
+        let page_bytes = usize::try_from(sizing.unit_bytes).map_err(|_| invalid("KV stride overflow"))?;
+        let extent = sizing.unit_bytes.checked_mul(sizing.maximum)
+            .ok_or_else(|| invalid("KV maximum extent overflow"))?;
+        if !matches!(region.kind, crate::model::contract::HistoryKind::PagedKeyValue)
+            || region.tokens_per_record != 1 || region.window_tokens != 0
+            || region.storage.offset != 0 || region.storage.stride != page_bytes
+            || region.storage.nbytes != page_bytes || sizing.capacity != wire::Capacity::KvPages as i32
+            || sizing.maximum == 0 || page_tokens == 0 || !page_bytes.is_multiple_of(page_tokens)
+            || !matches!(allocation.memory, Memory::Device) || reference.offset != 0
+            || buffer.dtype != "uint8" || buffer.shape != [sizing.maximum, sizing.unit_bytes]
+            || buffer.strides != [sizing.unit_bytes, 1] || buffer.nbytes != extent
+            || base.checked_add(extent).is_none() {
+            return Err(invalid("KV diagnostic requires an authenticated complete dense byte plane"));
+        }
+        Ok(KvHistoryView { buffer: buffer.name.clone(), allocation: allocation.name.clone(),
+            base, maximum: sizing.maximum, page_bytes, page_tokens })
+    }
+    match &package.kind {
+        AuthorizedKind::Payload(payload) => resolve(payload.rank_packages().get(rank)
+            .ok_or_else(|| invalid("KV rank is absent"))?, region, page_tokens),
+        AuthorizedKind::Legacy { index, .. } => resolve(&protobuf::decode(index.ranks.get(rank)
+            .ok_or_else(|| invalid("KV rank is absent"))?.clone())?, region, page_tokens),
+    }
+}
+
+pub fn download_kv_prefix(model: &NativeModel, rank: usize, view: &KvHistoryView,
+    expected: &flare_selene::CacheGeometry, pages: &[u32], consumed: usize) -> Result<Vec<u8>> {
+    let resources = model.ranks.get(rank).ok_or_else(|| invalid("KV local rank is absent"))?;
+    let geometry = resources.cache_geometry().ok_or_else(|| invalid("KV geometry is absent"))?;
+    let plane = geometry.planes.iter().find(|p| p.name == view.allocation)
+        .ok_or_else(|| invalid("KV runtime plane is absent"))?;
+    let allocation = resources.allocations.get(&view.allocation)
+        .ok_or_else(|| invalid("KV runtime allocation is absent"))?;
+    let needed = consumed.div_ceil(view.page_tokens);
+    if geometry != expected || consumed == 0 || needed > pages.len() || geometry.page_capacity > view.maximum
+        || geometry.page_tokens != view.page_tokens as u64 || plane.address != view.base
+        || plane.unit_bytes != view.page_bytes as u64 || !allocation.fixed
+        || allocation.address != view.base || !matches!(allocation.memory, Memory::Device)
+        || pages.iter().any(|p| u64::from(*p) >= geometry.page_capacity)
+        || pages.iter().collect::<std::collections::HashSet<_>>().len() != pages.len() {
+        return Err(invalid("KV runtime geometry or owned page chain differs from signed layout"));
+    }
+    let token_bytes = view.page_bytes / view.page_tokens;
+    let bytes = consumed.checked_mul(token_bytes).ok_or_else(|| invalid("KV read size overflow"))?;
+    let mut output = vec![0u8; bytes];
+    let mut mappings = allocation.mappings.clone();
+    mappings.sort_unstable_by_key(|(start, _)| *start);
+    // All ranges are validated before the first driver call. The virtual
+    // maximum alone cannot establish physical mapping coverage.
+    let mut reads = Vec::new();
+    for (logical, &page) in pages[..needed].iter().enumerate() {
+        let first = logical.checked_mul(view.page_tokens).ok_or_else(|| invalid("KV token offset overflow"))?;
+        let count = (consumed - first).min(view.page_tokens);
+        let size = count.checked_mul(token_bytes).ok_or_else(|| invalid("KV page read overflow"))?;
+        let offset = usize::try_from(page).ok().and_then(|p| p.checked_mul(view.page_bytes))
+            .ok_or_else(|| invalid("KV physical page offset overflow"))?;
+        if offset.checked_add(size).is_none_or(|end| end > allocation.nbytes) {
+            return Err(invalid("KV read exceeds the loaded allocation"));
+        }
+        let start = view.base.checked_add(offset as u64).ok_or_else(|| invalid("KV address overflow"))?;
+        let end = start.checked_add(size as u64).ok_or_else(|| invalid("KV end overflow"))?;
+        let mut covered = start;
+        for &(address, length) in &mappings {
+            let finish = address.checked_add(length as u64).ok_or_else(|| invalid("KV mapping overflow"))?;
+            if address <= covered && covered < finish { covered = finish.min(end); }
+            if covered == end { break; }
+        }
+        if covered != end { return Err(invalid("KV read touches an unmapped physical range")); }
+        reads.push((start, first * token_bytes, size));
+    }
+    // SAFETY: the request still owns every page and the caller has confirmed
+    // zero outstanding graph work. Owner, mappings and output remain alive.
+    unsafe {
+        resources.driver.check("cuCtxSetCurrent", (resources.driver.context_set)(resources.context))?;
+        resources.driver.check("cuCtxSynchronize", (resources.driver.context_sync)())?;
+        for (address, offset, length) in reads {
+            resources.driver.check("cuMemcpyDtoH_v2", (resources.driver.download)(
+                output[offset..offset + length].as_mut_ptr().cast(), address, length))?;
+        }
+    }
+    Ok(output)
+}
+
+/// Poison only a quiescent request-owned range which the next graph must rewrite.
+/// The caller supplies its complete logical owned/reserved page chain.
+pub fn poison_kv_range(model: &NativeModel, rank: usize, view: &KvHistoryView,
+    expected: &flare_selene::CacheGeometry, pages: &[u32], range: std::ops::Range<usize>) -> Result<Vec<u8>> {
+    if range.start >= range.end || !(view.page_bytes / view.page_tokens).is_multiple_of(2) {
+        return Err(invalid("KV poison requires a nonempty BF16 token range"));
+    }
+    // This validates the complete authenticated layout and mapped prefix before
+    // the first write, and retains the untouched committed prefix for comparison.
+    let before = download_kv_prefix(model, rank, view, expected, pages, range.end)?;
+    let token_bytes = view.page_bytes / view.page_tokens;
+    let start_bytes = range.start.checked_mul(token_bytes).ok_or_else(|| invalid("KV poison start overflow"))?;
+    let size = (range.end - range.start).checked_mul(token_bytes).ok_or_else(|| invalid("KV poison extent overflow"))?;
+    let pattern = [0xc1u8, 0x7f]; // BF16 quiet NaN, retained as bytes.
+    let payload = pattern.into_iter().cycle().take(size).collect::<Vec<_>>();
+    let resources = &model.ranks[rank];
+    let mut writes = Vec::new();
+    for logical in range.start / view.page_tokens..range.end.div_ceil(view.page_tokens) {
+        let first = range.start.max(logical * view.page_tokens);
+        let end = range.end.min((logical + 1) * view.page_tokens);
+        let page_offset = usize::try_from(pages[logical]).ok().and_then(|p| p.checked_mul(view.page_bytes))
+            .and_then(|offset| offset.checked_add((first % view.page_tokens) * token_bytes))
+            .ok_or_else(|| invalid("KV poison page offset overflow"))?;
+        let address = view.base.checked_add(page_offset as u64).ok_or_else(|| invalid("KV poison address overflow"))?;
+        writes.push((address, (first - range.start) * token_bytes, (end - first) * token_bytes));
+    }
+    // SAFETY: all ranges were mapped and authenticated by the prefix read.
+    // No submitted graph or transfer refers to these request-owned future bytes.
+    unsafe {
+        resources.driver.check("cuCtxSetCurrent", (resources.driver.context_set)(resources.context))?;
+        resources.driver.check("cuCtxSynchronize", (resources.driver.context_sync)())?;
+        for (address, offset, length) in writes {
+            resources.driver.check("cuMemcpyHtoD_v2", (resources.driver.upload)(address,
+                payload[offset..offset + length].as_ptr().cast(), length))?;
+        }
+    }
+    let after = download_kv_prefix(model, rank, view, expected, pages, range.end)?;
+    if after[..start_bytes] != before[..start_bytes] || after[start_bytes..] != payload {
+        return Err(invalid("KV poison changed the committed prefix or failed its actual readback"));
+    }
+    Ok(after)
 }

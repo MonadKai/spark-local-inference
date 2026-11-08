@@ -69,6 +69,20 @@ fn save(output: &std::path::Path, report: &serde_json::Value) {
 #[test]
 #[ignore = "requires exclusive CUDA, explicit package/publishers, FLARE_NATIVE_LOGITS_CASES and FLARE_NATIVE_LOGITS_OUTPUT"]
 fn raw_logits_and_actual_histories_survive_native_worker_batch_and_slot_changes() {
+    exercise_native_logits(false);
+}
+
+#[test]
+#[ignore = "requires exclusive CUDA, explicit original-count ASR package/publishers and native logits inputs/output"]
+fn generated_history_replays_after_real_snapshot_parking_and_checkpoint_eviction() {
+    exercise_native_logits(true);
+}
+
+fn kv_prefix_matches(actual: &[Vec<u8>], reference: &[Vec<u8>]) -> bool {
+    actual.len() == reference.len() && actual.iter().zip(reference).all(|(a, b)| a == b)
+}
+
+fn exercise_native_logits(replay_history: bool) {
     let path = std::env::var("FLARE_PROMPT_TEST_PACKAGE").unwrap();
     let publishers = std::env::var("FLARE_PROMPT_TEST_PUBLISHERS").unwrap();
     let cases: Vec<Case> = serde_json::from_slice(&std::fs::read(std::env::var("FLARE_NATIVE_LOGITS_CASES").unwrap()).unwrap()).unwrap();
@@ -80,9 +94,8 @@ fn raw_logits_and_actual_histories_survive_native_worker_batch_and_slot_changes(
     let namespace = verified.publisher().namespace.clone();
     let authorized = verified.authorize(&namespace, true).unwrap();
     let mut views = HashMap::new();
-    for name in ["prefill64", "prefill128", "prefill256", "prefill512", "prefill1024", "prefill2048", "prefill4096",
-        "decode1", "decode2", "decode4", "decode8"] {
-        views.insert(name, sampling::views(&authorized, 0, name, 151936,
+    for name in sampling::graph_names(&authorized, 0).unwrap() {
+        views.insert(name.clone(), sampling::views(&authorized, 0, &name, 151936,
             ["row_slot_ids", "row_generations", "live_rows"]).unwrap());
     }
     let pending = sampling::named_buffer(&authorized, 0, "request_pending_token").unwrap();
@@ -99,6 +112,10 @@ fn raw_logits_and_actual_histories_survive_native_worker_batch_and_slot_changes(
     for name in ["audio_features", "audio_generations", "audio_counts", "audio_feature_slot"] {
         audio_views.insert(name.into(), sampling::named_buffer(&authorized, 0, name).unwrap());
     }
+    let original_count = replay_history.then(|| sampling::named_buffer(&authorized, 0,
+        "original_prompt_tokens").unwrap());
+    let history_package = replay_history.then(|| VerifiedPackage::open(std::path::Path::new(&path),
+        &publishers, None).unwrap().authorize(&namespace, true).unwrap());
     let envelope = authorized.envelope_digest();
     let options = LoadOptions { max_concurrency: Some(8), kv_cache_limit: KvCacheLimit::Concurrency,
         embedding_table_storage: Some(crate::engram::Storage::Ram),
@@ -117,6 +134,29 @@ fn raw_logits_and_actual_histories_survive_native_worker_batch_and_slot_changes(
     assert_eq!(bootstrap.model.model_id, "Qwen/Qwen3-ASR-1.7B");
     let fixture = Fixture { config: bootstrap.model, frontend: bootstrap.frontend, stop: AtomicBool::new(false),
         metrics: Arc::new(super::super::super::metrics::Metrics::new(0, 0, 0, 16)) };
+    let kv_views = history_package.as_ref().map(|package| {
+        assert_eq!(package.envelope_digest(), envelope);
+        fixture.config.contract.cache.regions.iter().filter(|region|
+            matches!(region.kind, crate::model::contract::HistoryKind::PagedKeyValue))
+            .map(|region| sampling::kv_history_view(package, 0, region,
+                fixture.config.contract.cache.page_tokens).unwrap()).collect::<Vec<_>>()
+    }).unwrap_or_default();
+    let page_table_view = history_package.as_ref().map(|package| {
+        let [table] = fixture.config.contract.cache.page_tables.as_slice() else {
+            panic!("history probe requires one authenticated full-attention page table");
+        };
+        assert_eq!(table.page_offset, 0);
+        let layout = manifest.buffer(&table.buffer).unwrap();
+        assert_eq!(layout.dtype, crate::execution::Dtype::Int32);
+        assert_eq!(layout.shape.len(), 2);
+        assert_eq!(layout.strides, [layout.shape[1], 1]);
+        (sampling::named_buffer(package, 0, &table.buffer).unwrap(), layout.shape[1])
+    });
+    if replay_history {
+        assert_eq!(kv_views.len(), 56);
+        assert_eq!(fixture.config.contract.cache.immutable_request_values,
+            [crate::model::contract::ValueSource::InitialPromptTokens]);
+    }
     let audio = fixture.config.contract.audio.as_ref().unwrap();
     for graph in fixture.config.contract.graphs.iter().filter(|g|
         g.kind == crate::model::contract::GraphOperation::AudioEncode) {
@@ -138,7 +178,11 @@ fn raw_logits_and_actual_histories_survive_native_worker_batch_and_slot_changes(
         "runtime_cache_identity":fixture.config.identity.iter().map(|v| format!("{v:02x}")).collect::<String>(),
         "authenticated_envelope_digest":envelope.iter().map(|v| format!("{v:02x}")).collect::<String>(),
         "audio_storage":audio, "status":"running", "single_inflight":true,
-        "frames":[], "audio_frames":[], "cohorts":[], "errors":[]});
+        "frames":[], "audio_frames":[], "cohorts":[], "errors":[], "kv_frames":[],
+        "generated_history_probe":replay_history, "preemption_policy_qualified":false,
+        "capacity_schedule":"Seven/eight-request cohorts defer decode until every real request has naturally sampled its first token. The test selects legal production plans through test-only phase selection; this is not automatic scheduling or performance qualification.",
+        "decode_readiness_barriers":[],
+        "parking":[]} );
     save(&output, &report);
     let outcome = catch_unwind(AssertUnwindSafe(|| {
         let mut scheduler = RequestScheduler::new(fixture.config.identity, fixture.config.limits,
@@ -155,10 +199,17 @@ fn raw_logits_and_actual_histories_survive_native_worker_batch_and_slot_changes(
             &fixture.metrics, scheduler, receiver, 32);
         worker.inputs = Some(crate::model::Inputs::new(&fixture.config, executor.manifest()).unwrap());
         let mut baseline: HashMap<usize, Vec<Vec<u8>>> = HashMap::new();
-        let cohorts = [vec![0], vec![1], vec![2], vec![3], vec![0,1], vec![2,3], vec![0,1,2,3],
-            vec![3,2,1,0], vec![0,1,2,3,0,1,2,3], vec![3,2,1,0,3,2,1,0], vec![0,1,2,3,0,1,2]];
+        let mut baseline_kv: HashMap<usize, Vec<Vec<u8>>> = HashMap::new();
+        let cohorts: Vec<(Vec<usize>, Option<bool>)> = if replay_history {
+            (0..4).map(|case| (vec![case], None)).chain((0..4).flat_map(|case|
+                [false, true].map(move |evict| (vec![case], Some(evict))))).collect()
+        } else {
+            [vec![0], vec![1], vec![2], vec![3], vec![0,1], vec![2,3], vec![0,1,2,3],
+                vec![3,2,1,0], vec![0,1,2,3,0,1,2,3], vec![3,2,1,0,3,2,1,0], vec![0,1,2,3,0,1,2]]
+                .into_iter().map(|order| (order, None)).collect()
+        };
         let mut seen_decode = std::collections::HashSet::new();
-        for (cohort, order) in cohorts.iter().enumerate() {
+        for (cohort, (order, eviction)) in cohorts.iter().enumerate() {
             assert_eq!(executor.outstanding(), 0);
             let mut generations = Vec::new();
             let mut arrivals = Vec::new();
@@ -178,7 +229,15 @@ fn raw_logits_and_actual_histories_survive_native_worker_batch_and_slot_changes(
             let mut delivered = vec![Vec::<u32>::new(); order.len()];
             let mut observed = vec![Vec::<Vec<u8>>::new(); order.len()];
             let mut finished = vec![false; order.len()];
+            let mut snapshot_completed = false;
+            let mut park_started = false;
+            let mut parked_once = false;
+            let mut readmitted_once = false;
+            let mut history_prefill = false;
+            let mut pressure_reservations = 0;
+            let mut poisoned_prefill_submissions = 0;
             let mut submitted: Option<crate::scheduler::ScheduledPlan> = None;
+            let mut decode_barrier = !replay_history && order.len() >= 7;
             let deadline = Instant::now() + Duration::from_secs(300);
             loop {
                 assert!(Instant::now() < deadline, "native logits cohort did not finish");
@@ -187,6 +246,31 @@ fn raw_logits_and_actual_histories_survive_native_worker_batch_and_slot_changes(
                     assert_eq!(executor.outstanding(), 0, "a later graph may overwrite observed logits");
                     let plan = submitted.take().unwrap();
                     let graph = &executor.manifest().graphs[completion.graph_index];
+                    if graph.kind == GraphKind::Snapshot && park_started {
+                        assert_eq!(plan.lanes.len(), 1);
+                        let lane = &plan.lanes[0];
+                        let record = &completion.records[lane.request.slot as usize];
+                        assert_eq!(record.generation, lane.request.generation as i64);
+                        assert_eq!(record.submission_sequence, completion.fence.0 as i64);
+                        assert_eq!(record.error_code, 0);
+                        // This fixture has one in-flight plan. Readmission can
+                        // schedule another prompt-boundary snapshot after G2.
+                        assert_eq!(lane.tokens, 0);
+                        assert_eq!(u64::try_from(record.consumed_tokens).unwrap(), lane.start_position);
+                        let initial = !snapshot_completed;
+                        if initial {
+                            assert!(!parked_once && !readmitted_once);
+                            assert_eq!(record.consumed_tokens as usize, cases[order[0]].prompt_ids.len() + 1);
+                            snapshot_completed = true;
+                        }
+                        report["parking"].as_array_mut().unwrap().push(serde_json::json!({
+                            "cohort":cohort,"event":if initial { "actual_snapshot_completed" }
+                                else { "subsequent_snapshot_completed" },"graph":graph.name,
+                            "request_slot":lane.request.slot,"generation":lane.request.generation,
+                            "fence":completion.fence.0,"consumed":record.consumed_tokens,
+                            "lane_start":lane.start_position,"lane_tokens":lane.tokens}));
+                        save(&output, &report);
+                    }
                     if graph.kind == GraphKind::AudioEncode {
                         let contract = fixture.config.contract.graph(&graph.name).unwrap();
                         let mut inputs = serde_json::Map::new();
@@ -218,6 +302,15 @@ fn raw_logits_and_actual_histories_survive_native_worker_batch_and_slot_changes(
                         save(&output, &report);
                     }
                     if let Some(view) = views.get(graph.name.as_str()) {
+                        if let Some(original_count) = original_count.as_ref().filter(|_| graph.kind == GraphKind::Prefill) {
+                            let original = i32s(&sampling::download(&owner, 0, original_count).unwrap());
+                            assert_eq!(original[0] as usize, cases[order[0]].prompt_ids.len());
+                            let lane = &plan.lanes[0];
+                            if lane.start_position + lane.tokens as u64 > original[0] as u64 {
+                                assert!(readmitted_once);
+                                history_prefill = true;
+                            }
+                        }
                         let logits = sampling::download(&owner, 0, &view.logits).unwrap();
                         // Preserve the complete physical frame before trusting
                         // its row map or any completion/nonfinite assertion.
@@ -258,6 +351,46 @@ fn raw_logits_and_actual_histories_survive_native_worker_batch_and_slot_changes(
                             }
                             assert_eq!(record.token_id, argmax as i64, "native sampler skipped the observed BF16 node");
                             let step = histories[index].len();
+                            if replay_history && step == 2 {
+                                let consumed = record.consumed_tokens as usize;
+                                let request = worker.scheduler.request(lane.request).unwrap();
+                                let pages = request.pages().map(|page| page.0).collect::<Vec<_>>();
+                                let geometry = executor.manifest().cache.as_ref().unwrap();
+                                let (table, columns) = page_table_view.as_ref().unwrap();
+                                let actual_table = i32s(&sampling::download(&owner, 0, table).unwrap());
+                                let needed = consumed.div_ceil(fixture.config.contract.cache.page_tokens);
+                                assert_eq!(&actual_table[slot * columns..slot * columns + needed],
+                                    pages[..needed].iter().map(|page| *page as i32).collect::<Vec<_>>());
+                                let compared_with_baseline = baseline_kv.contains_key(&case);
+                                let mut values = Vec::new();
+                                for view in &kv_views {
+                                    assert!(sampling::download_kv_prefix(&owner, 0, view, geometry,
+                                        &[], consumed).is_err());
+                                    assert!(sampling::download_kv_prefix(&owner, 0, view, geometry,
+                                        &pages, 0).is_err());
+                                    let mut bad_pages = pages.clone();
+                                    bad_pages[0] = u32::try_from(geometry.page_capacity).unwrap();
+                                    assert!(sampling::download_kv_prefix(&owner, 0, view, geometry,
+                                        &bad_pages, consumed).is_err());
+                                    let value = sampling::download_kv_prefix(&owner, 0, view, geometry,
+                                        &pages, consumed).unwrap();
+                                    std::fs::write(output.join(format!("cohort{cohort}-fence{}-{}.kv",
+                                        completion.fence.0, view.buffer)), &value).unwrap();
+                                    values.push(value);
+                                }
+                                if let Some(expected) = baseline_kv.get(&case) {
+                                    assert!(kv_prefix_matches(&values, expected), "KV changed after real history replay");
+                                } else { baseline_kv.insert(case, values); }
+                                report["kv_frames"].as_array_mut().unwrap().push(serde_json::json!({
+                                    "cohort":cohort,"case":cases[case].id,"consumed":consumed,
+                                    "lane_start":lane.start_position,"lane_tokens":lane.tokens,
+                                    "request_slot":slot,"generation":lane.request.generation,"pages":pages,
+                                    "graph":graph.name,"original_prompt_tokens":cases[case].prompt_ids.len(),
+                                    "history_step":step,"planes":56,"actual_page_table_matches":true,
+                                    "compared_with_baseline":compared_with_baseline,
+                                    "exact_if_compared":compared_with_baseline.then_some(true)}));
+                                save(&output, &report);
+                            }
                             if step < cases[case].teacher_history.len() {
                                 assert_eq!(record.token_id as u32, cases[case].teacher_history[step],
                                     "actual natural history differs from the frozen teacher history");
@@ -273,6 +406,63 @@ fn raw_logits_and_actual_histories_survive_native_worker_batch_and_slot_changes(
                     worker.complete(graph.kind, completion).unwrap();
                 }
                 worker.publish().unwrap();
+                if let Some(evict) = eviction {
+                    if !park_started && histories[0].len() == 2 && executor.outstanding() == 0 {
+                        let handle = worker.active.iter().flatten().next().unwrap().request;
+                        crate::scheduler::tests::preempt_completed_decode(&mut worker.scheduler, handle).unwrap();
+                        park_started = true;
+                    }
+                    if park_started && !parked_once && !worker.parked.is_empty() {
+                        assert!(snapshot_completed, "no actual terminal Snapshot graph completed");
+                        assert_eq!(worker.parked.len(), 1);
+                        let incoming = &worker.parked.front().unwrap().0;
+                        assert_eq!(incoming.initial_prompt_tokens, cases[order[0]].prompt_ids.len());
+                        assert_eq!(incoming.prompt.tokens.len(), incoming.initial_prompt_tokens + 2);
+                        assert!(incoming.prompt.data.audio_token_indices[incoming.initial_prompt_tokens..]
+                            .iter().all(|index| *index == -1));
+                        let parked_spec = incoming.spec();
+                        let resident_before = worker.scheduler.plan_admission(&parked_spec).unwrap().resident_tokens();
+                        assert_eq!(resident_before as usize, cases[order[0]].prompt_ids.len() + 1);
+                        if *evict {
+                            let mut handles = Vec::new();
+                            let per_request = fixture.config.limits.max_sequence_tokens
+                                / fixture.config.contract.cache.page_tokens;
+                            let mut remaining = usize::try_from(fixture.config.limits.pages).unwrap();
+                            while remaining != 0 {
+                                let pages = remaining.min(per_request);
+                                let tokens = pages * fixture.config.contract.cache.page_tokens - 1;
+                                handles.push(worker.scheduler.admit(RequestSpec {
+                                    initial_prompt_tokens: tokens, prompt: vec![7 + handles.len() as u32; tokens],
+                                    prefix_scope: None, message_boundaries: vec![], conditioning: vec![],
+                                    max_new_tokens: 1, growable_output: false, grammar_constrained: false,
+                                    host_stops: false, prompt_logprobs: false,
+                                }).unwrap());
+                                remaining -= pages;
+                            }
+                            assert_eq!(worker.scheduler.free_page_count(), 0);
+                            pressure_reservations = handles.len();
+                            for handle in handles { worker.scheduler.cancel(handle).unwrap(); }
+                        }
+                        let resident_after = worker.scheduler.plan_admission(&parked_spec).unwrap().resident_tokens();
+                        assert_eq!(resident_after, if *evict { 0 } else { resident_before });
+                        report["parking"].as_array_mut().unwrap().push(serde_json::json!({
+                            "cohort":cohort,"event":"checkpoint_residency_verified","evicted":evict,
+                            "resident_before":resident_before,"resident_after":resident_after,
+                            "pressure_reservations":pressure_reservations}));
+                        save(&output, &report);
+                        parked_once = true;
+                    }
+                    if parked_once && !readmitted_once {
+                        if let Some(active) = worker.active.iter().flatten().next() {
+                            assert!(active.incoming.readmitted);
+                            let request = worker.scheduler.request(active.request).unwrap();
+                            let expected = if *evict { 0 } else { cases[order[0]].prompt_ids.len() + 1 };
+                            assert_eq!(request.consumed_tokens as usize, expected);
+                            assert_eq!(request.initial_prompt_tokens(), cases[order[0]].prompt_ids.len());
+                            readmitted_once = true;
+                        }
+                    }
+                }
                 worker.service_encoded_inputs(&mut executor).unwrap();
                 for (index, generation) in generations.iter_mut().enumerate() {
                     while let Ok(event) = generation.events.try_recv() {
@@ -286,7 +476,34 @@ fn raw_logits_and_actual_histories_survive_native_worker_batch_and_slot_changes(
                 }
                 if finished.iter().all(|v| *v) && worker.active.iter().all(Option::is_none) && executor.outstanding() == 0 { break; }
                 if executor.outstanding() == 0 {
-                    if let Some(plan) = worker.plan(0).unwrap().0 {
+                    let normal = worker.plan(0).unwrap().0;
+                    let plan = if decode_barrier {
+                        let active = worker.active.iter().flatten().collect::<Vec<_>>();
+                        let ready = active.len() == order.len()
+                            && active.iter().all(|request| worker.scheduler.request(request.request).unwrap().phase
+                                == crate::scheduler::RequestPhase::Decode)
+                            && histories.iter().all(|history| history.len() == 1);
+                        if ready {
+                            assert!(finished.iter().all(|finished| !*finished));
+                            let batch = order.len().next_power_of_two();
+                            let plan = worker.scheduler.try_phase_plan(GraphKind::Decode, None, Some(batch))
+                                .expect("all real requests must fit their declared decode capacity");
+                            assert_eq!((plan.batch_capacity, plan.lanes.len()), (batch, order.len()));
+                            report["decode_readiness_barriers"].as_array_mut().unwrap().push(serde_json::json!({
+                                "cohort":cohort,"batch_capacity":batch,"live":plan.lanes.len(),
+                                "natural_tokens_per_request":histories.iter().map(Vec::len).collect::<Vec<_>>(),
+                                "slots":plan.lanes.iter().map(|lane| lane.request.slot).collect::<Vec<_>>() }));
+                            save(&output, &report);
+                            decode_barrier = false;
+                            Some(plan)
+                        } else {
+                            [GraphKind::Init, GraphKind::Restore, GraphKind::Vision,
+                                GraphKind::AudioEncode, GraphKind::Prefill, GraphKind::ScoredPrefill,
+                                GraphKind::Snapshot, GraphKind::Resume].into_iter().find_map(|kind|
+                                    worker.scheduler.try_phase_plan(kind, None, None))
+                        }
+                    } else { normal };
+                    if let Some(plan) = plan {
                         if plan.kind == GraphKind::Decode {
                             let actual = i64s(&sampling::download(&owner, 0, &pending).unwrap());
                             for lane in &plan.lanes {
@@ -296,7 +513,49 @@ fn raw_logits_and_actual_histories_survive_native_worker_batch_and_slot_changes(
                                     "packed pending input differs from actual history");
                             }
                         }
-                        if worker.submit(&mut executor, &plan).unwrap() { submitted = Some(plan); }
+                        let poison_event = if replay_history && readmitted_once && plan.kind == GraphKind::Prefill {
+                            assert_eq!(plan.lanes.len(), 1);
+                            let lane = &plan.lanes[0];
+                            let start = usize::try_from(lane.start_position).unwrap();
+                            let end = start.checked_add(lane.tokens).unwrap();
+                            let request = worker.scheduler.request(lane.request).unwrap();
+                            assert_eq!(request.consumed_tokens as usize, start);
+                            let pages = crate::scheduler::tests::owned_execution_pages(&worker.scheduler,
+                                lane.request).unwrap();
+                            let geometry = executor.manifest().cache.as_ref().unwrap();
+                            let mut poisoned = Vec::new();
+                            for view in &kv_views {
+                                let bytes = sampling::poison_kv_range(&owner, 0, view, geometry, &pages,
+                                    start..end).unwrap();
+                                assert_eq!(bytes.len(), end * 2048);
+                                std::fs::write(output.join(format!("cohort{cohort}-start{start}-{}.poison",
+                                    view.buffer)), &bytes).unwrap();
+                                poisoned.push(bytes);
+                            }
+                            let reference = baseline_kv[&order[0]].iter().map(|plane|
+                                plane[..end * 2048].to_vec()).collect::<Vec<_>>();
+                            assert!(!kv_prefix_matches(&poisoned, &reference), "KV comparison missed actual device poison");
+                            let events = report["parking"].as_array_mut().unwrap();
+                            let event = events.len();
+                            events.push(serde_json::json!({"cohort":cohort,"event":"device_KV_poison",
+                                "slot":lane.request.slot,"generation":lane.request.generation,"pages":pages,
+                                "start":start,"end":end,"planes":56,"readback_verified":true,
+                                "earlier_prefix_unchanged":true,"same_comparator_rejected_poison":true,
+                                "submitted":false}));
+                            save(&output, &report);
+                            Some(event)
+                        } else { None };
+                        let expected_fence = executor.next_fence().unwrap();
+                        let accepted = worker.submit(&mut executor, &plan).unwrap();
+                        if let Some(event) = poison_event {
+                            report["parking"][event]["submitted"] = accepted.into();
+                            if accepted {
+                                report["parking"][event]["fence"] = expected_fence.0.into();
+                                poisoned_prefill_submissions += 1;
+                            }
+                            save(&output, &report);
+                        }
+                        if accepted { submitted = Some(plan); }
                     }
                 }
                 std::thread::yield_now();
@@ -307,15 +566,25 @@ fn raw_logits_and_actual_histories_survive_native_worker_batch_and_slot_changes(
                 if let Some(reference) = baseline.get(&case) { assert_eq!(observed[index].len(), reference.len()); }
                 else { baseline.insert(case, observed[index].clone()); }
             }
+            if eviction.is_some() {
+                assert!(snapshot_completed && park_started && parked_once && readmitted_once && history_prefill
+                    && poisoned_prefill_submissions > 0,
+                    "no actual generated-history PREFILL completed");
+            }
             report["cohorts"].as_array_mut().unwrap().push(serde_json::json!({"cohort":cohort,"order":order,
-                "actual_tokens":histories,"natural_stop":finished}));
+                "actual_tokens":histories,"natural_stop":finished,"checkpoint_evicted":eviction,
+                "real_snapshot_parking":snapshot_completed && parked_once,"readmitted":readmitted_once,
+                "actual_history_prefill":history_prefill,"pressure_reservations":pressure_reservations,
+                "poisoned_prefill_submissions":poisoned_prefill_submissions}));
             save(&output, &report);
         }
         report["actual_decode_capacity_and_live_rows"] = serde_json::json!(seen_decode);
+        if !replay_history {
         assert!([1usize, 2, 4, 8].iter().all(|b| seen_decode.contains(&(*b, *b))),
             "native scheduling did not exercise every required full logical decode batch");
         assert!(seen_decode.iter().any(|(capacity, live)| 0 < *live && live < capacity),
             "native scheduling did not exercise a partially occupied decode graph");
+        }
         let maps = std::fs::read_to_string("/proc/self/maps").unwrap();
         assert!(!maps.contains("libpython") && !maps.contains("libtorch"));
     }));

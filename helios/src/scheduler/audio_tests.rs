@@ -84,6 +84,41 @@ fn audio_windows_finish_before_text_without_advancing_tokens_or_generation() {
 }
 
 #[test]
+fn test_phase_selection_uses_real_encoder_capacities_and_readiness() {
+    let mut scheduler = scheduler(1);
+    assert!(scheduler.try_phase_plan(GraphKind::AudioEncode, None, None).is_none());
+    let handle = scheduler.admit(tests::spec(120, 2)).unwrap();
+    scheduler.set_conditioned_inputs(handle, &[input()]).unwrap();
+    let (plan, fence, records) = commit(&mut scheduler);
+    assert_eq!(plan.kind, GraphKind::Init);
+    complete(&mut scheduler, &plan, fence, &records);
+    assert!(scheduler.try_phase_plan(GraphKind::AudioEncode, Some(handle), None).is_none());
+    scheduler.conditioned_inputs_ready(handle, true).unwrap();
+    assert!(scheduler.try_phase_plan(GraphKind::AudioEncode, Some(handle), Some(2)).is_none());
+    for frames in [800, 1] {
+        let plan = scheduler.try_phase_plan(GraphKind::AudioEncode, Some(handle), Some(1)).unwrap();
+        // Both catalog entries have equal synthetic durations here. The
+        // selector promises a fitting graph, not the smallest frame capacity.
+        assert_eq!(plan.batch_capacity, 1);
+        assert!([100, 800].contains(&plan.token_capacity));
+        assert!(plan.token_capacity >= frames);
+        assert_eq!(plan.lanes.len(), 1);
+        assert_eq!((plan.lanes[0].request, plan.lanes[0].tokens), (handle, 0));
+        let fence = Fence(scheduler.submitted.0 + 1);
+        scheduler.commit(&plan, fence).unwrap();
+        let mut records = vec![CompletionRecord::default(); scheduler.limits.request_slots];
+        records[handle.slot as usize] = CompletionRecord {
+            generation: handle.generation as i64, submission_sequence: fence.0 as i64,
+            consumed_tokens: 0, generated_tokens: 0, status: 1, token_id: -1,
+            ..Default::default()
+        };
+        complete(&mut scheduler, &plan, fence, &records);
+    }
+    assert!(scheduler.try_phase_plan(GraphKind::AudioEncode, Some(handle), None).is_none());
+    assert_eq!(scheduler.request(handle).unwrap().phase, RequestPhase::Prefill);
+}
+
+#[test]
 fn cancellation_holds_audio_arena_until_last_encoder_fence_and_reuses_with_new_epoch() {
     let mut scheduler = scheduler(1);
     let first = admit(&mut scheduler);
