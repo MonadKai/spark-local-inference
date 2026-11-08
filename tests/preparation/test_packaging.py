@@ -6,9 +6,11 @@
 from __future__ import annotations
 
 import pathlib
+import shutil
 import subprocess
 import sys
 import tomllib
+import zipfile
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -48,3 +50,44 @@ def test_server_cli_help_does_not_prepare_model():
         assert f"\n    {command} " in result.stdout
     for command in ("serve", "run", "prepare", "plan", "models", "pull", "status", "config", "skill"):
         assert f"\n    {command} " not in result.stdout
+
+
+def test_built_wheel_keeps_asr_template_asset(tmp_path):
+    source = tmp_path / "source"
+    source.mkdir()
+    shutil.copytree(ROOT / "ignition", source / "ignition",
+                    ignore=shutil.ignore_patterns("__pycache__"))
+    for name in ("pyproject.toml", "LICENSE", "NOTICE", "helios/licenses/PyTorch.txt"):
+        target = source / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / name, target)
+    wheels = tmp_path / "wheels"
+    wheels.mkdir()
+    built = subprocess.run([sys.executable, "-I", "-c",
+        "import sys; from setuptools import build_meta; build_meta.build_wheel(sys.argv[1])",
+        str(wheels)], cwd=source, capture_output=True, text=True, timeout=120)
+    assert built.returncode == 0, built.stdout + built.stderr
+    wheel, = wheels.glob("*.whl")
+    installed = tmp_path / "installed"
+    with zipfile.ZipFile(wheel) as archive:
+        archive.extractall(installed)
+    result = subprocess.run([sys.executable, "-I", "-c", """
+from pathlib import Path
+import sys
+sys.path.insert(0, sys.argv[1])
+import ignition
+from ignition.preparation.frontend import annotated_template_asset
+root = Path(ignition.__file__).resolve().parent
+assert root.is_relative_to(Path(sys.argv[1]))
+patch = root / 'recipes/qwen3_asr/assets/chat_template.patch.json'
+assert patch.read_bytes() == Path(sys.argv[2]).read_bytes()
+try:
+    annotated_template_asset(b'wrong checkpoint template', patch)
+except ValueError as error:
+    assert str(error).startswith('checkpoint chat template does not match ')
+else:
+    raise AssertionError('installed template must retain its checkpoint identity check')
+assert 'torch' not in sys.modules and 'flare_heliopause' not in sys.modules
+""", str(installed), str(ROOT / "ignition/recipes/qwen3_asr/assets/chat_template.patch.json")],
+        cwd=tmp_path, capture_output=True, text=True, timeout=30)
+    assert result.returncode == 0, result.stdout + result.stderr
