@@ -367,3 +367,22 @@ head results come from the corresponding saved logits. All twenty input/output
 checks pass. Together these records cover the 1,075 named network stages per
 input, while independent local arithmetic, the new configuration's complete
 schedule/native lifecycles, final-source and performance gates remain open.
+
+`reduction-column-tile-candidates-sm121.json.gz` retains a component tuning
+negative result. Ten geometries cover the five required packed dimensions and
+the actual individual decoder projections; logical B1/2/4/8 use eight physical
+rows. All 100 tactic/geometry programs were compiled and captured before the
+nine randomized timing blocks (3,600 raw samples). The 2,400 preceding relative
+checks include actual captured-output bytes, finite values, guards, inactive
+rows and allocation stability. Each timed sample checks allocation counters;
+its output is not independently revalidated after that sample. Existing
+`(4,4)` arithmetic is the byte reference, not an independent operator oracle.
+
+For all forty operation/batch cells, the best wider-column candidate's median
+is slower than the best existing candidate's median (about 2.1%–29.9%). No wider
+tile is admitted to production. Layer weights rotate across all 28 original
+layers; the vocabulary head has one large weight. The source checkpoint's
+names, shapes, dtypes and finite values are checked, while this tool explicitly
+does not establish its full content identity. These measurements are limited
+to the recorded SM121 component conditions; they establish neither complete
+ASR service performance nor a comparison against vLLM.
