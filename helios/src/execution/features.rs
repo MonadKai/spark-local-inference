@@ -123,6 +123,11 @@ pub(super) struct FeatureTransfer {
 }
 
 impl FeatureTransfer {
+    #[cfg(test)]
+    pub(super) fn probe(&self, context: usize) -> crate::cuda::EventProbe {
+        self.completed.probe(context)
+    }
+
     pub(super) fn new(layout: FeatureStorageLayout, stream: &Stream) -> Result<Self> {
         Ok(Self { slab: stream.host_buffer(layout.staging_bytes()?)?,
             completed: stream.blocking_event()?, layout })

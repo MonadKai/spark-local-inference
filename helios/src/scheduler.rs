@@ -276,6 +276,10 @@ pub(crate) struct ConditionedPrerequisite {
 impl ConditionedPrerequisite {
     pub(crate) fn feature_slot(&self) -> usize { self.state.feature_slot }
     pub(crate) fn input(&self) -> &ConditionedInput { &self.state.input }
+    #[cfg(test)]
+    pub(crate) fn same_as(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.owner, &other.owner) && self.state == other.state
+    }
 }
 
 pub struct LiveRequest {

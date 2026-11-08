@@ -209,6 +209,20 @@ actual submission observations without qualifying worker cancellation during
 copies or the new attention package. CPU layout/ticket tests do not establish
 CUDA copy fencing or native request lifetimes.
 
+The subsequent [actual Worker upload controls](../benchmarks/qwen3_asr/results/native-feature-upload-cancellation.json)
+load that retained signed ASR package and run its actual frontend, encoder,
+readback and generation graphs. A mapped CUDA wait holds the real upload event
+pending while another thread cancels the request. The unchanged prerequisite,
+hit counter and window state precede ordinary slot/arena retirement and reuse;
+the next generation's natural tokens equal baseline. Unmodified tests pass before
+and after two source mutations: omitting the cancellation recheck or the upload
+fence fails the upload's subsequent prerequisite-state invariant in both runs.
+The first collector's overly narrow expected-error text is retained as a separate
+failed attempt.
+Test-only probes do not enter production builds. This closes that finite upload
+control, with HTTP disconnect propagation, other cache lifecycles, the new
+attention package and final-source qualification still separate.
+
 Ordinary CPU tests cover hits with no FFT plan available, identity isolation,
 corrupt records, short-input rules, capacity rejection and cross-window equality.
 Native HTTP qualification remains required. When the prepared-input option is

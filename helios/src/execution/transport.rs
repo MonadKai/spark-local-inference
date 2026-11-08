@@ -637,6 +637,20 @@ impl GraphExecutor {
         result
     }
 
+    /// Test-only stream ordering point. The caller retains the mapped flag
+    /// until confirmed drain and releases its value on every unwind path.
+    #[cfg(test)]
+    pub(crate) unsafe fn hold_feature_copy(&mut self, flag: &crate::cuda::PinnedHost)
+        -> Result<crate::cuda::EventProbe> {
+        if self.outstanding() != 0 { return Err("feature-copy hold requires a quiescent executor".into()); }
+        let resources = self.resources.as_mut().ok_or("executor is closed")?;
+        let transfer = resources.features.as_ref().ok_or("feature storage is not bound")?;
+        let probe = transfer.probe(self.manifest.context);
+        let address = resources.copy.mapped_address(flag)?;
+        unsafe { resources.copy.wait_value(address, 1)?; }
+        Ok(probe)
+    }
+
     #[cfg(any(feature = "server", test))]
     pub(crate) fn read_features(&mut self, owner: crate::scheduler::RequestHandle,
         slot: usize, count: usize, destination: &mut [u8]) -> Result<()> {

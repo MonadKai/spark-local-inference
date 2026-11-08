@@ -1,0 +1,79 @@
+{
+  "scope": "Real package/native Worker encoded-input upload cancellation controls; not HTTP disconnect, full cache lifecycle, numerical or performance qualification.",
+  "checkpoint_revision": "7278e1e70fe206f11671096ffdd38061171dd6e5",
+  "package_primary_sha256": "be71076905b5a93b9b7356137c1edc60b0c521046ee64f514f4127f9d0471a9f",
+  "source_was_modified": true,
+  "test": "server::runtime::phase_tests::encoded_cuda_tests::cancellation_during_actual_feature_upload_cannot_publish_or_release_its_owner",
+  "configuration": {
+    "max_concurrency": 1,
+    "kv_cache_limit": "concurrency",
+    "embedding_table_storage": "ram",
+    "prepared_input_cache": "encoded",
+    "host_memory_bytes": 67108864,
+    "host_disk_limit": 0,
+    "seed": 0,
+    "request_prefix_scopes": "distinct scopes for baseline, cancelled request and readmission"
+  },
+  "steps": [
+    "Actual native decode/frontend/renderer and original model graphs establish retained encoder features",
+    "Queue the real copy stream behind a mapped CUDA wait; observe its actual completion event pending",
+    "Cancel the actual Incoming while upload owns its slot and arena",
+    "Retain the exact prerequisite, hit count and next-window state; ordinary cancellation retires the request",
+    "Readmit the queued request into the same slot and feature arena with a newer generation; natural tokens equal baseline"
+  ],
+  "cases": [
+    {
+      "name": "unmodified-precheck",
+      "binary_sha256": "1f32abfb1535f4f836047b5c648c8049c814ad06b9a28eba0cd6d7cfe4ec18bb",
+      "status": "passed_control",
+      "exit_code": 0,
+      "expected_result_observed": true,
+      "raw_test_log": "\nrunning 1 test\ntest server::runtime::phase_tests::encoded_cuda_tests::cancellation_during_actual_feature_upload_cannot_publish_or_release_its_owner ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1390 filtered out; finished in 42.86s\n\n"
+    },
+    {
+      "name": "without-cancel-check",
+      "binary_sha256": "653d55cb376a7f0c44da5020056654abcbcd26522c9a8679f582f6752260d5c7",
+      "status": "passed_control",
+      "exit_code": 101,
+      "expected_failure_markers": [
+        "conditioned prerequisite is stale, partially executed or still in use"
+      ],
+      "observed_failure_marker": "conditioned prerequisite is stale, partially executed or still in use",
+      "expected_result_observed": true,
+      "raw_test_log": "\nrunning 1 test\ntest server::runtime::phase_tests::encoded_cuda_tests::cancellation_during_actual_feature_upload_cannot_publish_or_release_its_owner ... \nthread 'server::runtime::phase_tests::encoded_cuda_tests::cancellation_during_actual_feature_upload_cannot_publish_or_release_its_owner' (1712538) panicked at src/server/runtime/encoded_cuda_tests.rs:183:71:\ncalled `Result::unwrap()` on an `Err` value: Execution(State(Failure { message: \"conditioned prerequisite is stale, partially executed or still in use\", source: None }))\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\nFAILED\n\nfailures:\n\nfailures:\n    server::runtime::phase_tests::encoded_cuda_tests::cancellation_during_actual_feature_upload_cannot_publish_or_release_its_owner\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1390 filtered out; finished in 40.46s\n\n"
+    },
+    {
+      "name": "without-load-fence",
+      "binary_sha256": "d4bd5ebb184b471e352a904f98679ac7c4201a7300dc6615154d9880f33ec11f",
+      "status": "passed_control",
+      "exit_code": 101,
+      "expected_failure_markers": [
+        "upload returned before its GPU fence",
+        "conditioned prerequisite is stale, partially executed or still in use"
+      ],
+      "observed_failure_marker": "conditioned prerequisite is stale, partially executed or still in use",
+      "expected_result_observed": true,
+      "raw_test_log": "\nrunning 1 test\ntest server::runtime::phase_tests::encoded_cuda_tests::cancellation_during_actual_feature_upload_cannot_publish_or_release_its_owner ... \nthread 'server::runtime::phase_tests::encoded_cuda_tests::cancellation_during_actual_feature_upload_cannot_publish_or_release_its_owner' (1736653) panicked at src/server/runtime/encoded_cuda_tests.rs:183:71:\ncalled `Result::unwrap()` on an `Err` value: Execution(State(Failure { message: \"conditioned prerequisite is stale, partially executed or still in use\", source: None }))\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\nFAILED\n\nfailures:\n\nfailures:\n    server::runtime::phase_tests::encoded_cuda_tests::cancellation_during_actual_feature_upload_cannot_publish_or_release_its_owner\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1390 filtered out; finished in 40.16s\n\n"
+    },
+    {
+      "name": "unmodified-recheck",
+      "binary_sha256": "1f32abfb1535f4f836047b5c648c8049c814ad06b9a28eba0cd6d7cfe4ec18bb",
+      "status": "passed_control",
+      "exit_code": 0,
+      "expected_result_observed": true,
+      "raw_test_log": "\nrunning 1 test\ntest server::runtime::phase_tests::encoded_cuda_tests::cancellation_during_actual_feature_upload_cannot_publish_or_release_its_owner ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1390 filtered out; finished in 42.32s\n\n"
+    }
+  ],
+  "observations": {
+    "unmodified_before_and_after_passed": true,
+    "omitted_cancellation_recheck_rejected": true,
+    "omitted_load_fence_rejected": true,
+    "http_disconnect_chain_qualified": false
+  },
+  "earlier_attempt": {
+    "status": "collector_failed_after_mutants_failed",
+    "reason": "First runner accepted only the earlier fence assertion text; the omitted-fence mutant instead failed at the immediately subsequent prerequisite-state check. Original attempt is retained; later runner explicitly accepts this exact source location.",
+    "original_scope_relabelled": false
+  },
+  "status": "complete_focused_native_controls_only"
+}

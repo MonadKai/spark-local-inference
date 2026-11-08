@@ -27,6 +27,10 @@ mod admission_waiter_tests;
 #[path = "transcription_tests.rs"]
 mod transcription_tests;
 
+#[cfg(all(feature = "audio", feature = "runtime-package"))]
+#[path = "encoded_cuda_tests.rs"]
+mod encoded_cuda_tests;
+
 struct Fixture {
     config: ModelConfig,
     frontend: Frontend,

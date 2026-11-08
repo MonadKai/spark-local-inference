@@ -23,6 +23,15 @@ pub(crate) enum RankExecutor {
 }
 
 impl RankExecutor {
+    #[cfg(test)]
+    pub(crate) unsafe fn hold_feature_copy(&mut self, flag: &crate::cuda::PinnedHost)
+        -> Result<crate::cuda::EventProbe> {
+        match self {
+            Self::Local(executor) => unsafe { executor.hold_feature_copy(flag) },
+            _ => Err("the test requires a local feature-copy stream".into()),
+        }
+    }
+
     #[cfg(feature = "server")]
     pub(crate) fn bind_feature_storage(&mut self, audio: &crate::model::contract::AudioCapacity) -> Result<()> {
         match self {

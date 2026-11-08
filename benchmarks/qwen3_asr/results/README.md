@@ -329,3 +329,14 @@ native build. Complete network-node/operator gates, new-package concurrency and
 lifecycle checks, final clean-source qualification and sustained performance
 remain open. An earlier compiler-worker CUDA-context OOM is retained separately;
 its absence in this attempt does not establish its root cause or a general fix.
+
+`native-feature-upload-cancellation.json` retains actual Rust Worker test logs
+on the earlier signed ASR package. The real encoder/readback seeds retention;
+an actual mapped CUDA wait and pending copy event bound cancellation during
+upload. Unmodified execution passes before and after deliberate omission of the
+cancellation recheck and upload fence. Both mutants fail at the required state
+or fence boundary. The original collector rejected the omitted-fence failure
+because it expected only the earlier fence assertion; that failed attempt is
+retained and the later predicate explicitly names the following prerequisite
+check. These finite controls do not qualify HTTP disconnect, all cache
+lifecycles, the new attention package, final source or performance.

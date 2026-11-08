@@ -22,6 +22,11 @@ pub(super) struct EncodedInputs {
 }
 
 impl EncodedInputs {
+    #[cfg(test)]
+    pub(super) fn ready(&self, handle: RequestHandle) -> bool {
+        matches!(self.entries.get(&handle), Some(Entry::Ready(_)))
+    }
+
     pub(super) fn new(store: InputStore) -> Self {
         Self { store, entries: HashMap::new() }
     }

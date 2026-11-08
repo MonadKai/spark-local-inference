@@ -943,7 +943,34 @@ pub(crate) struct Event {
     handle: usize,
 }
 
+#[cfg(test)]
+pub(crate) struct EventProbe {
+    driver: Arc<Driver>,
+    handle: usize,
+    context: usize,
+}
+
+#[cfg(test)]
+impl EventProbe {
+    /// The original event and context must remain owned until the observing
+    /// thread joins. This observer never destroys either borrowed handle.
+    pub(crate) unsafe fn completed(&self) -> Result<bool> {
+        self.driver.check("cuCtxSetCurrent", unsafe {
+            (self.driver.set_context)(self.context as Handle)
+        })?;
+        let status = unsafe { (self.driver.event_query)(self.handle as Handle) };
+        if status == 600 { return Ok(false); }
+        self.driver.check("cuEventQuery", status)?;
+        Ok(true)
+    }
+}
+
 impl Event {
+    #[cfg(test)]
+    pub(crate) fn probe(&self, context: usize) -> EventProbe {
+        EventProbe { driver: self.driver.clone(), handle: self.handle, context }
+    }
+
     pub(crate) fn elapsed_ns(&self, start: &Event) -> Result<u64> {
         let mut millis = 0.0;
         self.driver.check("cuEventElapsedTime", unsafe {
