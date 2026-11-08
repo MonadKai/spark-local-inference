@@ -492,3 +492,7 @@ pub(crate) mod testing;
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(all(test, feature = "server", feature = "runtime-package"))]
+#[path = "model/immutable_cuda_tests.rs"]
+mod immutable_cuda_tests;

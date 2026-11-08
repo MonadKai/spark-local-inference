@@ -232,22 +232,22 @@ fn immutable_prompt_values_survive_real_host_and_reopened_disk_records() {
     // These are real host stores, direct-I/O files and production scheduler
     // histories/tickets. Only the device byte copier is simulated on the CPU;
     // this test does not establish CUDA upload or transfer correctness.
-    for page_tokens in [64, 256] {
-        for endpoint in [63u64, 65] {
+    for (page_tokens, row_extent) in [(64, 4096), (64, 12288), (256, 4096), (256, 12288)] {
+        for endpoint in [63u64, 65, 193] {
             for disk in [false, true] {
                 let mut scheduler = scheduler_with_geometry(1, 32, 16, page_tokens, 4);
                 scheduler.capabilities.immutable_request_values = vec![InitialPromptTokens];
-                let mut original = spec(130, 4);
+                let mut original = spec(256, 4);
                 original.initial_prompt_tokens = 65;
                 let history = scheduler.plan_admission(&original).unwrap().history().clone();
                 let mut different = original.clone();
                 different.initial_prompt_tokens = 66;
                 let different_history = scheduler.plan_admission(&different).unwrap().history().clone();
                 let mut generated = original.clone();
-                generated.prompt.extend(130..170);
+                generated.prompt.extend(256..300);
                 let generated_history = scheduler.plan_admission(&generated).unwrap().history().clone();
                 let geometry = vec![testing::geometry(page_tokens as u64,
-                    &[("k", 4096), ("v", 4096)], 4096)];
+                    &[("k", 4096), ("v", 4096)], row_extent)];
                 let layout = Layout::new(&geometry).unwrap();
                 let pages = (endpoint / page_tokens as u64) as usize;
                 let intake = flare_selene::offload::intake_slots(&layout, 1);
@@ -255,7 +255,7 @@ fn immutable_prompt_values_survive_real_host_and_reopened_disk_records() {
                     4 * layout.record_slots(pages, true) + intake, intake).unwrap();
                 let (copier, mut memory) = SimulatedGpu::shared_mapped(&geometry).unwrap();
                 let directory = disk.then(|| testing::test_directory("immutable",
-                    &format!("n-{page_tokens}-{endpoint}")).expect("test requires direct-I/O files"));
+                    &format!("n-{page_tokens}-{row_extent}-{endpoint}")).expect("test requires direct-I/O files"));
                 let open_disk = |copier| {
                     let lock = testing::directory_lock(directory.as_ref().unwrap()).unwrap();
                     let fingerprint = fingerprint(&geometry);
@@ -304,6 +304,15 @@ fn immutable_prompt_values_survive_real_host_and_reopened_disk_records() {
                     }
                     other => panic!("unexpected {other:?}"),
                 }
+                if !disk {
+                    // Resident memory counts whole slabs, while transferred
+                    // and hit bytes describe the unpadded records.
+                    let slots = layout.record_slots(pages, true);
+                    assert_eq!(store.stats().slots_used, slots);
+                    assert_eq!(store.stats().memory_bytes,
+                        slots as u64 * layout.page_record_bytes);
+                    assert!(store.stats().memory_bytes > expected_bytes);
+                }
                 memory.pages.lock().unwrap().clear();
                 memory.rows.lock().unwrap().clear();
                 if disk {
@@ -346,7 +355,7 @@ fn immutable_prompt_values_survive_real_host_and_reopened_disk_records() {
                 assert_eq!(memory.rows.lock().unwrap().get(&ticket.slot.0).unwrap(), &row_bytes);
                 let live = scheduler.request(admitted.handle).unwrap();
                 assert_eq!((live.initial_prompt_tokens(), live.prompt_tokens, live.reused_prompt_tokens()),
-                    (65, 170, endpoint));
+                    (65, 300, endpoint));
                 scheduler.cancel(admitted.handle).unwrap();
                 let plan = scheduler.plan_admission(&different).unwrap();
                 assert_eq!(plan.resident_tokens(), 0);

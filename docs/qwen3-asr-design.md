@@ -527,16 +527,28 @@ The typed immutable value, cache dependency and native staging are implemented;
 the ASR recipe does not yet consume them. The full original-prompt arithmetic
 and graph-geometry design below remains unqualified. CPU tests cover cache-key
 vectors, partial checkpoint isolation, retained usage, admission-plan mismatch
-rejection, row packing and slot reuse. GPU upload/transfers, historical-package
-serving and full-model qualification remain separate gates.
+rejection, row packing and slot reuse. Complete GPU input/state transfers,
+historical-package serving and full-model qualification remain separate gates.
 The real DRAM store and reopened, freshly scanned direct-I/O disk store now pass
-same-N reuse and different-N isolation at 63/65-token checkpoints with 64/256-token
-pages, including generated-history admission and slot reuse. Those tests use a
+same-N reuse and different-N isolation at 63/65/193-token checkpoints with 64/256-token
+pages and both sub-slab and multi-slab state rows, including generated-history
+admission and slot reuse. Those tests use a
 CPU byte copier in place of device transfers; they establish host/disk records
 and scheduler integration, not CUDA transfer correctness. The complete native
-CPU suite passes 1,382 tests with 29 ignored. Bounded lifecycle conformance and
+CPU suite passes 1,383 tests with 30 ignored. Bounded lifecycle conformance and
 all 34 planted model/Rust faults pass detection, followed by the restored-source
 conformance rerun. These checks do not establish model arithmetic or GPU lifetime.
+An ignored CUDA test now loads a signed synthetic package after preparation has
+exited and compares the real native submission upload with its captured D2D
+observation. It covers Init at B=1/2/4/8, partial and holey rows, distinct initial
+and replay counts, cancellation while submitted, inactive zeroing and next-generation
+slot reuse. It does not exercise Prefill, Decode, Resume, GPU checkpoint publication
+or model readmission. Separate generic CUDA MemoryStore/CompositeStore roundtrips
+and the default no-dependency fixture's native HTTP error recovery pass. These are
+synthetic package controls, not historical VISION-package or ASR qualification.
+The cache controls distinguish logical record/transfer bytes from resident slab
+occupancy, check simultaneous staging ownership and terminal release, and compare
+the completion-time rate snapshot with the disk estimate's defined recovery range.
 The native 165-token versus `128+37` replay control exposed different decoder
 histories. Independent canonical forwards also use length-dependent projection
 and attention reductions. Six fixed projection rejection controls have not

@@ -39,9 +39,28 @@ fn prompt(fixture: &Fixture, bytes: &[u8]) -> Prompt {
 
 pub(super) fn incoming(fixture: &Fixture, prompt: Prompt, scope: u8) -> (Incoming, Generation) {
     let (mut incoming, generation) = fixture.incoming_for(Vec::new(), 1024, Default::default());
+    incoming.initial_prompt_tokens = prompt.tokens.len();
     incoming.prompt = prompt;
     incoming.prefix_scope = Some([scope; 24]);
     (incoming, generation)
+}
+
+#[test]
+fn native_audio_fixture_freezes_expanded_prompt_before_admission() {
+    let fixture = Fixture::new();
+    let prepared = Fixture::prompt_for(vec![7; 19], 4, PromptData {
+        positions: (0..19).map(|position| [position; 3]).collect(),
+        vision_token_indices: vec![-1; 19], ..Default::default()
+    });
+    let (request, _generation) = incoming(&fixture, prepared, 1);
+    assert_eq!(request.initial_prompt_tokens, 19);
+    let (sender, receiver) = mpsc::sync_channel(1);
+    let mut worker = fixture.worker(receiver);
+    sender.send(vec![request]).unwrap();
+    assert!(matches!(worker.admit().unwrap(), ControlFlow::Continue(_)));
+    let handle = worker.active.iter().flatten().next().unwrap().request;
+    assert_eq!(worker.scheduler.request(handle).unwrap().initial_prompt_tokens(), 19);
+    worker.scheduler.cancel(handle).unwrap();
 }
 
 fn tick(worker: &mut Worker<'_>, executor: &mut RankExecutor) {

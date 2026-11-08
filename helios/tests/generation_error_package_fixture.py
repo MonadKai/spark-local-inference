@@ -85,6 +85,17 @@ class Decoder:
         self.head(self.scratch.hidden)
 
 
+class ObserveOriginalPrompt:
+    """Publish the actual uploaded values after the real graph computation."""
+
+    def __init__(self, operation, source, observed):
+        self.operation, self.source, self.observed = operation, source, observed
+
+    def __call__(self):
+        self.operation()
+        self.observed.copy_(self.source)
+
+
 def frontend(root):
     from fixture_frontend import server_config
     config = server_config(root)
@@ -104,7 +115,7 @@ def frontend(root):
 
 
 @torch.no_grad()
-def _prepare(root, owners, sessions, captured):
+def _prepare(root, owners, sessions, captured, request_capacity, immutable_input, maximum_pages):
     from signing import publisher
     from ignition.preparation.runtime_package import export_model
 
@@ -119,12 +130,13 @@ def _prepare(root, owners, sessions, captured):
             layout = StateLayout.from_specs([*specs, ("last_hidden", (2048,), torch.bfloat16),
                 ("consumed_tokens", (1,), torch.int64)])
             pool = PagedStateStorage.allocate(layout, [(name, shape) for name, shape, _ in specs],
-                7, 32, device, storage=storage, maximum_rows=7, maximum_pages=32)
-            requests = DeviceRequestState.allocate(device, vocab_size=256, capacity=2)
-            inputs = BatchInputs.allocate(128, 4, device, capacity=2)
-            commands = StateCommands.allocate(device, capacity=2)
-            admission = AdmissionBuffers.allocate(device, vocab_size=256, capacity=2)
-            completion = CompletionOutputs.allocate((2, 2, 17), device=device)
+                1 + 3 * request_capacity, 16 * request_capacity, device, storage=storage,
+                maximum_rows=1 + 3 * request_capacity, maximum_pages=maximum_pages)
+            requests = DeviceRequestState.allocate(device, vocab_size=256, capacity=request_capacity)
+            inputs = BatchInputs.allocate(128, 4, device, capacity=request_capacity)
+            commands = StateCommands.allocate(device, capacity=request_capacity)
+            admission = AdmissionBuffers.allocate(device, vocab_size=256, capacity=request_capacity)
+            completion = CompletionOutputs.allocate((2, request_capacity, 17), device=device)
             frame = torch.zeros(1, dtype=torch.int32, device=device)
             sequence = torch.zeros(1, dtype=torch.int64, device=device)
             head = torch.zeros((256, 2048), dtype=torch.bfloat16, device=device)
@@ -135,6 +147,9 @@ def _prepare(root, owners, sessions, captured):
                 state_pool=pool.backing, memory_capacity=pool.memory_capacity,
                 request_pending_token=requests.pending_token, sampling_grammar_mask=requests.grammar_mask,
                 frame_index=frame, submission_sequence=sequence, **completion.buffers())
+            if immutable_input:
+                buffers["original_prompt_tokens"] = torch.zeros(request_capacity, dtype=torch.int32, device=device)
+                buffers["observed_original_prompt_tokens"] = torch.zeros_like(buffers["original_prompt_tokens"])
             private = GraphBufferPool(device)
             forwards, signatures = {}, {}
             owners.extend((pool, requests, inputs, commands, admission, completion, head, weights, buffers, private, forwards))
@@ -145,9 +160,14 @@ def _prepare(root, owners, sessions, captured):
             session.__enter__()
             owners.append(session)
             def add(name, operation, kind, rows, tokens, fields):
+                if immutable_input:
+                    operation = ObserveOriginalPrompt(operation, buffers["original_prompt_tokens"],
+                        buffers["observed_original_prompt_tokens"])
+                    fields = (*fields, "original_prompt_tokens")
                 forwards[name] = operation
                 signatures[name] = GraphSignature(kind, rows, tokens, tuple(fields))
-            for mode, capacities in (("prefill", (128,)), ("decode", (2, 1))):
+            batches = tuple(request_capacity >> shift for shift in range(request_capacity.bit_length()))
+            for mode, capacities in (("prefill", (128,)), ("decode", batches)):
                 for capacity in capacities:
                     name = f"{mode}{capacity}"
                     rows = 1 if mode == "prefill" else capacity
@@ -163,7 +183,7 @@ def _prepare(root, owners, sessions, captured):
                     add(name, forward, mode, rows, capacity if mode == "prefill" else 1,
                         (*inputs.buffers(), "sampling_grammar_mask"))
             row_inputs = ("request_state_rows", "row_slot_ids", "row_generations", "live_rows")
-            for rows in (2, 1):
+            for rows in batches:
                 name = f"resume{rows}"
                 operation = PreparedResume(weights, requests, pool, inputs, completion, frame, sequence,
                     rows=rows, runtime=None, vocabulary_runtime=None, coordinator=None, session=session,
@@ -188,6 +208,9 @@ def _prepare(root, owners, sessions, captured):
             continuation = c.state_view("state_pool", layout.row_bytes)
             pending = c.state_view("request_pending_token", 8)
             graph_inputs = {kind: c.text_inputs(kind) for kind in {s.kind for s in signatures.values()}}
+            if immutable_input:
+                for bindings in graph_inputs.values():
+                    bindings["original_prompt_tokens"] = c.binding("original_prompt_tokens", p.INITIAL_PROMPT_TOKENS)
             regions = [dict(kind=p.CONTINUATION_STATE, storage=continuation, tokens_per_record=1, window_tokens=0)]
             regions += [c.history_region(buffers, "cache." + name, value, p.PAGED_KEY_VALUE)
                 for name, value in pool.pages.items()]
@@ -195,13 +218,15 @@ def _prepare(root, owners, sessions, captured):
             syntax.update(tools=None, reasoning=None)
             contract = c.model_contract(vocabulary=256, page_tokens=256,
                 page_tables=[dict(buffer="page_tables", page_offset=0)], regions=regions,
-                graphs=c.graph_contracts(signatures, graph_inputs, continuation=continuation, pending=pending), frontend=syntax)
+                graphs=c.graph_contracts(signatures, graph_inputs, continuation=continuation, pending=pending), frontend=syntax,
+                immutable_request_values=[p.INITIAL_PROMPT_TOKENS] if immutable_input else ())
             server = dict(frontend(root), identity=hashlib.sha256(b"generation-error-fixture-v1").hexdigest(),
                 model_id="generation-error-fixture", max_sequence_tokens=1024, prefill_chunk_size=128,
-                pages=32, page_tokens=256, state_rows=6, snapshots=4, max_new_tokens=8,
+                pages=16 * request_capacity, page_tokens=256, state_rows=3 * request_capacity,
+                snapshots=2 * request_capacity, max_new_tokens=8,
                 model_contract=contract)
             prepared = PreparedModel(device=0, graphs=graphs, buffers=buffers, signatures=signatures,
-                max_active=2, resources=(storage, pool, requests, forwards, private, session, *compiled.values()),
+                max_active=request_capacity, resources=(storage, pool, requests, forwards, private, session, *compiled.values()),
                 server_config=server, memory_report={}, session=session)
             owners.append(prepared)
         export_model(prepared, images, storage, root / "rank.json", options={}, sources=True)
@@ -211,10 +236,15 @@ def _prepare(root, owners, sessions, captured):
 
 
 @torch.no_grad()
-def prepare(root):
+def prepare(root, request_capacity=2, immutable_input=False, maximum_pages=None):
+    if request_capacity not in (2, 8):
+        raise ValueError("fixture request capacity must be two or eight")
+    maximum_pages = 16 * request_capacity if maximum_pages is None else maximum_pages
+    if type(maximum_pages) is not int or maximum_pages < 16 * request_capacity:
+        raise ValueError("fixture virtual pages must cover prepared physical pages")
     owners, sessions, captured = [], [], []
     try:
-        _prepare(root, owners, sessions, captured)
+        _prepare(root, owners, sessions, captured, request_capacity, immutable_input, maximum_pages)
     except BaseException as error:
         if drain_or_retain(error, 0, owners, sessions, captured):
             try:
@@ -231,7 +261,10 @@ def prepare(root):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", type=Path)
+    parser.add_argument("--request-capacity", type=int, choices=(2, 8), default=2)
+    parser.add_argument("--immutable-input", action="store_true")
+    parser.add_argument("--maximum-pages", type=int)
     args = parser.parse_args()
     args.directory.mkdir(parents=True, exist_ok=False)
     from helios.tests.generation_error_package_fixture import prepare as prepare_importable
-    prepare_importable(args.directory)
+    prepare_importable(args.directory, args.request_capacity, args.immutable_input, args.maximum_pages)

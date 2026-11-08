@@ -1816,6 +1816,31 @@ mod tests {
     }
 
     #[test]
+    fn resident_bytes_count_row_slabs_and_release_them_with_the_record() {
+        let geometry = [geometry(PT, &[("kv", 8192)], 12288)];
+        let layout = Layout::new(&geometry).unwrap();
+        let pool = SlabPool::new(8192, 8, 0).unwrap();
+        let (copier, _) = crate::testing::SimulatedGpu::shared_mapped(&geometry).unwrap();
+        let mut store = MemoryStore::new(IDENTITY, pool.clone(), copier).unwrap();
+        let full = history(3 * PT, 1);
+        let checkpoint = published(&full, 3 * PT, None, 0, 1);
+        assert_eq!(store.store(&checkpoint).unwrap(), StoreOutcome::Queued);
+        let mut events = Vec::new();
+        store.poll(&mut events).unwrap();
+        assert_eq!(stored(&events), [(checkpoint.key, Some(36864))]);
+        let hit = store.lookup(&full, 0, u64::MAX).unwrap();
+        assert_eq!(hit.bytes, 36864);
+        assert_eq!(layout.record_slots(3, true), 5);
+        assert_eq!((store.stats().slots_used, store.stats().memory_bytes), (5, 40960));
+        store.remove_record(&checkpoint.key).unwrap();
+        assert_eq!((store.stats().memory_records, store.stats().slots_used,
+            store.stats().memory_bytes), (0, 0, 0));
+        assert_eq!(pool.free_slots(), 8);
+        assert!(store.lookup(&full, 0, u64::MAX).is_none());
+        store.close().unwrap();
+    }
+
+    #[test]
     fn conversation_rows_thin_to_root_and_tip_and_restore_through_page_carriers() {
         let geometry = [geometry(PT, &[("kv", PAGE)], ROW)];
         let (copier, gpu) = crate::testing::SimulatedGpu::shared_mapped(&geometry).unwrap();
