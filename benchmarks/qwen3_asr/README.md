@@ -202,3 +202,20 @@ overhead. Complete state and full-prefill numerical gates, native batch/slot and
 cancel/cache qualification, API/old-package gates, observer calibration and
 the frozen sustained comparisons remain outstanding. Neither file establishes
 a serving-performance gain or a vLLM win.
+
+## Prompt query geometry
+
+[Raw query-layout observations](results/prompt-query-layout.json) compare frozen
+synthetic Q/K/V under the original, rounded and merged physical query layouts.
+The geometry catalog uses the actual paged key capacity and pinned FA2 SM
+heuristic; each fragment still reads only its consumed keys. Reproduce with:
+
+```sh
+python -m qualify.asr_query_layout --config CONFIG.toml --output NEW_DIRECTORY
+```
+
+All 81 observed rows match full SDPA bytes and their same-geometry full result.
+The collector checks five identical captured replays, allocation counters,
+unread future KV poison and active-poison recovery. These direct ATen
+observations explain reduction geometry; they do not measure native serving,
+qualify the complete model or establish a performance gain.

@@ -54,10 +54,21 @@ def _catalog(max_query, max_key, heads, kv_heads, sms):
     return table, [value for group in groups for value in group]
 
 
+def _sequence_catalog(max_key, heads, kv_heads, sms):
+    table, plans = _catalog(max_key, max_key, heads, kv_heads, sms)
+    # Full self-attention geometry selects the same logical query/key count.
+    # Keep those exact original families without capturing unreachable calls.
+    identifiers = sorted({table[0 if count == 1 else (count + 63) // 64][(count + 127) // 128]
+        for count in range(1, max_key + 1)})
+    remap = {old: new for new, old in enumerate(identifiers)}
+    return [[remap.get(value, -1) for value in row] for row in table], [
+        value for index in identifiers for value in plans[3 * index:3 * index + 3]]
+
+
 def _attend_general(query: torch.Tensor, key: torch.Tensor, value: torch.Tensor,
             pages: torch.Tensor, lengths: torch.Tensor, cu: torch.Tensor,
             output: torch.Tensor, errors: torch.Tensor, lookup: torch.Tensor,
-            plans: list[int], max_query: int) -> None:
+            plans: list[int], max_query: int, sequence_lengths: torch.Tensor | None = None) -> None:
     # Expose integer packing and bit selection to complete-forward compilation.
     # The original FA2 calls and their split/partition geometry stay unchanged.
     positions = torch.arange(query.shape[0], device=query.device, dtype=torch.int32)
@@ -80,8 +91,13 @@ def _attend_general(query: torch.Tensor, key: torch.Tensor, value: torch.Tensor,
             & (page_positions < (lengths[slot] + key.shape[1] - 1) // key.shape[1])).any()
         valid &= ~bad_pages
         valid &= ~((~finite_query) & (positions >= cu[slot]) & (positions < cu[slot + 1])).any()
-        row = torch.where(count == 1, 0, (count + 63) // 64).clamp(0, lookup.shape[0] - 1)
-        column = ((lengths[slot] + 127) // 128).clamp(0, lookup.shape[1] - 1)
+        geometry_query, geometry_key = count, lengths[slot]
+        if sequence_lengths is not None:
+            geometry_query = geometry_key = sequence_lengths[slot]
+            valid &= ((geometry_query > 0) & (geometry_query <= pages.shape[1] * key.shape[1])
+                & (lengths[slot] <= geometry_query))
+        row = torch.where(geometry_query == 1, 0, (geometry_query + 63) // 64).clamp(0, lookup.shape[0] - 1)
+        column = ((geometry_key + 127) // 128).clamp(0, lookup.shape[1] - 1)
         chosen = torch.index_select(lookup.reshape(-1), 0,
             (row * lookup.shape[1] + column).reshape(1).long())[0]
         valid &= (chosen >= 0) & (chosen < len(plans) // 3)
@@ -111,7 +127,7 @@ def _attend_general(query: torch.Tensor, key: torch.Tensor, value: torch.Tensor,
                 (capacity - count + indices).clamp(0, capacity - 1).long())
             row_bits[:capacity].copy_(torch.where(
                 ((indices < count) & selected)[:, None, None], original_order, row_bits[:capacity]))
-        row_positions = torch.arange(max_query, device=query.device, dtype=torch.int32)
+        row_positions = torch.arange(row_bits.shape[0], device=query.device, dtype=torch.int32)
         bad |= ((row_positions < count) & ~torch.isfinite(row_bits.view(torch.bfloat16)).all(dim=(1, 2))).any()
         errors[slot + 1].copy_(bad.int())
         bad_rows |= (positions >= cu[slot]) & (positions < cu[slot + 1]) & bad
@@ -234,22 +250,41 @@ class PreparedRequestFlashAttention(PreparedPagedFlashAttention):
     physical queries, preserving the general FA2 reduction across prefill
     partitions and single-query continuation. The extra query is a causal
     prefix dummy; only logical request rows are published.
+
+    Optional per-request sequence lengths select the original full causal
+    self-attention reduction geometry, while lengths still bound actual KV
+    consumption. The paged key extent bounds this prepared geometry catalog;
+    query storage only needs to hold the current packed fragment.
     """
 
     def __init__(self, query, key, value, pages, lengths, cu_query, cu_key, output, *, max_query,
-                 num_splits=None):
+                 num_splits=None, sequence_lengths=None):
         if num_splits is not None and (type(num_splits) is not int or num_splits != 1):
             raise ValueError("request flash accepts automatic request geometry or one fixed split")
         super().__init__(query, key, value, pages, lengths, cu_query, cu_key, output, max_query=max_query)
+        if sequence_lengths is not None:
+            if (sequence_lengths.shape != lengths.shape or sequence_lengths.dtype != torch.int32
+                    or sequence_lengths.device != query.device or not sequence_lengths.is_contiguous()
+                    or num_splits is not None):
+                raise ValueError("sequence attention geometry requires per-request int32 counts and automatic splits")
+            begin, end = output.data_ptr(), output.data_ptr() + output.nbytes
+            if begin < sequence_lengths.data_ptr() + sequence_lengths.nbytes and sequence_lengths.data_ptr() < end:
+                raise ValueError("attention output must not alias sequence geometry")
         if query.shape[2] != 128:
             raise ValueError("request flash requires head dimension 128")
         if max_query == 1 and query.shape[1] > key.shape[2] \
                 and pages.shape[0] * self.max_key > 2**31 - 1:
             raise ValueError("batched request cumulative key extents must fit int32")
         self.logical_max_query = max_query
+        self.sequence_lengths = sequence_lengths
         self.errors = torch.zeros((pages.shape[0] + 1,), dtype=torch.int32, device=query.device)
-        table, self.family_geometry = _catalog(max_query, self.max_key, query.shape[1], key.shape[2],
-            2 * torch.cuda.get_device_properties(query.device).multi_processor_count)
+        sms = 2 * torch.cuda.get_device_properties(query.device).multi_processor_count
+        if sequence_lengths is None:
+            table, self.family_geometry = _catalog(max_query, self.max_key,
+                query.shape[1], key.shape[2], sms)
+        else:
+            table, self.family_geometry = _sequence_catalog(self.max_key,
+                query.shape[1], key.shape[2], sms)
         if num_splits == 1:
             # A prefill can be partitioned differently as other requests arrive.
             # Keep one reduction geometry rather than selecting splits from the
@@ -261,8 +296,12 @@ class PreparedRequestFlashAttention(PreparedPagedFlashAttention):
     def __call__(self):
         # Pinned FA2's GQA host swap sets the batch output stride only for
         # this query geometry. Varlen prefill/MHA retain their original calls.
-        operation = (_attend_batched if self.logical_max_query == 1
+        operation = (_attend_batched if self.sequence_lengths is None and self.logical_max_query == 1
             and self.query.shape[1] > self.key.shape[2] else _attend_general)
-        operation(self.query, self.key, self.value, self.pages, self.lengths, self.cu_query,
+        arguments = (self.query, self.key, self.value, self.pages, self.lengths, self.cu_query,
             self.output, self.errors, self.lookup, self.family_geometry, self.logical_max_query)
+        if self.sequence_lengths is None:
+            operation(*arguments)
+        else:
+            operation(*arguments, self.sequence_lengths)
         return self.output

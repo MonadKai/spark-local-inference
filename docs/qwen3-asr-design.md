@@ -609,6 +609,23 @@ future keys, primes a larger used-key extent before the shorter replay, and
 checks active poison rejection, recovery, repeatability and allocation stability.
 A passing component proof would still require full-model and native qualification.
 
+The request-attention component accepts optional device `sequence_lengths` for
+this original self-attention geometry. Its current packed query capacity can
+remain smaller than the original sequence. The page-table key extent bounds the
+prepared catalog; actual consumed lengths still bound every KV read. Preparation
+retains only the original families reachable when the geometry query/key counts
+are equal, preserving each physical query extent, split count and key bound.
+Invalid active counts remain errors; inactive poisoned counts are ignored.
+The absent-input path retains its original catalog and decode packing.
+
+The [same-operands query-layout measurements](../benchmarks/qwen3_asr/results/prompt-query-layout.json)
+cover seven original lengths, three physical geometries and intermediate query
+fragments. All 81 observations match the independent full SDPA bytes, with actual
+consumed KV bounds, poison/recovery and five identical replays. The full attention
+CUDA/native file passes 32 tests, including the new captured sequence-input path
+and existing no-input package replay. These component checks do not establish
+recipe integration, model readmission, recognition quality or serving performance.
+
 Arithmetic depending on the immutable count creates a real cache dependency.
 `CacheContract.immutable_request_values` declares request-value dependencies;
 it currently accepts only this concrete source. Its consumers canonically hash the

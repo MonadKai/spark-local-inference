@@ -3,7 +3,25 @@
 
 """Pinned GQA split boundaries differ from explicit KV-head repetition."""
 
-from ignition.components.request_flash import _catalog
+import pytest
+
+from ignition.components.request_flash import _catalog, _sequence_catalog
+
+
+@pytest.mark.parametrize("capacity", [256, 8192])
+@pytest.mark.parametrize("heads,kv_heads", [(16, 8), (8, 8)])
+def test_full_sequence_catalog_preserves_every_reachable_original_family(capacity, heads, kv_heads):
+    original, plans = _catalog(capacity, capacity, heads, kv_heads, 96)
+    selected, compact = _sequence_catalog(capacity, heads, kv_heads, 96)
+    covered = set()
+    for count in range(1, capacity + 1):
+        row, column = (0 if count == 1 else (count + 63) // 64), (count + 127) // 128
+        old, new = original[row][column], selected[row][column]
+        assert old >= 0 and new >= 0
+        assert plans[old * 3:old * 3 + 3] == compact[new * 3:new * 3 + 3]
+        covered.add(new)
+    assert covered == set(range(len(compact) // 3))
+    assert len(compact) < len(plans)
 
 
 def test_native_gqa_and_square_prefill_boundaries():

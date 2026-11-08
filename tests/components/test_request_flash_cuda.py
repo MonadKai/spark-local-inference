@@ -22,6 +22,115 @@ pytestmark = pytest.mark.skipif(os.environ.get("FLARE_RUN_CUDA_TESTS") != "1",
     reason="requires FLARE_RUN_CUDA_TESTS=1 and an assigned GPU")
 
 
+@pytest.mark.parametrize("capacity", [1, 64, 128])
+@torch.no_grad()
+def test_sequence_geometry_keeps_full_prompt_bytes_in_intermediate_fragments(capacity):
+    from torch.nn.attention import sdpa_kernel, SDPBackend
+
+    owners, graphs = [], []
+    with retain_on_failed_drain(0, owners, graphs), ModuleImages() as images, sdpa_kernel(SDPBackend.FLASH_ATTENTION):
+        owners.append(images)
+        def allocate(shape, dtype=torch.bfloat16):
+            result = torch.zeros(shape, dtype=dtype, device="cuda")
+            owners.append(result)
+            return result
+        query = allocate((2 * capacity, 16, 128))
+        key, value = allocate((64, 256, 8, 128)), allocate((64, 256, 8, 128))
+        guard = allocate((2 * capacity + 2, 16, 128))
+        output = guard[1:-1]
+        pages = allocate((2, 32), torch.int32)
+        lengths, original = allocate((2,), torch.int32), allocate((2,), torch.int32)
+        cu, cu_key = allocate((3,), torch.int32), allocate((3,), torch.int32)
+        operation = PreparedRequestFlashAttention(query, key, value, pages, lengths, cu, cu_key,
+            output, max_query=capacity, sequence_lengths=original)
+        owners.append(operation)
+        assert len(operation.family_geometry) // 3 < 104
+        compiled = compile_forward(operation)
+        owners.append(compiled)
+        compiled()
+        graph = torch.cuda.CUDAGraph()
+        graphs.append(graph)
+        with torch.cuda.graph(graph):
+            compiled()
+        sources = [allocate((2, 8192, heads, 128)) for heads in (16, 8, 8)]
+        for identity in range(2):
+            generator = torch.Generator(device="cuda").manual_seed(20261106 + identity)
+            for source in sources:
+                source[identity].normal_(std=.2, generator=generator)
+        for counts in [(1, 19), (19, 38), (123, 165), (129, 192), (165, 443), (8192, 8192)]:
+            references = [torch.nn.functional.scaled_dot_product_attention(
+                sources[0][identity, :count].transpose(0, 1)[None],
+                sources[1][identity, :count].transpose(0, 1)[None],
+                sources[2][identity, :count].transpose(0, 1)[None],
+                is_causal=True, enable_gqa=True)[0].transpose(0, 1).contiguous().cpu()
+                for identity, count in enumerate(counts)]
+            for part in ("first", "middle", "tail", "remainder", "last"):
+                for identities in ([0, 1], [1, 0], [None, 0], [None, None], [0, 1]):
+                    query.fill_(float("nan")); key.fill_(float("nan")); value.fill_(float("nan"))
+                    pages.fill_(-1); lengths.zero_(); original.fill_(-2147483648)
+                    cumulative, consumed, expected = [0], [0], []
+                    for slot, identity in enumerate(identities):
+                        if identity is None:
+                            cumulative.append(cumulative[-1]); consumed.append(consumed[-1])
+                            continue
+                        count = counts[identity]
+                        end = min(count, capacity) if part == "first" else min(count, 2 * capacity) if part == "middle" else count
+                        start = (end - 1 if part == "last" else (count - 1) // capacity * capacity
+                            if part == "remainder" else max(0, end - capacity))
+                        live = end - start
+                        query[cumulative[-1]:cumulative[-1] + live].copy_(sources[0][identity, start:end])
+                        key[32 * slot:32 * (slot + 1)].view(8192, 8, 128)[:end].copy_(sources[1][identity, :end])
+                        value[32 * slot:32 * (slot + 1)].view(8192, 8, 128)[:end].copy_(sources[2][identity, :end])
+                        pages[slot, :(end + 255) // 256].copy_(torch.arange(
+                            32 * slot, 32 * slot + (end + 255) // 256, dtype=torch.int32, device="cuda"))
+                        lengths[slot], original[slot] = end, count
+                        cumulative.append(cumulative[-1] + live); consumed.append(consumed[-1] + end)
+                        expected.append(references[identity][start:end])
+                    cu.copy_(torch.tensor(cumulative, dtype=torch.int32, device="cuda"))
+                    cu_key.copy_(torch.tensor(consumed, dtype=torch.int32, device="cuda"))
+                    frozen = [tensor.contiguous().view(torch.uint8).clone()
+                        for tensor in (query, key, value, pages, lengths, original, cu, cu_key)]
+                    for _ in range(5):
+                        guard.fill_(137); torch.cuda.synchronize()
+                        before = torch.cuda.memory_stats(); graph.replay(); torch.cuda.synchronize()
+                        after = torch.cuda.memory_stats()
+                        for field in ("allocation.all.allocated", "allocation.all.freed", "segment.all.allocated", "segment.all.freed"):
+                            assert before[field] == after[field], field
+                        assert operation.errors.eq(0).all(), (capacity, counts, part, identities)
+                        actual = output[:cumulative[-1]].cpu().contiguous()
+                        reference = torch.cat(expected) if expected else actual
+                        assert torch.equal(actual.view(torch.uint8), reference.view(torch.uint8)), (capacity, counts, part, identities)
+                        assert output[cumulative[-1]:].eq(0).all() and guard[[0, -1]].eq(137).all()
+                    for tensor, saved in zip((query, key, value, pages, lengths, original, cu, cu_key), frozen, strict=True):
+                        assert torch.equal(tensor.contiguous().view(torch.uint8), saved)
+        # Invalid geometry remains a device error, including int32 overflow
+        # controls. An inactive slot's poisoned metadata stays ignored.
+        query.fill_(0); key.fill_(0); value.fill_(0)
+        pages.copy_(torch.arange(64, dtype=torch.int32, device="cuda").view(2, 32))
+        lengths.copy_(torch.tensor([0, 165], dtype=torch.int32, device="cuda"))
+        cu.copy_(torch.tensor([0, 0, 1], dtype=torch.int32, device="cuda"))
+        cu_key.copy_(torch.tensor([0, 0, 165], dtype=torch.int32, device="cuda"))
+        for bad in (-2147483648, -1, 0, 1, 164, 8193, 2147483647):
+            original.copy_(torch.tensor([-2147483648, bad], dtype=torch.int32, device="cuda"))
+            graph.replay(); torch.cuda.synchronize()
+            assert operation.errors.cpu().tolist() == [0, 0, 1]
+            assert torch.isnan(output[:1]).all() and output[1:].eq(0).all()
+        original[1] = 165
+        graph.replay(); torch.cuda.synchronize()
+        assert operation.errors.eq(0).all() and output.eq(0).all()
+        for invalid in (original.float(), original[:1], original.repeat_interleave(2)[::2]):
+            with pytest.raises(ValueError):
+                PreparedRequestFlashAttention(query, key, value, pages, lengths, cu, cu_key,
+                    output, max_query=capacity, sequence_lengths=invalid)
+        with pytest.raises(ValueError):
+            PreparedRequestFlashAttention(query, key, value, pages, lengths, cu, cu_key,
+                output, max_query=capacity, num_splits=1, sequence_lengths=original)
+        with pytest.raises(ValueError):
+            PreparedRequestFlashAttention(query, key, value, pages, lengths, cu, cu_key,
+                output, max_query=capacity, sequence_lengths=output.view(torch.int32).reshape(-1)[:2])
+        graph.reset()
+
+
 @pytest.mark.parametrize("physical", [1, 2, 4, 8])
 def test_existing_decode_lifecycle_contract(physical):
     _check_decode(physical, attention_type=PreparedRequestFlashAttention)
