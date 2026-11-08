@@ -15,6 +15,22 @@ import torch
 from ignition.preparation.package_storage import PackageStorage
 
 
+@pytest.mark.parametrize("message", [None, b"cuMemRelease returned CUDA error 715"])
+def test_failed_snapshot_preserves_allocator_error(message):
+    class Library:
+        def flare_package_snapshot(self):
+            return 0
+
+        def flare_package_error(self):
+            return message
+
+    storage = PackageStorage.__new__(PackageStorage)
+    storage.library = Library()
+    expected = message.decode() if message else "native package allocator is not initialized"
+    with pytest.raises(RuntimeError, match=expected):
+        storage._snapshot()
+
+
 @pytest.mark.parametrize("local_ranks", [0, 4, True])
 def test_local_export_rank_count_must_fit_the_global_group(local_ranks):
     with pytest.raises(ValueError, match="local preparation ranks"):

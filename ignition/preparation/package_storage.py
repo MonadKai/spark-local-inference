@@ -159,7 +159,7 @@ class PackageStorage:
     def _snapshot(self):
         pointer = self.library.flare_package_snapshot()
         if not pointer:
-            raise RuntimeError("native package allocator is not initialized")
+            raise self.error or RuntimeError("native package allocator is not initialized")
         try:
             return json.loads(C.string_at(pointer))
         finally:

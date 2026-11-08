@@ -83,7 +83,15 @@ extents of dynamic caches; unused gaps in the preparation arena are omitted. PyT
 allocates through a `MemPool` whose pluggable allocator is the Rust arena in
 `heliopause/src/allocator.rs`, so weights, state, pages, and the
 graph pool all live inside the range. Ordinary preparation and capture use
-separate PyTorch pools backed by that arena. Mapped host buffers, including
+separate PyTorch pools backed by that arena. A successful backing allocation
+checks creation, mapping, creator-reference release, and access before publishing
+its pointer. Driver OOM during creation remains retryable. Failure after creation
+quarantines the address and any uncertain physical reference until process exit;
+later allocator operations and export inventory fail without retrying the driver
+resource operations. This avoids reusing a possibly mapped address or releasing
+an already released handle after an asynchronous error.
+
+Mapped host buffers, including
 n-gram request mailboxes, use fixed addresses from `0x0c00_0000_0000` when
 the device rank ranges fit below it. Larger Linux layouts start host storage
 at `0x2000_0000_0000` to avoid overlap. Each rank has a disjoint 1 TiB host
