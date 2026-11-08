@@ -37,7 +37,7 @@ fn prompt(fixture: &Fixture, bytes: &[u8]) -> Prompt {
     result
 }
 
-fn incoming(fixture: &Fixture, prompt: Prompt, scope: u8) -> (Incoming, Generation) {
+pub(super) fn incoming(fixture: &Fixture, prompt: Prompt, scope: u8) -> (Incoming, Generation) {
     let (mut incoming, generation) = fixture.incoming_for(Vec::new(), 1024, Default::default());
     incoming.prompt = prompt;
     incoming.prefix_scope = Some([scope; 24]);

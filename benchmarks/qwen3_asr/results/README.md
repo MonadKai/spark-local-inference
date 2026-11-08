@@ -1,5 +1,27 @@
 # Canonical recognition reference
 
+`native-worker-logits-initial.json.gz` preserves the initial failed native
+Worker observation through an authenticated exported package. Four B1 requests
+naturally stop; the next cohort fails full-row BF16 equality when its long
+request is processed in different prefill chunks. The package and test binary are
+identified separately. Raw BF16 frame/row files remain at the validation site;
+this JSON retains completion metadata and the failing frame without claiming
+completion of the B2/4/8 schedule.
+
+`native-worker-logit-budgets-initial.json` applies the unchanged frozen scalar
+and top-1 checks to every planned request, retaining missing and partial traces.
+Three B1 teacher rows fail scalar bounds despite matching top-1 IDs. Subsequent
+unexecuted requests remain failures/missing. Recognition quality passes do not
+override these numerical and byte-stability failures.
+
+`native-audio-boundaries.json` compares all nine encoder windows in the four B1
+baselines against SDK BF16 Mel and retained prepared encoder features. It keeps
+the original diagnostic's misnamed identity field and explicitly clarifies its
+runtime-cache meaning. `native-audio-observer-b1-bridge.json` checks complete
+natural B1 logits before/after extra audio reads: 40,718,848 bytes match exactly.
+The extra reads affect multi-request scheduling; they are not a performance
+instrumentation path or proof that every later cohort executes the same plans.
+
 `canonical-recognition.json` contains the raw pinned Transformers reference
 outputs for the unchanged [qualification corpus](../qualification.json): 256
 utterances and 261 service chunks, all naturally stopped within the 1024-token

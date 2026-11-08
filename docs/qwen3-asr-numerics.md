@@ -346,3 +346,38 @@ The focused 75-test CUDA/native selection and this native error fixture pass.
 Earlier failed fault-injection and fixture-start attempts remain retained. These
 results are component/lifecycle evidence, not final ASR quality, whole-change
 qualification, every recipe's execution, or comparative serving performance.
+
+## Native logits and frontend boundary diagnosis
+
+The ignored native Worker test authenticates an exported package, verifies its
+weights and resolves the actual shared sampler's BF16 operand from signed graph
+records. After a completion and zero outstanding work, it saves physical logits
+before inspecting row/epoch metadata or testing finiteness, argmax and history.
+It uses natural generation, with no teacher-token injection. Complete frozen
+SDK/chat prompt IDs are required; the transcription endpoint has its separately
+documented empty-system-turn contract.
+
+The planned matrix has four original PCM inputs, B1 baselines, B2/4/8 cohorts,
+permutations and partial rows. Actual full logical decode batches are required.
+The initial package run fails before completing that matrix: the first mixed
+cohort changes a long input's first BF16 logit row. Two minimized repeats fail
+at the same boundary. Identical top-1 decisions do not satisfy byte stability.
+Three B1 teacher rows also exceed unchanged scalar budgets. Missing subsequent
+cohorts remain missing, rather than passing on the completed subset.
+
+Audio boundary observation saves typed GPU Mel uploads and published feature,
+generation and count storage before another submission. Its four complete B1
+logit traces are byte-identical to the original observer, but its extra reads
+change multi-request scheduling timing. It is a diagnostic, never a serving
+performance path. B1 input Mel has small BF16 differences from the independent
+SDK input despite passing the separate FP32 frontend budget; the published
+encoder features differ too. This identifies a boundary for further isolation,
+not a complete causal explanation or a waived model gate.
+
+The test requires `FLARE_PROMPT_TEST_PACKAGE`, `FLARE_PROMPT_TEST_PUBLISHERS`,
+`FLARE_NATIVE_LOGITS_CASES` and a new `FLARE_NATIVE_LOGITS_OUTPUT` directory.
+Cases contain `id`, WAV `path` and `wav_sha256`, `language`, frozen `prompt_ids`
+and `teacher_history`. The package's signed recipe identity, runtime cache
+identity and authenticated envelope digest are distinct report fields. The
+reader recognizes the measured ordinary ABI6 sampler only; this diagnostic
+restriction does not change engine loading or historical package compatibility.

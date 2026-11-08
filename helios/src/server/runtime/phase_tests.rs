@@ -31,6 +31,10 @@ mod transcription_tests;
 #[path = "encoded_cuda_tests.rs"]
 mod encoded_cuda_tests;
 
+#[cfg(all(feature = "audio", feature = "runtime-package"))]
+#[path = "native_logits_cuda_tests.rs"]
+mod native_logits_cuda_tests;
+
 struct Fixture {
     config: ModelConfig,
     frontend: Frontend,

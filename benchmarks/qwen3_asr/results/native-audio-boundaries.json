@@ -1,0 +1,335 @@
+{
+  "scope": "Original CPU comparison of native B1 audio boundaries; no model/frontend qualification",
+  "field_interpretation": "The original observation calls ModelConfig.identity prepared_identity; it is the runtime cache identity. The following signed package configuration supplies the actual prepared identity. Original result is preserved unchanged.",
+  "configuration": {
+    "package_sha256": "181b37583653264fb0f02655744d39e51cef0549c169d025e5392b523ad674e3",
+    "prepared_identity": "72a5c9daed36f7b48e5db1964bbc2d8ca0fac315298e4023fe910bb9f0964b7d",
+    "test_binary_sha256": "f61fc00b1f9f070c571461edb7e87599fb4158ca23e2d7597b5b6e6dd5eea822"
+  },
+  "observation": {
+    "scope": "CPU comparison of every observed window in the four native B1 baseline cohorts against the unchanged SDK BF16 input and retained R176 encoder feature values; not a model/frontend qualification",
+    "status": "complete_boundary_comparison_only",
+    "windows": [
+      {
+        "cohort": 0,
+        "id": "en-777-126732-0081",
+        "graph": "audio800",
+        "fence": 2,
+        "frame_start": 0,
+        "valid_frames": 151,
+        "feature_slot": 0,
+        "feature_offset": 0,
+        "feature_count": 20,
+        "model_input_bf16": {
+          "shape": [
+            128,
+            151
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true,
+          "exact_bytes": false,
+          "changed_elements": 2,
+          "max_absolute": 6.103515625e-05,
+          "relative_l2": 7.825630072304119e-07
+        },
+        "published_features_bf16": {
+          "shape": [
+            20,
+            2048
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true,
+          "exact_bytes": false,
+          "changed_elements": 33716,
+          "max_absolute": 0.001018524169921875,
+          "relative_l2": 0.009748443586080596
+        }
+      },
+      {
+        "cohort": 1,
+        "id": "en-422-122949-0013",
+        "graph": "audio800",
+        "fence": 12,
+        "frame_start": 0,
+        "valid_frames": 800,
+        "feature_slot": 0,
+        "feature_offset": 0,
+        "feature_count": 104,
+        "model_input_bf16": {
+          "shape": [
+            128,
+            800
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true,
+          "exact_bytes": false,
+          "changed_elements": 41,
+          "max_absolute": 0.00390625,
+          "relative_l2": 4.99284107193117e-05
+        },
+        "published_features_bf16": {
+          "shape": [
+            104,
+            2048
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true,
+          "exact_bytes": false,
+          "changed_elements": 177482,
+          "max_absolute": 0.001953125,
+          "relative_l2": 0.011363210760303827
+        }
+      },
+      {
+        "cohort": 1,
+        "id": "en-422-122949-0013",
+        "graph": "audio800",
+        "fence": 13,
+        "frame_start": 800,
+        "valid_frames": 800,
+        "feature_slot": 0,
+        "feature_offset": 104,
+        "feature_count": 104,
+        "model_input_bf16": {
+          "shape": [
+            128,
+            800
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true,
+          "exact_bytes": false,
+          "changed_elements": 45,
+          "max_absolute": 0.00390625,
+          "relative_l2": 4.488969371068873e-05
+        },
+        "published_features_bf16": {
+          "shape": [
+            104,
+            2048
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true,
+          "exact_bytes": false,
+          "changed_elements": 179013,
+          "max_absolute": 0.005462646484375,
+          "relative_l2": 0.015788382060425873
+        }
+      },
+      {
+        "cohort": 1,
+        "id": "en-422-122949-0013",
+        "graph": "audio800",
+        "fence": 14,
+        "frame_start": 1600,
+        "valid_frames": 800,
+        "feature_slot": 0,
+        "feature_offset": 208,
+        "feature_count": 104,
+        "model_input_bf16": {
+          "shape": [
+            128,
+            800
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true,
+          "exact_bytes": false,
+          "changed_elements": 56,
+          "max_absolute": 0.00390625,
+          "relative_l2": 4.574038617228745e-05
+        },
+        "published_features_bf16": {
+          "shape": [
+            104,
+            2048
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true,
+          "exact_bytes": false,
+          "changed_elements": 176474,
+          "max_absolute": 0.00225830078125,
+          "relative_l2": 0.01089494928095352
+        }
+      },
+      {
+        "cohort": 1,
+        "id": "en-422-122949-0013",
+        "graph": "audio800",
+        "fence": 15,
+        "frame_start": 2400,
+        "valid_frames": 800,
+        "feature_slot": 0,
+        "feature_offset": 312,
+        "feature_count": 104,
+        "model_input_bf16": {
+          "shape": [
+            128,
+            800
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true,
+          "exact_bytes": false,
+          "changed_elements": 54,
+          "max_absolute": 0.001953125,
+          "relative_l2": 3.911539464908987e-05
+        },
+        "published_features_bf16": {
+          "shape": [
+            104,
+            2048
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true,
+          "exact_bytes": false,
+          "changed_elements": 178039,
+          "max_absolute": 0.003662109375,
+          "relative_l2": 0.012048971441145867
+        }
+      },
+      {
+        "cohort": 1,
+        "id": "en-422-122949-0013",
+        "graph": "audio100",
+        "fence": 16,
+        "frame_start": 3200,
+        "valid_frames": 65,
+        "feature_slot": 0,
+        "feature_offset": 416,
+        "feature_count": 9,
+        "model_input_bf16": {
+          "shape": [
+            128,
+            65
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true,
+          "exact_bytes": false,
+          "changed_elements": 1,
+          "max_absolute": 0.001953125,
+          "relative_l2": 5.391382439017781e-05
+        },
+        "published_features_bf16": {
+          "shape": [
+            9,
+            2048
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true,
+          "exact_bytes": false,
+          "changed_elements": 16255,
+          "max_absolute": 0.01324462890625,
+          "relative_l2": 0.07069307963037831
+        }
+      },
+      {
+        "cohort": 2,
+        "id": "zh-BAC009S0727W0418",
+        "graph": "audio800",
+        "fence": 124,
+        "frame_start": 0,
+        "valid_frames": 165,
+        "feature_slot": 0,
+        "feature_offset": 0,
+        "feature_count": 22,
+        "model_input_bf16": {
+          "shape": [
+            128,
+            165
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true,
+          "exact_bytes": false,
+          "changed_elements": 3,
+          "max_absolute": 0.00390625,
+          "relative_l2": 5.301420330737437e-05
+        },
+        "published_features_bf16": {
+          "shape": [
+            22,
+            2048
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true,
+          "exact_bytes": false,
+          "changed_elements": 37437,
+          "max_absolute": 0.002685546875,
+          "relative_l2": 0.01222011506059225
+        }
+      },
+      {
+        "cohort": 3,
+        "id": "zh-BAC009S0729W0241",
+        "graph": "audio800",
+        "fence": 133,
+        "frame_start": 0,
+        "valid_frames": 800,
+        "feature_slot": 0,
+        "feature_offset": 0,
+        "feature_count": 104,
+        "model_input_bf16": {
+          "shape": [
+            128,
+            800
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true,
+          "exact_bytes": false,
+          "changed_elements": 22,
+          "max_absolute": 0.00390625,
+          "relative_l2": 3.942332507551759e-05
+        },
+        "published_features_bf16": {
+          "shape": [
+            104,
+            2048
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true,
+          "exact_bytes": false,
+          "changed_elements": 177862,
+          "max_absolute": 0.002197265625,
+          "relative_l2": 0.011606683337972332
+        }
+      },
+      {
+        "cohort": 3,
+        "id": "zh-BAC009S0729W0241",
+        "graph": "audio800",
+        "fence": 134,
+        "frame_start": 800,
+        "valid_frames": 328,
+        "feature_slot": 0,
+        "feature_offset": 104,
+        "feature_count": 43,
+        "model_input_bf16": {
+          "shape": [
+            128,
+            328
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true,
+          "exact_bytes": false,
+          "changed_elements": 19,
+          "max_absolute": 0.00390625,
+          "relative_l2": 7.024683655269423e-05
+        },
+        "published_features_bf16": {
+          "shape": [
+            43,
+            2048
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true,
+          "exact_bytes": false,
+          "changed_elements": 75637,
+          "max_absolute": 0.0023193359375,
+          "relative_l2": 0.014245517210306022
+        }
+      }
+    ],
+    "errors": [],
+    "model_config_identity": "7f292c9e4ab7ec57ffa4674b287de6397b026e890c36681c566264037679b5eb",
+    "model_config_identity_field_in_raw": "prepared_identity; ownership clarification pending",
+    "authenticated_envelope_digest": "97b98de31a3dc523701ea5cb03fefb3d73f749d99c73d9b275f48268d00c065e",
+    "finished_at": "2026-11-08T03:32:49.418816+00:00"
+  }
+}

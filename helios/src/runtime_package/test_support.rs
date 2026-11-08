@@ -13,6 +13,8 @@ use crate::Result;
 use ring::signature::{Ed25519KeyPair, KeyPair};
 use std::{io::Read, path::Path};
 
+pub mod sampling;
+
 pub fn publisher() -> Publisher {
     let key = Ed25519KeyPair::from_seed_unchecked(&[42; 32]).unwrap();
     Publisher {
