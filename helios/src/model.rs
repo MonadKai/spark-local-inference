@@ -414,8 +414,21 @@ pub fn validate_completion(
 }
 
 pub fn validate_prompt_data(config: &ModelConfig, tokens: &[u32], data: &PromptData) -> Result<()> {
+    validate_prompt_data_with_initial(config, tokens, data, tokens.len())
+}
+
+// The worker retains this extent before appending generated text. API inputs
+// always use the full-length wrapper above, including literal feature tokens.
+pub(crate) fn validate_prompt_data_with_initial(
+    config: &ModelConfig,
+    tokens: &[u32],
+    data: &PromptData,
+    initial_prompt_tokens: usize,
+) -> Result<()> {
     let positions = config.contract.frontend.position_dimensions;
-    if (positions == 0 && !data.positions.is_empty())
+    if initial_prompt_tokens > tokens.len()
+        || (initial_prompt_tokens == 0 && !tokens.is_empty())
+        || (positions == 0 && !data.positions.is_empty())
         || (positions == 3
             && (data.positions.len() != tokens.len()
                 || data.positions.iter().flatten().any(|p| *p < 0)))
@@ -424,14 +437,15 @@ pub fn validate_prompt_data(config: &ModelConfig, tokens: &[u32], data: &PromptD
                 || data
                     .vision_token_indices
                     .iter()
-                    .any(|i| *i < -1 || (*i >= 0 && (!config.contract.vision.enabled() || *i as usize >= tokens.len())))))
+                    .any(|i| *i < -1 || (*i >= 0 && (!config.contract.vision.enabled() || *i as usize >= initial_prompt_tokens)))
+                || data.vision_token_indices[initial_prompt_tokens..].iter().any(|index| *index != -1)))
         || (!data.audio_token_indices.is_empty()
             && (data.audio_token_indices.len() != tokens.len()
                 || data.audio_token_indices.iter().any(|index| *index < -1
-                    || (*index >= 0 && (config.contract.audio.is_none() || *index as usize >= tokens.len())))))
+                    || (*index >= 0 && (config.contract.audio.is_none() || *index as usize >= initial_prompt_tokens)))))
         || data.spans.windows(2).any(|p| p[0].end > p[1].start)
         || data.spans.iter().any(|s| {
-            s.start >= s.end || s.end > tokens.len() || s.len() > config.limits.prefill_chunk_size
+            s.start >= s.end || s.end > initial_prompt_tokens || s.len() > config.limits.prefill_chunk_size
         })
     {
         return Err("prompt arrays violate prepared geometry".into());
@@ -467,7 +481,8 @@ pub fn validate_prompt_data(config: &ModelConfig, tokens: &[u32], data: &PromptD
     }
     if let Some(layout) = &config.contract.frontend.audio_tokens {
         if data.audio_token_indices.len() != tokens.len()
-            || tokens.iter().zip(&data.audio_token_indices)
+            || data.audio_token_indices[initial_prompt_tokens..].iter().any(|index| *index != -1)
+            || tokens[..initial_prompt_tokens].iter().zip(&data.audio_token_indices)
                 .any(|(token, index)| (*token == layout.feature_token) != (*index >= 0))
         {
             return Err("audio feature tokens do not match their feature indices".into());

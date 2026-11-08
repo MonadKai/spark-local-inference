@@ -74,6 +74,10 @@ pub struct Admission {
 
 impl Admission {
     pub fn validate(&self, config: &ModelConfig) -> Result<()> {
+        self.validate_with_initial(config, self.prompt.len())
+    }
+
+    pub(crate) fn validate_with_initial(&self, config: &ModelConfig, initial_prompt_tokens: usize) -> Result<()> {
         self.sampling.validate()?;
         if self.handle.slot as usize >= config.limits.max_active
             || self.handle.generation == 0
@@ -95,7 +99,7 @@ impl Admission {
                 "invalid prompt, sampling parameters, grammar mask, or request generation".into(),
             );
         }
-        crate::model::validate_prompt_data(config, &self.prompt, &self.data)
+        crate::model::validate_prompt_data_with_initial(config, &self.prompt, &self.data, initial_prompt_tokens)
     }
 
     #[cfg(feature = "server")]
@@ -113,6 +117,17 @@ impl Admission {
         prompt: &crate::server::Prompt,
         ignore_eos: bool,
     ) -> Result<Self> {
+        Self::from_prompt_with_initial(config, handle, prompt, ignore_eos, prompt.tokens.len())
+    }
+
+    #[cfg(feature = "server")]
+    pub(crate) fn from_prompt_with_initial(
+        config: &ModelConfig,
+        handle: RequestHandle,
+        prompt: &crate::server::Prompt,
+        ignore_eos: bool,
+        initial_prompt_tokens: usize,
+    ) -> Result<Self> {
         let admission = Self {
             handle,
             sampling: prompt.sampling.clone(),
@@ -126,7 +141,7 @@ impl Admission {
             ignore_eos,
             prompt_logprobs: prompt.prompt_logprobs,
         };
-        admission.validate(config)?;
+        admission.validate_with_initial(config, initial_prompt_tokens)?;
         Ok(admission)
     }
 }

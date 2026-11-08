@@ -192,3 +192,7 @@
     MoE, GLM KDA/MLA, and other attention consumers with their checkpoints.
     Qwen3.8 dense layer1 output exposed BF16 atomic replay errors beyond the
     shared operator bounds. Checkpoint coverage for these other consumers remains pending.
+
+[ ] Resolve generated image-marker replay across index-driven and token-driven
+    captured image consumers before relaxing native image admission. Preserve old
+    package behavior; see qwen3-asr-design.md's native continuation boundary.

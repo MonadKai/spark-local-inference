@@ -65,6 +65,91 @@ fn wav(samples: u32) -> Vec<u8> {
     bytes
 }
 
+#[test]
+fn generated_audio_markers_remain_text_during_native_readmission_admission() {
+    for marker in ["<feature>", "<audio>", "</audio>"] {
+        let fixture = fixture();
+        let token = fixture.frontend.tokenizer().token_to_id("a").unwrap();
+        let generated = fixture.frontend.tokenizer().token_to_id(marker).unwrap();
+        let data = PromptData {
+            positions: (0..19).map(|position| [position; 3]).collect(),
+            audio_token_indices: vec![-1; 19], ..Default::default()
+        };
+        let (mut incoming, _generation) = fixture.incoming_for(vec![token; 19], 8, data);
+        let handle = RequestHandle { slot: 0, generation: 1 };
+        crate::model::Admission::from_prompt(&fixture.config, handle, &incoming.prompt, false).unwrap();
+        // Use the same metadata extension and constructor as Worker::park/admit.
+        // This CPU admission boundary test does not execute a prepared graph.
+        crate::model::prompt_metadata(&mut incoming.prompt.data).extend_text(19, 20).unwrap();
+        incoming.prompt.tokens.push(generated);
+        incoming.readmitted = true;
+        assert_eq!(incoming.initial_prompt_tokens, 19);
+        assert_eq!(incoming.prompt.data.audio_token_indices, vec![-1; 20]);
+        assert!(crate::model::Admission::from_prompt(&fixture.config, handle, &incoming.prompt, false).is_err()
+            || marker != "<feature>");
+        let admission = crate::model::Admission::from_prompt_with_initial(
+            &fixture.config, handle, &incoming.prompt, false, incoming.initial_prompt_tokens).unwrap();
+        assert_eq!(admission.prompt.last(), Some(&generated));
+    }
+}
+
+#[test]
+fn audio_readmission_keeps_initial_tokens_and_full_metadata_strict() {
+    let fixture = fixture();
+    let ordinary = fixture.frontend.tokenizer().token_to_id("a").unwrap();
+    let feature = fixture.config.contract.frontend.audio_tokens.as_ref().unwrap().feature_token;
+    let mut tokens = vec![ordinary; 20];
+    tokens[19] = feature;
+    let mut data = PromptData {
+        positions: (0..20).map(|position| [position; 3]).collect(),
+        audio_token_indices: vec![-1; 20], ..Default::default()
+    };
+    let validate = |tokens: &[u32], data: &PromptData, original| {
+        crate::model::validate_prompt_data_with_initial(&fixture.config, tokens, data, original)
+    };
+    validate(&tokens, &data, 19).unwrap();
+    assert!(crate::model::validate_prompt_data(&fixture.config, &tokens, &data).is_err(),
+        "initial/API prompts must not acquire trusted-history semantics");
+    for original in [0, 20, 21, usize::MAX] {
+        assert!(validate(&tokens, &data, original).is_err());
+    }
+    tokens[18] = feature;
+    assert!(validate(&tokens, &data, 19).is_err());
+    data.audio_token_indices[18] = 0;
+    validate(&tokens, &data, 19).unwrap();
+    for bad_index in [-2, 0, 1] {
+        data.audio_token_indices[19] = bad_index;
+        assert!(validate(&tokens, &data, 19).is_err());
+    }
+    data.audio_token_indices[19] = -1;
+    data.spans.push(18..20);
+    assert!(validate(&tokens, &data, 19).is_err());
+    data.spans.clear();
+    data.positions.pop();
+    assert!(validate(&tokens, &data, 19).is_err());
+}
+
+#[test]
+fn image_marker_history_retains_the_existing_captured_input_boundary() {
+    let mut fixture = fixture();
+    fixture.config.contract.frontend.image_tokens = Some(crate::model::contract::ImageTokenLayout {
+        feature_token: 100, span: None,
+    });
+    let mut tokens = vec![0; 20];
+    let mut data = PromptData {
+        positions: (0..20).map(|position| [position; 3]).collect(),
+        audio_token_indices: vec![-1; 20], vision_token_indices: vec![-1; 20],
+        ..Default::default()
+    };
+    crate::model::validate_prompt_data_with_initial(&fixture.config, &tokens, &data, 19).unwrap();
+    tokens[19] = 100;
+    // Existing image graphs can still interpret this ID as an image feature.
+    // Audio continuation does not authorize changing that captured contract.
+    assert!(crate::model::validate_prompt_data_with_initial(&fixture.config, &tokens, &data, 19).is_err());
+    data.vision_token_indices[19] = -2;
+    assert!(crate::model::validate_prompt_data_with_initial(&fixture.config, &tokens, &data, 19).is_err());
+}
+
 fn request(fields: &[(&str, &str)], files: &[Vec<u8>]) -> axum::extract::Request {
     let mut body = Vec::new();
     for (name, text) in fields {

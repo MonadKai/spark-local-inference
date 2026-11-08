@@ -1520,11 +1520,12 @@ impl<'a> Worker<'a> {
             if incoming.prompt.conditioned_audio.is_some() {
                 self.scheduler.conditioned_inputs_ready(handle, true)?;
             }
-            self.admissions[slot] = Some(crate::model::Admission::from_prompt(
+            self.admissions[slot] = Some(crate::model::Admission::from_prompt_with_initial(
                 self.config,
                 handle,
                 &incoming.prompt,
                 incoming.prompt.ignore_eos,
+                incoming.initial_prompt_tokens,
             )?);
             let parked = match parked {
                 Some(parked) => parked,

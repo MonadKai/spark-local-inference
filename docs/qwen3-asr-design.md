@@ -656,6 +656,24 @@ same-prefix different-count isolation, partial pages, cancellation, slot/epoch
 reuse, offload and generated-history readmission. Actual old-package serving,
 all affected shared cache schemes and formal lifecycle checks remain required.
 
+Native admission also receives the worker's retained original prompt extent.
+The ordinary frontend/API validator remains strict over the complete input.
+Readmission validates all metadata arrays, keeps atomic spans and feature indices
+inside that original extent, and requires appended audio indices to remain `-1`.
+Within generated text, the audio feature token is an ordinary token rather than
+a new input placeholder. The original prefix still requires exact token/index
+agreement. This fixes a reproduced CPU admission rejection after the shared
+continuation helper appended a generated feature token; it does not by itself
+qualify GPU parking, recomputation or recognition quality.
+
+Image token/span validation retains its complete-input rejection boundary.
+Existing captured image consumers differ: some inject from explicit indices,
+while others recognize feature token IDs. Their metadata does not establish a
+shared generated-marker replay contract. No model-name branch selects a different
+rule. Pre-count private ASR diagnostic packages likewise do not acquire the new
+recipe's history-injection guarantee through an engine update; that guarantee
+requires the prepared graph and its immutable count dependency to be qualified.
+
 ### Native frontend numerical variants
 
 `AudioSettings.numerics` is typed preprocessing data. Absent/zero retains the
