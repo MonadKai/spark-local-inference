@@ -412,3 +412,31 @@ names, shapes, dtypes and finite values are checked, while this tool explicitly
 does not establish its full content identity. These measurements are limited
 to the recorded SM121 component conditions; they establish neither complete
 ASR service performance nor a comparison against vLLM.
+
+`prefill-prefix-projection-rejections.json.gz` retains all650 node observations per candidate,
+head checks and scalar probes for six rejected existing BF16 projection
+configurations on one frozen19-token input. No candidate passes its network-node
+gates; this is a rejection subset of the unchanged20-input contract.
+
+`original-prompt-attention-fragments.json` retains the six same-operands
+automatic/fixed-family observations for full165 and actual128+37 fragments,
+compiled capture repeat/allocation checks, future/active KV poison and recovery.
+Fixed original partition geometry removes the 25,629-element discrepancy of
+the automatic current-chunk path without extending the actual consumed KV bound.
+This is one synthetic geometry, not a passing model.
+
+`positioned-projection-fragments.json` retains all196 full/prefix/tail comparisons
+on the independent frozen operands of one actual165-token input, all28 layers
+and seven projections. Fixed8192 physical projection rows preserve bytes across
+fragments and reproduce every independent same-operands output. The observation
+includes actual pre-fix integer-overflow guard failures and the earlier collector
+identity/reshape failure before any projection. Captured component repetitions
+are not full-network, native request, quality or performance qualification.
+
+`positioned-projection-native.json` records the complete29-test canonical and
+positioned CUDA/native selection. All four new full/prefix/tail/empty component
+packages replay five times in Rust after preparation exits; every replay first
+poisons output. This does not validate N/position request uploads or cache
+dependencies because the fixture captures those metadata values. The previous
+25-pass/4-failure missing-worker-module attempt and private-wheel correction
+remain explicit, with no whole-model or performance claim.

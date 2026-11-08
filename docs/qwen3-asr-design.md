@@ -521,6 +521,99 @@ real CUDA fence/allocation checks described in [verification](verification.md)
 and [Helios lifecycle](../verification/helios-lifecycle/README.md). Neither an
 abstract model nor checkpoint inspection establishes native GPU correctness.
 
+### Proposed immutable original-prompt geometry
+
+This is a proposal, not an implemented native contract or qualified path.
+The native 165-token versus `128+37` replay control exposed different decoder
+histories. Independent canonical forwards also use length-dependent projection
+and attention reductions. Six fixed projection rejection controls have not
+passed the frozen node gates. None of those observations proves that every
+uniform arithmetic implementation is impossible.
+
+The proposed input `INITIAL_PROMPT_TOKENS` is the immutable number of tokens in
+the first fully validated, expanded prompt, including actual image/audio feature
+tokens. Freeze it before the first queue admission or cache lookup. Carry it
+through parking, readmission, branching and offload; never reconstruct it from
+the enlarged replay history. Existing `LiveRequest.prompt_tokens` continues to
+mean the current admission's replay endpoint. The original usage count should
+read the same authoritative fact rather than maintaining a second independent
+initial count. The source is ordinary request data, not a recipe identifier or
+an instruction for native arithmetic.
+
+An additive `ValueSource` would bind that count as a positive int32 per active
+submission row, zero for inactive rows, using ordinary submission staging and
+completion fences. No native callback, expression evaluator or per-model policy
+is introduced. The recipe owns every use of this input. In particular, rows
+before that boundary may use prepared original-prompt arithmetic; generated
+history at or after it must reproduce the entire ordinary decode chain during
+readmission, including projection, Q/K normalization, RoPE, KV writes, attention,
+FFN, final normalization and all required BF16 rounding nodes.
+
+If graph variants need different physical original-prompt storage extents,
+declare a separate `ExecutionGraph.initial_prompt_capacity`. It is a real bound
+on captured buffers and operations, not an arbitrary tactic identifier. Resolve
+the smallest covering capacity once from the complete immutable package catalog
+using the initial count; retain that capacity through readmission. Then select
+the current token/batch shape only within that exact capacity. Queue pressure,
+cost estimates, current chunk length and generated-history length cannot change
+the resolved capacity. A missing combination rejects explicitly instead of
+falling back to a larger capacity or legacy graph. Runtime configuration must
+not filter this dimension. Descriptor validation, startup binding, cost keys,
+completion dependencies, threaded agreement and wire fingerprints must preserve
+it. The dimension belongs to the sole prefill lane in Prefill, ScoredPrefill or
+Mixed; independent decode lanes can have different original lengths. Decode,
+Resume and input-encoding graphs do not acquire a meaningless prefill dimension.
+Existing Prefill remains B=1 and Mixed contains at most one prefill lane; this
+proposal does not claim batched prefill for several original lengths. Package
+validation must require a closed catalog for every advertised capacity and all
+prefill/mixed shapes reachable in that package and configuration before admission.
+Another request joining or finishing cannot cause a missing-variant failure. Native scheduling
+must not split queues by original capacity to compensate for an incomplete
+catalog. The first implementation should use one fixed physical extent throughout
+the package and bind the immutable input without a new native graph dimension.
+That extent must cover all advertised original lengths and belong to the existing
+captured-program producer identity; it cannot vary with runtime configuration.
+Only measured need for distinct physical extents would justify the extra axis.
+
+The captured program must never read future KV to reproduce a reference launch
+geometry. Its first 128 queries use only 128 consumed keys even when its original
+prompt has 165 tokens. Fixed physical query padding and split/partition bounds
+are preparation choices; actual lengths and owned pages still bound access.
+The focused proof compares identical full and fragmented Q/K/V, poisons unused
+future keys, primes a larger used-key extent before the shorter replay, and
+checks active poison rejection, recovery, repeatability and allocation stability.
+A passing component proof would still require full-model and native qualification.
+
+Arithmetic depending on the immutable count creates a real cache dependency.
+Add an explicit list of immutable request-value dependencies to `CacheContract`;
+initially accept only this concrete source. Its consumers canonically hash the
+exact count and resolved physical capacity as a domain/version/source-tagged
+condition before every nonempty history boundary is constructed or looked up.
+In the initial single-extent design, the existing producer identity binds that
+extent and the request dependency encodes the exact count; no synthetic capacity
+field is needed.
+Do not add fake audio events to `Prompt.conditioning`, change scopes to hide the
+dependency, or use only the capacity in the key. Apply the same effective history
+to GPU/host/disk publication, lookup, eviction and readmission, including partial
+pages and saved hidden state. PCM/Mel/encoder identities do not depend on this
+decoder-only input. Validation must reject unknown or duplicate dependencies and
+any history-writing graph that reads the source without declaring the dependency.
+A nonzero original-prompt capacity also requires the dependency even when the
+captured graph does not bind the count explicitly; capacity selection itself can
+affect its history arithmetic. Every such capacity must agree with the source's
+declared count bounds and the prefill-lane binding. Graphs without a prefill lane
+cannot declare a nonzero value. Cache dependencies cover decode publication and
+saved-hidden resume too, even when those graphs do not read the original count.
+
+Absent dependency lists, absent value bindings and zero original-prompt capacity
+retain the existing behavior. The empty-dependency path preserves previous hash,
+producer and offload identity bytes; zero-capacity graphs are not a wildcard for
+new variants. Historical packages require no re-export, re-signing or ABI gate.
+New validation must cover legacy/new catalog ambiguity, count/shape bounds,
+same-prefix different-count isolation, partial pages, cancellation, slot/epoch
+reuse, offload and generated-history readmission. Actual old-package serving,
+all affected shared cache schemes and formal lifecycle checks remain required.
+
 ### Native frontend numerical variants
 
 `AudioSettings.numerics` is typed preprocessing data. Absent/zero retains the

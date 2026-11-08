@@ -387,6 +387,63 @@ Earlier failed fault-injection and fixture-start attempts remain retained. These
 results are component/lifecycle evidence, not final ASR quality, whole-change
 qualification, every recipe's execution, or comparative serving performance.
 
+## Original-prompt fragment geometry
+
+The [six fixed-projection rejection controls](../benchmarks/qwen3_asr/results/prefill-prefix-projection-rejections.json.gz)
+retain every node/head/scalar observation on the same frozen 19-token input.
+Existing BF16 SIMT128/SIMT256/MMA/TC, fixed-eight canonical and singleton canonical
+prefill arithmetic fail 54/69/112/122/42/58 network nodes respectively. Original
+decode/head paths and thresholds remain unchanged. Scalar logit success in five
+of these candidates does not waive their node failures. This rejects those
+measured configurations, not every possible fixed arithmetic implementation.
+
+The [same-operands attention control](../benchmarks/qwen3_asr/results/original-prompt-attention-fragments.json)
+compares a complete 165-query invocation with its actual `128+37` fragments.
+Automatic current-chunk geometry changes 25,629 BF16 elements. Keeping the
+original `[192 query rows, 2 splits, 256 key bound]` family makes all three
+outputs byte-equal to the full independent SDPA result. Actual consumed key
+lengths remain 128 and 165; this does not read future KV. Five compiled/captured
+replays are byte-identical and allocation-stable. Poisoning future keys after
+priming a larger used-key extent leaves the prefix unchanged; poisoning an
+active key reaches the error/nonfinite guard, and restoring it recovers exact
+bytes. This is one frozen synthetic operand geometry, not a model configuration.
+
+`PreparedPositionedProjection` initializes a full physical staging matrix from
+only the current contiguous absolute-position fragment. It reuses
+`PreparedCanonicalProjection`, selects small extents from the immutable sequence
+length, and gathers back only the live fragment. All full extents execute; this
+is an arithmetic mechanism, not reduced GEMM work. The
+[196-projection observation](../benchmarks/qwen3_asr/results/positioned-projection-fragments.json)
+uses one frozen 165-token input's independent operands for all seven projections
+in all 28 layers. Fixed 8192-row full and `128+37` calls are mutually byte-equal
+and equal the corresponding independent outputs, with five allocation-stable
+captured replays each. These are uncompiled component captures; no complete
+network, generated-history readmission or native request determinism is inferred.
+
+The [complete affected CUDA/native selection](../benchmarks/qwen3_asr/results/positioned-projection-native.json)
+passes all 29 tests, including every previous canonical fixture and four new
+full/prefix/tail/empty component packages. Their Python preparers exit before
+Rust reconstructs the graphs; five independent replays poison and verify the
+complete output. These synthetic packages keep N and positions as captured
+constants, so they do not test the proposed native value source or cache binding.
+The preceding 25-pass/4-failure run is retained: its private compiler-worker
+wheel lacked the new component, and all four preparations failed before export.
+Rebuilding only that private wheel resolves the import; no shared dependency
+or numerical threshold was changed.
+
+Independent review found a real metadata-guard defect: a zero-dimensional int64
+start plus an int32 count can narrow and wrap. Retained pre-fix CUDA execution
+returns finite zero for invalid starts `2^31-1`, `2^32` and `2^63-1`, so the
+intended finite gate fails. Explicit int64 remaining-length comparisons reject
+these inputs in the regression. An earlier collector's wrong 40-token identity
+failed its 165-row reshape before the first projection; that failed attempt is
+retained separately and is not counted as coverage.
+
+The [design proposal](qwen3-asr-design.md#proposed-immutable-original-prompt-geometry)
+describes the additional native immutable-input and real cache dependency needed
+before using this mechanism in serving. Neither is implemented by these component
+controls. Existing full-model, native batch/slot and performance gates remain open.
+
 ## Native logits and frontend boundary diagnosis
 
 The ignored native Worker test authenticates an exported package, verifies its

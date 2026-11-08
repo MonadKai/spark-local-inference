@@ -57,12 +57,14 @@ def verify_replay(graph, output, expected):
 
 @torch.no_grad()
 @fp32_reductions()
-def prepare(root, capacity, count, with_bias=False, rowwise=False, reduction=False):
+def prepare(root, capacity, count, with_bias=False, rowwise=False, reduction=False,
+            positioned=False, start=0, sequence=165):
     from fixed_package_fixture import allocation_reference
     from fixture_frontend import server_config
     from signing import publisher
     from ignition.components.canonical_projection import PreparedCanonicalProjection, PreparedRowwiseProjection
     from ignition.components.reduction_projection import PreparedReductionProjection
+    from ignition.components.positioned_projection import PreparedPositionedProjection
     from ignition.preparation.capture import capture_forwards
     from ignition.preparation.execution import GraphSignature, PreparedExecution
     from ignition.preparation.module_images import ModuleImages
@@ -91,11 +93,23 @@ def prepare(root, capacity, count, with_bias=False, rowwise=False, reduction=Fal
                             source[:count, 1] = 1 / 256
                             bias = torch.full((columns,), -1., device="cuda", dtype=torch.bfloat16)
                             retained.append(bias)
+                        if positioned:
+                            source[:count].zero_()
+                            source[:count, 0].copy_(torch.arange(start + 1, start + count + 1,
+                                device='cuda', dtype=torch.bfloat16))
                         output = torch.zeros((capacity, columns), device='cuda', dtype=torch.bfloat16)
                         cu = torch.tensor([count], device='cuda', dtype=torch.int32)
                         retained.extend((source, weight, output, cu))
                         signature = GraphSignature("decode", 1, 1, ("cu",))
-                        if reduction:
+                        if positioned:
+                            positions = torch.arange(start, start + capacity, device='cuda', dtype=torch.int64)
+                            total = torch.tensor([sequence], device='cuda', dtype=torch.int32)
+                            staging = torch.empty((8192, width), device='cuda', dtype=torch.bfloat16)
+                            projected = torch.empty((8192, columns), device='cuda', dtype=torch.bfloat16)
+                            retained.extend((positions, total, staging, projected))
+                            forward = PreparedPositionedProjection(source, weight, output, cu, positions, total,
+                                staging, projected, subrow_extents=(19, 27, 32, 64))
+                        elif reduction:
                             forward = PreparedReductionProjection(source, weight, output, cu,
                                 session=session, name="projection")
                         else:
@@ -115,6 +129,9 @@ def prepare(root, capacity, count, with_bias=False, rowwise=False, reduction=Fal
                         expected = torch.zeros_like(output)
                         retained.append(expected)
                         expected[:count].fill_(1 / 256 if with_bias else 1024)
+                        if positioned:
+                            expected[:count].copy_(torch.arange(start + 1, start + count + 1,
+                                device='cuda', dtype=torch.bfloat16)[:, None])
                         verify_replay(graphs["decode"], output, expected)
                         expected_bytes = expected.view(torch.uint8).cpu().numpy().tobytes()
                         buffers = dict(cu=cu, output=output)
@@ -146,18 +163,28 @@ def prepare(root, capacity, count, with_bias=False, rowwise=False, reduction=Fal
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", type=Path)
-    parser.add_argument("--capacity", type=int, choices=(8, 64), required=True)
+    parser.add_argument("--capacity", type=int, choices=(8, 64, 128, 256), required=True)
     parser.add_argument("--count", type=int, required=True)
     parser.add_argument("--with-bias", action="store_true")
     parser.add_argument("--rowwise", action="store_true")
     parser.add_argument("--reduction", action="store_true")
+    parser.add_argument("--positioned", action="store_true")
+    parser.add_argument("--start", type=int, default=0)
+    parser.add_argument("--sequence", type=int, default=165)
     args = parser.parse_args()
     if not 0 <= args.count <= args.capacity:
         parser.error("count must fit capacity")
     if args.reduction and (args.capacity != 8 or args.with_bias or args.rowwise):
         parser.error("fixed reduction requires capacity eight without bias or rowwise execution")
+    if args.positioned:
+        if args.with_bias or args.rowwise or args.reduction or not 0 <= args.start <= args.sequence <= 8192 \
+                or args.start + args.count > args.sequence:
+            parser.error("positioned fixture requires a bounded fragment without other projection modes")
+    elif args.capacity not in (8, 64) or args.start != 0 or args.sequence != 165:
+        parser.error("extended capacities and positions require the positioned fixture")
     args.directory.mkdir(parents=True, exist_ok=False)
     import sys
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from helios.tests.canonical_projection_package_fixture import prepare as prepare_importable
-    prepare_importable(args.directory, args.capacity, args.count, args.with_bias, args.rowwise, args.reduction)
+    prepare_importable(args.directory, args.capacity, args.count, args.with_bias, args.rowwise, args.reduction,
+        args.positioned, args.start, args.sequence)
