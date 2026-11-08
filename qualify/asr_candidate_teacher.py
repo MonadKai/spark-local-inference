@@ -99,6 +99,14 @@ def compare_row(actual, reference, budget, top1):
         passed=absolute <= budget["max_abs"] and relative <= budget["relative_l2"] and decision == top1)
 
 
+def validate_frozen_contract(frozen):
+    from ignition.recipes.qwen3_asr.numerics import POLICY
+
+    if frozen["numerical_policy"] != POLICY or frozen["candidate_used_for_budgets"] \
+            or frozen["generation_decision_top1_mismatches_allowed"] != 0:
+        raise ValueError("a frozen independent zero-top1-mismatch contract is required")
+
+
 def compare_trace(actual, reference, case, baseline, *, retired_after=None):
     import torch
 
@@ -269,9 +277,7 @@ def main():
         from asr_audio_network_nodes import AudioObservation, check_encoder_nodes
 
     frozen = json.loads(args.contract.read_bytes())
-    if frozen["numerical_policy"] != POLICY or frozen["candidate_used_for_budgets"] \
-            or frozen["generation_decision_top1_mismatches_allowed"] != 0:
-        raise ValueError("a frozen independent zero-top1-mismatch contract is required")
+    validate_frozen_contract(frozen)
 
     def index(roots, revision_key, revision):
         result = {}
