@@ -156,6 +156,34 @@ canonical–SDK interval; it does not promise to admit every other legal path.
 Local operator, state, determinism and recognition gates still apply independently.
 No candidate output participates in generating this configuration.
 
+`qualify/asr_candidate_teacher.py --full-prefill --prefill-network-nodes` adds
+preparation-only copies of the actual decoder module nodes. The collector remains
+under GPU qualification. Every observed graph must first reproduce the production
+graph's outputs and complete bounded persistent state exactly. The node check
+requires every frozen `thinker.model.*` stage, its original BF16 dtype and shape;
+only removal of the reference's first singleton batch dimension is allowed.
+Missing nodes, additional undeclared names and nonfinite values fail. SiLU module
+inputs/outputs absent from the original named-stage contract are retained as
+unbudgeted attribution, with finiteness checks; they do not acquire new empirical
+budgets or replace independent local operator checks. Observers execute serially,
+share bounded diagnostic destinations across capacities and read before reuse.
+These graphs are never exported or timed, and their node checks do not set the
+full-model numerical qualification flag.
+
+`--encoder-network-nodes` separately adds preparation-only copies of all 423
+frozen audio stages. CNN candidates are retained by declared physical batch and
+width, selected using the existing whole-input geometry, then cropped to the
+original node axes. CNN/conv_out concatenation retains padded tail chunk positions;
+encoder-layer and projector concatenation uses valid window feature counts.
+The additional audio graph must bridge complete bounded persistent state,
+publication records and the existing projection observations before its nodes
+are accepted. Failed fences retain owners and snapshots without restoring shared
+storage. These observers are under GPU qualification, with no new scalar budgets.
+`--focus-network-nodes` visits every frozen input on the B1 baseline to diagnose
+observers before repeating the full schedule matrix. It explicitly leaves complete
+teacher/state and full-prefill qualification false; final acceptance requires the
+ordinary B1/2/4/8, row-order and retirement matrix.
+
 Require **zero** top-1 differences on the last prefill row and all declared
 teacher rows. Compare every row directly, with lowest-ID BF16 ties; do not remove
 small-margin rows. Report every full-prefill top-1 difference too, including audio
