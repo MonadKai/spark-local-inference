@@ -1483,6 +1483,8 @@ can compile its sampling kernels; later launches reuse that installation's files
 Set `kernel_cache = "/data/flare-kernels"` in the configuration's `[paths]` table
 to move preparation caches together. Keep the default unless another storage
 location is needed.
+Ignition places cuTile's compiler cache in the `cutile` subdirectory of this
+configured root, including for rank and compiler processes.
 
 `ignition export` prints checkpoint resolution, selected GPUs, preparation settings, and
 each phase's counts and elapsed time. The phases include weight loading,

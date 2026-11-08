@@ -502,7 +502,7 @@ def test_environment_selects_gpus_by_uuid_and_places_caches(monkeypatch, tmp_pat
     monkeypatch.setattr(environment.patches, "apply", lambda: ())
     monkeypatch.setenv("HOME", str(tmp_path))
     for name in ("CUDA_VISIBLE_DEVICES", "CUDA_HOME", "B12X_COMPILE_CACHE_DIR", "TRITON_CACHE_DIR",
-                 "TORCHINDUCTOR_CACHE_DIR", "HF_HUB_CACHE", "FLASHINFER_WORKSPACE_BASE"):
+                 "TORCHINDUCTOR_CACHE_DIR", "CUDA_TILE_CACHE_DIR", "HF_HUB_CACHE", "FLASHINFER_WORKSPACE_BASE"):
         monkeypatch.setenv(name, "previous")
     path = tmp_path / "config.toml"
     path.write_text(f'[paths]\ncuda = "{tmp_path}/cuda"\nkernel_cache = "{tmp_path}/kernels"\n')
@@ -513,6 +513,7 @@ def test_environment_selects_gpus_by_uuid_and_places_caches(monkeypatch, tmp_pat
     assert Path(os.environ["FLASHINFER_WORKSPACE_BASE"]).is_relative_to(tmp_path / "kernels" / "flashinfer")
     assert os.environ["TRITON_CACHE_DIR"] == f"{tmp_path}/kernels/triton"
     assert os.environ["TORCHINDUCTOR_CACHE_DIR"] == f"{tmp_path}/kernels/inductor"
+    assert os.environ["CUDA_TILE_CACHE_DIR"] == f"{tmp_path}/kernels/cutile"
     assert os.environ["HF_HUB_CACHE"] == f"{tmp_path}/.cache/huggingface/hub"
     assert os.environ["CUDA_HOME"] == f"{tmp_path}/cuda"
 
@@ -531,7 +532,7 @@ def test_environment_leaves_pip_cuda_toolchain_selection_to_cutile(monkeypatch, 
     monkeypatch.setenv("HOME", str(tmp_path))
     for name in ("CUDA_VISIBLE_DEVICES", "CUDA_PATH", "TRITON_PTXAS.EXE_PATH",
                  "B12X_COMPILE_CACHE_DIR", "TRITON_CACHE_DIR",
-                 "TORCHINDUCTOR_CACHE_DIR", "HF_HUB_CACHE", "FLASHINFER_WORKSPACE_BASE"):
+                 "TORCHINDUCTOR_CACHE_DIR", "CUDA_TILE_CACHE_DIR", "HF_HUB_CACHE", "FLASHINFER_WORKSPACE_BASE"):
         monkeypatch.setenv(name, "previous")
     if inherited_cuda is None:
         monkeypatch.delenv("CUDA_HOME", raising=False)
@@ -554,7 +555,7 @@ def test_environment_sets_the_recipe_b12x_settings_over_inherited_values(monkeyp
     monkeypatch.setattr(environment.patches, "apply", lambda: ())
     monkeypatch.setenv("HOME", str(tmp_path))
     for name in ("CUDA_VISIBLE_DEVICES", "CUDA_HOME", "B12X_COMPILE_CACHE_DIR", "TRITON_CACHE_DIR",
-                 "TORCHINDUCTOR_CACHE_DIR", "HF_HUB_CACHE", "FLASHINFER_WORKSPACE_BASE", *RECIPE.b12x_environment):
+                 "TORCHINDUCTOR_CACHE_DIR", "CUDA_TILE_CACHE_DIR", "HF_HUB_CACHE", "FLASHINFER_WORKSPACE_BASE", *RECIPE.b12x_environment):
         monkeypatch.setenv(name, "inherited")
     monkeypatch.setenv("B12X_PCIE_ALLREDUCE_ALGORITHM", "hierarchical")
     path = tmp_path / "config.toml"
