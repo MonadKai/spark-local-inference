@@ -16,10 +16,12 @@ def check(prepared, path):
     from ignition.components.sampling import ERROR, RequestAdmission
     from ignition.preparation.failure import drain_or_retain, retain_on_failed_drain
     from ignition.recipes.qwen3_asr.audio_generation import PreparedAudioGeneration
+    from ignition.preparation.execution import select_prefill_graph
 
     catalog, = (value for value in prepared.resources if isinstance(value, dict)
         and isinstance(value.get("audio100"), PreparedAudioGeneration))
-    exemplar = catalog["prefill64"]
+    prefill = select_prefill_graph(prepared.signatures, tokens=32, initial_tokens=32)
+    exemplar = catalog[prefill]
     requests, uploads, pool = exemplar.batch.requests, exemplar.batch.inputs, exemplar.decoder.pool
     # Preparation reserves more continuation rows than it maps physically.
     # A tensor's virtual shape must never be used as its readable extent.
@@ -101,7 +103,7 @@ def check(prepared, path):
                         uploads.token_ids.zero_()
                         uploads.token_ids[:32].fill_(1000 + page)
                         uploads.sample_enabled.zero_()
-                        replay("prefill64")
+                        replay(prefill)
                         assert requests.error_code[slot] == 0 and requests.consumed_tokens[slot] == 32
                         requests.pending_token[slot] = 1000 + page
                     uploads.live_rows.fill_(live)

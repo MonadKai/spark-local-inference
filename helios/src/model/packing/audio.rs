@@ -130,7 +130,7 @@ mod tests {
             }
             inputs.push(crate::model::testing::binding("audio_slot", ValueSource::AudioFeatureSlot, InputIndexing::Scalar, 0, -1));
             let name = format!("audio{frames}");
-            manifest.graphs.push(GraphDescriptor { name: name.clone(), kind: GraphKind::AudioEncode, handle: 1,
+            manifest.graphs.push(GraphDescriptor { initial_prompt_capacity: 0, name: name.clone(), kind: GraphKind::AudioEncode, handle: 1,
                 sampling_mode: SamplingMode::General, batch_capacity: 1, token_capacity: frames,
                 prefill_capacity: 0, draft_tokens: 0, packed_token_capacity: 0, confidence_width: 0,
                 estimated_duration_ns: 1000, input_bindings: vec![], tuned_bindings: vec![] });
@@ -166,7 +166,7 @@ mod tests {
                                                (99, 0, 100), (99, 0, 800)] {
                 let audio = PreparedAudio::new(vec![0.; 128 * frames], frames,
                     config.contract.audio.as_ref().unwrap()).unwrap();
-                let step = ScheduledStep { kind: GraphKind::AudioEncode, batch_capacity: 1,
+                let step = ScheduledStep { initial_prompt_capacity: 0, kind: GraphKind::AudioEncode, batch_capacity: 1,
                     token_capacity: capacity, draft_tokens: 0, packed_token_capacity: 0,
                     mixed: None, requires_feedback: true,
                     lanes: vec![ScheduledLane { request: handle, start_position: 0, tokens: 0 }] };
@@ -277,7 +277,7 @@ mod tests {
         let source: Vec<f32> = (0..128 * 801).map(|value| value as f32 / 100.).collect();
         let audio = PreparedAudio::new(source.clone(), 801, config.contract.audio.as_ref().unwrap()).unwrap();
         let handle = RequestHandle { slot: 2, generation: 7 };
-        let mut step = ScheduledStep { kind: GraphKind::AudioEncode, batch_capacity: 1, token_capacity: 800,
+        let mut step = ScheduledStep { initial_prompt_capacity: 0, kind: GraphKind::AudioEncode, batch_capacity: 1, token_capacity: 800,
             draft_tokens: 0, packed_token_capacity: 0, mixed: None, requires_feedback: true,
             lanes: vec![ScheduledLane { request: handle, start_position: 0, tokens: 0 }] };
         for (window, frames, count, offset) in [(0, 800, 104, 0), (1, 1, 1, 104)] {

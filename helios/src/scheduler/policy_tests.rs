@@ -53,7 +53,7 @@ fn equal_counts_from_different_cohorts_and_different_logical_prefixes_are_not_pr
     let mut s = engine(4, true);
     let handles = (0..2).map(|id| add(&mut s, id, 64, 128)).collect::<Vec<_>>();
     ready(&mut s, &handles);
-    let candidate = Candidate { host_lengths: None, draft_tokens: 0, kind: GraphKind::Speculative, mask: 1 << handles[0].slot,
+    let candidate = Candidate { initial_prompt_capacity: 0, host_lengths: None, draft_tokens: 0, kind: GraphKind::Speculative, mask: 1 << handles[0].slot,
         batch: 1, capacity: 1, packed_token_capacity: 1, prefill_capacity: 0, prefill_slot: None,
         work: 0, duration_ns: MS, rate: ValueRate::new(MS, 1.0, 0.0), feedback: true,
         };
@@ -1165,7 +1165,7 @@ fn interactive_engine(active: usize, speculative: bool) -> RequestScheduler {
 }
 
 fn set_cost(s: &mut RequestScheduler, kind: GraphKind, batch: usize, capacity: usize, nanos: u64) {
-    let step = ScheduledStep {
+    let step = ScheduledStep { initial_prompt_capacity: 0,
         draft_tokens: if kind == GraphKind::Speculative { capacity - 1 } else { 0 },
         packed_token_capacity: if kind == GraphKind::Speculative { batch * capacity } else { 0 },
         kind,
@@ -1773,7 +1773,7 @@ fn mixed_engine(
             .unwrap();
     }
     for &(batch, width, prefill, nanos) in shapes {
-        graphs.push(crate::execution::GraphDescriptor { tuned_bindings: vec![], confidence_width: 0, draft_tokens: 0, packed_token_capacity: 0,
+        graphs.push(crate::execution::GraphDescriptor { initial_prompt_capacity: 0, tuned_bindings: vec![], confidence_width: 0, draft_tokens: 0, packed_token_capacity: 0,
             name: format!("mixed-{batch}-{prefill}-{width}"),
             kind: GraphKind::Mixed,
             sampling_mode: SamplingMode::General,
@@ -1962,7 +1962,7 @@ fn mixed_cost_observations_and_expiry_are_specific_to_both_token_capacities() {
         true,
         &[(2, 1, 64, MS), (2, 8, 64, 2 * MS), (2, 8, 512, 3 * MS)],
     );
-    let make = |width, prefill| ScheduledStep { draft_tokens: 0, packed_token_capacity: 0,
+    let make = |width, prefill| ScheduledStep { initial_prompt_capacity: 0, draft_tokens: 0, packed_token_capacity: 0,
         kind: GraphKind::Mixed,
         batch_capacity: 2,
         token_capacity: width,
@@ -2288,9 +2288,9 @@ fn refresh_skips_infeasible_ages_and_resolves_the_oldest_feasible_utility_group(
     let mut s = engine(1, true);
     let h = add(&mut s, 1, 64, 4096);
     ready(&mut s, &[h]);
-    let key = |width| cost::Key { drafts: width - 1, kind: GraphKind::Speculative, batch: 1,
+    let key = |width| cost::Key { initial_prompt_capacity: 0, drafts: width - 1, kind: GraphKind::Speculative, batch: 1,
         tokens: width, prefill: 0, packed: width };
-    let infeasible = cost::Key { drafts: 0, kind: GraphKind::Prefill, batch: 1,
+    let infeasible = cost::Key { initial_prompt_capacity: 0, drafts: 0, kind: GraphKind::Prefill, batch: 1,
         tokens: 64, prefill: 0, packed: 0 };
     let base = s.now_ns;
     s.advance_to(base + MS).unwrap();
@@ -3187,7 +3187,7 @@ fn acceptance_probe_charges_one_round_preserves_timing_credit_and_carries_debt()
     state.complete(PlanOrigin::Ordinary, gpu_time(495 * MS));
     assert!(state.acceptance_ready());
     let timing_credit = state.credit_ns;
-    let round = ScheduledStep { draft_tokens: 7, kind: GraphKind::Speculative,
+    let round = ScheduledStep { initial_prompt_capacity: 0, draft_tokens: 7, kind: GraphKind::Speculative,
         batch_capacity: 1, token_capacity: 8, packed_token_capacity: 8,
         mixed: None, requires_feedback: true,
         lanes: vec![ScheduledLane { request: RequestHandle { slot: 0, generation: 1 }, start_position: 65, tokens: 8 }] };
@@ -3209,7 +3209,7 @@ fn joined_round_engine(allocation: crate::execution::PrefixAllocation) -> Reques
     let mut scheduler = engine(2, true);
     let mut graphs = super::tests::duration_graphs(2);
     graphs.iter_mut().for_each(|graph| graph.estimated_duration_ns = 10 * MS);
-    let graph = crate::execution::GraphDescriptor { tuned_bindings: vec![],
+    let graph = crate::execution::GraphDescriptor { initial_prompt_capacity: 0, tuned_bindings: vec![],
         confidence_width: if allocation == crate::execution::PrefixAllocation::Gpu { 7 } else { 0 },
         name: "speculative-b2-d7-w8-p5".into(),
         kind: GraphKind::Speculative, sampling_mode: SamplingMode::General,
@@ -3356,7 +3356,7 @@ fn funded_acceptance_probe_compares_offered_prefixes_across_equal_width_budgets(
     let mut graphs = super::tests::duration_graphs(2);
     graphs.iter_mut().for_each(|graph| graph.estimated_duration_ns = 10 * MS);
     for (packed, duration) in [(4, MS), (7, 13 * MS / 10)] {
-        graphs.push(crate::execution::GraphDescriptor { tuned_bindings: vec![], confidence_width: 0,
+        graphs.push(crate::execution::GraphDescriptor { initial_prompt_capacity: 0, tuned_bindings: vec![], confidence_width: 0,
             name: format!("speculative-b2-d7-w8-p{packed}"), kind: GraphKind::Speculative,
             sampling_mode: SamplingMode::General, draft_tokens: 7, handle: 1,
             batch_capacity: 2, token_capacity: 8, packed_token_capacity: packed,
@@ -3494,7 +3494,7 @@ fn registered_ragged_graphs_preserve_physical_width_above_average_row_budget() {
             let mut graphs = super::tests::duration_graphs(batch);
             graphs.retain(|graph| graph.kind != GraphKind::Speculative || graph.token_capacity == 1);
             for graph in &mut graphs { graph.estimated_duration_ns = 10 * MS; }
-            graphs.push(crate::execution::GraphDescriptor { tuned_bindings: vec![],
+            graphs.push(crate::execution::GraphDescriptor { initial_prompt_capacity: 0, tuned_bindings: vec![],
                 name: format!("speculative-b{batch}-d7-w8-p{packed}"),
                 kind: GraphKind::Speculative, sampling_mode: SamplingMode::General,
                 confidence_width: if allocation == PrefixAllocation::Gpu { 7 } else { 0 },
@@ -3549,7 +3549,7 @@ fn fixed_host_round_engine(batch: usize, packed: usize) -> RequestScheduler {
     scheduler.fixed_speculative_width(Some(8)).unwrap();
     let mut graphs = super::tests::duration_graphs(4);
     for graph in &mut graphs { graph.estimated_duration_ns = 10 * MS; }
-    graphs.push(crate::execution::GraphDescriptor { tuned_bindings: vec![], confidence_width: 0,
+    graphs.push(crate::execution::GraphDescriptor { initial_prompt_capacity: 0, tuned_bindings: vec![], confidence_width: 0,
         name: format!("speculative-b{batch}-d7-w8-p{packed}"), kind: GraphKind::Speculative,
         sampling_mode: SamplingMode::General, draft_tokens: 7, handle: 1,
         batch_capacity: batch, token_capacity: 8, packed_token_capacity: packed,
@@ -3634,7 +3634,7 @@ fn mixed_tail_planning_cpu_measurement() {
         let mut graphs = super::tests::duration_graphs(active);
         graphs.retain(|graph| graph.kind != GraphKind::Speculative || graph.token_capacity == 1);
         for &(batch, packed) in &shapes {
-            graphs.push(crate::execution::GraphDescriptor { tuned_bindings: vec![], confidence_width: if mode == "adaptive_gpu" { 7 } else { 0 },
+            graphs.push(crate::execution::GraphDescriptor { initial_prompt_capacity: 0, tuned_bindings: vec![], confidence_width: if mode == "adaptive_gpu" { 7 } else { 0 },
                 name: format!("speculative-b{batch}-d7-w8-p{packed}"), kind: GraphKind::Speculative,
                 sampling_mode: SamplingMode::General, draft_tokens: 7, handle: 1,
                 batch_capacity: batch, token_capacity: 8, packed_token_capacity: packed,
@@ -3763,7 +3763,7 @@ fn single_lane_packed_engine(page_tokens: usize) -> RequestScheduler {
     scheduler.enable_speculation(&[1, 8]).unwrap();
     let mut graphs = super::tests::duration_graphs(1);
     for graph in &mut graphs { graph.estimated_duration_ns = 10 * MS; }
-    graphs.push(crate::execution::GraphDescriptor { tuned_bindings: vec![], confidence_width: 7,
+    graphs.push(crate::execution::GraphDescriptor { initial_prompt_capacity: 0, tuned_bindings: vec![], confidence_width: 7,
         name: "speculative-b1-d7-w8-p3".into(), kind: GraphKind::Speculative,
         sampling_mode: SamplingMode::General, draft_tokens: 7, handle: 1,
         batch_capacity: 1, token_capacity: 8, packed_token_capacity: 3,
@@ -3909,7 +3909,7 @@ fn fixed_host_prefixes_preserve_lengths_above_255() {
     let mut scheduler = RequestScheduler::new([0; 32], fixture.limits.clone(), capabilities).unwrap();
     scheduler.enable_speculation(&[1, 257]).unwrap();
     scheduler.fixed_speculative_width(Some(257)).unwrap();
-    let graphs = vec![crate::execution::GraphDescriptor {
+    let graphs = vec![crate::execution::GraphDescriptor { initial_prompt_capacity: 0,
         tuned_bindings: vec![], confidence_width: 0, name: "speculative-b1-d256-w257-p257".into(),
         kind: GraphKind::Speculative, sampling_mode: SamplingMode::General, draft_tokens: 256,
         handle: 1, batch_capacity: 1, token_capacity: 257, packed_token_capacity: 257,

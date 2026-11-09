@@ -63,6 +63,10 @@ fn main() {
                 ".flare.runtime.ExecutionGraph.packed_token_capacity",
                 "#[serde(default)]",
             )
+            .field_attribute(
+                ".flare.runtime.ExecutionGraph.initial_prompt_capacity",
+                "#[serde(default)]",
+            )
             .compile_protos(&["proto/runtime_package.proto"], &["proto"])
             .expect("compile runtime package protobuf schema");
         // The payload schema imports the execution schema and refers to the generated types

@@ -29,31 +29,34 @@ def graph_catalog(progress, signatures):
     from rich.table import Table
 
     counts = Counter((s.kind, s.speculation_enabled, s.draft_tokens or 0,
-                      s.batch_capacity, s.token_capacity, s.packed_token_capacity, s.prefill_capacity)
+                      s.batch_capacity, s.token_capacity, s.packed_token_capacity, s.prefill_capacity,
+                      s.initial_prompt_capacity)
                      for s in signatures)
+    initial_axis = any(key[-1] for key in counts)
     groups = defaultdict(list)
-    for (kind, mode, drafts, batch, width, packed, prefill), copies in counts.items():
-        groups[kind, mode, drafts, copies].append(((batch,), (width,), (packed,), (prefill,)))
+    for (kind, mode, drafts, batch, width, packed, prefill, initial), copies in counts.items():
+        groups[kind, mode, drafts, copies].append(((batch,), (width,), (packed,), (prefill,), (initial,)))
     table = Table(title=f"Graph catalog: {sum(counts.values())} graphs (before compilation/capture)", title_justify="left",
                   box=None, padding=(0, 1), caption="B=batch  W=logical width/tokens  P=packed rows  D=draft depth",
                   caption_justify="left")
-    for name in ("Kind", "Spec", "B", "W", "P", "D", "Prefill", "Count"):
+    for name in ("Kind", "Spec", "B", "W", "P", "D", "Prefill", *(("Initial",) if initial_axis else ()), "Count"):
         table.add_column(name, overflow="fold", no_wrap=name == "Kind")
     def values(items):
         return ",".join(str(value) if value else "-" for value in items)
 
     for (kind, mode, drafts, copies), shapes in groups.items():
         # Merge one axis only when every other axis has identical coverage.
-        for axis in (2, 0, 1, 3):
+        for axis in (2, 0, 1, 3, 4):
             merged = defaultdict(set)
             for shape in shapes:
                 merged[shape[:axis] + shape[axis + 1:]].update(shape[axis])
             shapes = [key[:axis] + (tuple(sorted(values)),) + key[axis:]
                       for key, values in merged.items()]
-        for batch, width, packed, prefill in shapes:
+        for batch, width, packed, prefill, initial in shapes:
             table.add_row(kind, "-" if mode is None else "on" if mode else "off",
                           values(batch), values(width), values(packed), str(drafts) if drafts else "-",
-                          values(prefill), str(copies * prod(map(len, (batch, width, packed, prefill)))))
+                          values(prefill), *((values(initial),) if initial_axis else ()),
+                          str(copies * prod(map(len, (batch, width, packed, prefill, initial)))))
     if isinstance(progress, StartupProgress):
         progress.console.print(table)
     else:

@@ -17,12 +17,15 @@ pytestmark = pytest.mark.skipif(os.environ.get("FLARE_RUN_CUDA_TESTS") != "1",
     reason="requires FLARE_RUN_CUDA_TESTS=1 and an assigned GPU")
 
 
-@pytest.mark.parametrize("capacity,length,extents", [
-    (64, 19, (19, 27, 32)), (256, 165, (19, 27, 32, 64)),
-    (8192, 165, (19, 27, 32, 64)),
+@pytest.mark.parametrize("capacity,length,extents,fragment_rows", [
+    (64, 19, (19, 27, 32), 19), (256, 165, (19, 27, 32, 64), 165),
+    (8192, 165, (19, 27, 32, 64), 165),
+    (128, 19, (19, 27, 32, 64), 4096),
+    (256, 123, (19, 27, 32, 64), 4096),
+    (512, 443, (19, 27, 32, 64), 4096),
 ])
 @torch.no_grad()
-def test_full_and_fragmented_projection_keep_bytes_and_recover(capacity, length, extents):
+def test_full_and_fragmented_projection_keep_bytes_and_recover(capacity, length, extents, fragment_rows):
     owners, graphs = [], []
     with retain_on_failed_drain(0, owners, graphs), ModuleImages() as images:
         owners.append(images)
@@ -36,7 +39,7 @@ def test_full_and_fragmented_projection_keep_bytes_and_recover(capacity, length,
         expected = torch.nn.functional.linear(expected_input[:selected_extent], weight)[:length].cpu()
         owners.append(expected_input)
         observed = []
-        for begin, count, physical in [(0, length, length), (0, 7, 8), (7, length - 7, length)]:
+        for begin, count, physical in [(0, length, fragment_rows), (0, 7, 8), (7, length - 7, length)]:
             inputs = torch.full((physical, 128), float("nan"), device="cuda", dtype=torch.bfloat16)
             inputs[:count].copy_(source[begin:begin + count])
             guards = [torch.full((rows + 2, columns), 123., device="cuda", dtype=torch.bfloat16)

@@ -365,7 +365,7 @@ pub fn scheduler_capabilities_with_manifest(
         if !inputs.is_empty() {
             capabilities.completion_inputs.push(((graph.kind, graph.batch_capacity,
                 graph.draft_tokens, graph.token_capacity, graph.packed_token_capacity,
-                graph.prefill_capacity), inputs));
+                graph.prefill_capacity, graph.initial_prompt_capacity), inputs));
         }
         if graph.kind == GraphKind::Speculative {
             let allocation = if semantics.inputs.iter().any(|binding|

@@ -31,6 +31,7 @@ fn validate_inner(config: &ModelConfig, manifest: &ExecutionManifest) -> Result<
         return Err("model logprob capacity differs from its declared output buffers".into());
     }
     config.contract.validate(manifest)?;
+    validate_initial_prompt_geometry(config, manifest)?;
     config.sampling_ranges.validate(&config.sampling_defaults)?;
     if config
         .sampling_ranges
@@ -117,7 +118,7 @@ fn validate_inner(config: &ModelConfig, manifest: &ExecutionManifest) -> Result<
                 );
             }
         }
-        select_shape_with_drafts(
+        select_shape_at_initial_prompt_capacity(
             config,
             manifest,
             graph.kind,
@@ -126,6 +127,7 @@ fn validate_inner(config: &ModelConfig, manifest: &ExecutionManifest) -> Result<
             graph.prefill_capacity,
             graph.packed_token_capacity,
             graph.draft_tokens,
+            graph.initial_prompt_capacity,
             graph.sampling_mode,
         )?;
     }
@@ -143,15 +145,12 @@ fn validate_inner(config: &ModelConfig, manifest: &ExecutionManifest) -> Result<
             select(config, manifest, kind, batch, 1, 0, SamplingMode::General)?;
         }
     }
-    select(
-        config,
-        manifest,
-        GraphKind::Prefill,
-        1,
-        config.limits.prefill_chunk_size,
-        0,
-        SamplingMode::General,
-    )?;
+    let initial_capacities = initial_prompt_capacities(manifest);
+    if initial_capacities.is_empty() { return Err("prepared model lacks prefill graphs".into()); }
+    for initial in initial_capacities {
+        select_shape_at_initial_prompt_capacity(config, manifest, GraphKind::Prefill, 1,
+            config.limits.prefill_chunk_size, 0, 0, 0, initial, SamplingMode::General)?;
+    }
     for &tokens in &config.contract.vision.patch_capacities {
         select(
             config,
@@ -232,6 +231,15 @@ pub fn select_shape_with_drafts(
     config: &ModelConfig, manifest: &ExecutionManifest, kind: GraphKind,
     batch: usize, tokens: usize, prefill: usize, packed: usize, drafts: usize, mode: SamplingMode,
 ) -> Result<usize> {
+    select_shape_at_initial_prompt_capacity(config, manifest, kind, batch, tokens, prefill,
+        packed, drafts, 0, mode)
+}
+
+pub fn select_shape_at_initial_prompt_capacity(
+    config: &ModelConfig, manifest: &ExecutionManifest, kind: GraphKind,
+    batch: usize, tokens: usize, prefill: usize, packed: usize, drafts: usize,
+    initial_prompt_capacity: usize, mode: SamplingMode,
+) -> Result<usize> {
     let declared = batches(config).any(|capacity| capacity == batch)
         && match kind {
             GraphKind::Mixed => {
@@ -265,7 +273,9 @@ pub fn select_shape_with_drafts(
             }
             _ => tokens == 1,
         };
-    if !declared || (kind != GraphKind::Mixed && prefill != 0) {
+    if !declared || (kind != GraphKind::Mixed && prefill != 0)
+        || initial_prompt_capacity > i32::MAX as usize
+        || (initial_prompt_capacity != 0 && !matches!(kind, GraphKind::Prefill | GraphKind::ScoredPrefill)) {
         return Err(format!(
             "undeclared prepared graph kind or capacity: {kind:?}, batch {batch}, tokens {tokens}"
         )
@@ -276,6 +286,7 @@ pub fn select_shape_with_drafts(
             && graph.batch_capacity == batch
             && graph.token_capacity == tokens
             && graph.prefill_capacity == prefill
+            && graph.initial_prompt_capacity == initial_prompt_capacity
             && graph.packed_token_capacity == packed
             && graph.draft_tokens == drafts
             && graph.sampling_mode == mode
@@ -287,4 +298,62 @@ pub fn select_shape_with_drafts(
         return Err("ambiguous prepared model graph capacity".into());
     }
     Ok(index)
+}
+
+/// Use the complete prepared catalog, independent of a fragment or queue state.
+pub fn initial_prompt_capacities(manifest: &ExecutionManifest) -> Vec<usize> {
+    manifest.graphs.iter().filter(|graph| graph.kind == GraphKind::Prefill)
+        .map(|graph| graph.initial_prompt_capacity).collect::<std::collections::BTreeSet<_>>()
+        .into_iter().collect()
+}
+
+pub fn initial_prompt_capacity(manifest: &ExecutionManifest, initial_tokens: usize) -> Result<usize> {
+    let capacities = initial_prompt_capacities(manifest);
+    if capacities == [0] { return Ok(0); }
+    if capacities.contains(&0) { return Err("ambiguous initial prompt capacity catalog".into()); }
+    if initial_tokens == 0 { return Err("initial prompt length must be positive".into()); }
+    capacities.into_iter().find(|capacity| *capacity >= initial_tokens)
+        .ok_or_else(|| "initial prompt does not fit the prepared arithmetic extent".into())
+}
+
+/// Validate the closed initial-extent catalog before projecting its shared M axis.
+pub fn prefill_fragment_capacities(config: &ModelConfig, manifest: &ExecutionManifest, kind: GraphKind) -> Result<Vec<usize>> {
+    validate_initial_prompt_geometry(config, manifest)?;
+    let capacities = manifest.graphs.iter().filter(|graph| graph.kind == kind)
+        .map(|graph| graph.token_capacity).collect::<Vec<_>>();
+    if manifest.graphs.iter().any(|graph| graph.initial_prompt_capacity != 0) {
+        Ok(capacities.into_iter().collect::<std::collections::BTreeSet<_>>().into_iter().collect())
+    } else {
+        Ok(capacities)
+    }
+}
+
+fn validate_initial_prompt_geometry(config: &ModelConfig, manifest: &ExecutionManifest) -> Result<()> {
+    let capacities = initial_prompt_capacities(manifest);
+    let bounded = manifest.graphs.iter().any(|graph| graph.initial_prompt_capacity != 0);
+    if !bounded { return Ok(()); }
+    if capacities.is_empty() || capacities.contains(&0)
+        || capacities.last().is_none_or(|capacity| *capacity < config.prepared_sequence_tokens)
+        || manifest.graphs.iter().any(|graph| graph.kind == GraphKind::Mixed) {
+        return Err("initial prompt extents require complete prefill coverage without mixed graphs".into());
+    }
+    let mut shapes = std::collections::BTreeMap::new();
+    for graph in &manifest.graphs {
+        if !matches!(graph.kind, GraphKind::Prefill | GraphKind::ScoredPrefill) { continue; }
+        if !capacities.contains(&graph.initial_prompt_capacity) {
+            return Err("prefill catalogs must share their initial prompt extents".into());
+        }
+        let shape = (graph.kind as u8, graph.batch_capacity, graph.token_capacity,
+            graph.prefill_capacity, graph.packed_token_capacity, graph.draft_tokens,
+            graph.confidence_width, graph.sampling_mode as u8);
+        if !shapes.entry(graph.initial_prompt_capacity).or_insert_with(std::collections::BTreeSet::new)
+            .insert(shape) {
+            return Err("duplicate initial prompt graph geometry".into());
+        }
+    }
+    let first = &shapes[&capacities[0]];
+    if shapes.len() != capacities.len() || shapes.values().any(|shape| shape != first) {
+        return Err("every initial prompt extent must cover the same complete fragment catalog".into());
+    }
+    Ok(())
 }

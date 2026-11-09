@@ -28,8 +28,9 @@ class ReplayScratch:
 
     @classmethod
     def allocate(cls, tokens, context, buffers):
-        if type(context) is not int or not tokens <= context <= 8192:
-            raise ValueError("ASR replay storage must cover its fragment within context")
+        if type(context) is not int or not 1 <= context <= 8192 \
+                or type(tokens) is not int or not 1 <= tokens <= 8192:
+            raise ValueError("ASR prompt and fragment storage require independent bounded extents")
         return cls(context, buffers.zeros((context * 6144,), torch.bfloat16),
             buffers.zeros((context * 6144,), torch.bfloat16),
             buffers.zeros((tokens * 6144,), torch.bfloat16))
@@ -50,7 +51,8 @@ class PreparedReplayProjection(torch.nn.Module):
         projected = scratch.full_output[:scratch.context * output.shape[1]].view(scratch.context, output.shape[1])
         self.history_output = scratch.history_output[:output.numel()].view_as(output)
         self.prompt = PreparedPositionedProjection(source, module.weight, output,
-            prompt_count, positions, original, staging, projected, subrow_extents=(19, 27, 32, 64))
+            prompt_count, positions, original, staging, projected,
+            subrow_extents=tuple(extent for extent in (19, 27, 32, 64) if extent < scratch.context))
         self.history = PreparedReductionProjection(source, module.weight, self.history_output,
             history_count, session=session, name=name + ".history")
 

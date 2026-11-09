@@ -164,7 +164,7 @@ pub(super) fn manifest() -> ExecutionManifest {
             strides: vec![1],
         },
     ];
-    let graph = GraphDescriptor { tuned_bindings: vec![], confidence_width: 0, draft_tokens: 0, packed_token_capacity: 0,
+    let graph = GraphDescriptor { initial_prompt_capacity: 0, tuned_bindings: vec![], confidence_width: 0, draft_tokens: 0, packed_token_capacity: 0,
         name: "decode4".into(),
         kind: GraphKind::Decode,
         sampling_mode: SamplingMode::General,
@@ -1170,7 +1170,7 @@ fn confidence_readback_is_declared_per_graph_and_bounded_by_frame_capacity() {
 #[test]
 fn scheduler_width_one_round_has_no_proposal_work() {
     use crate::scheduler::{ScheduledLane, ScheduledStep, RequestHandle};
-    let mut step = ScheduledStep {
+    let mut step = ScheduledStep { initial_prompt_capacity: 0,
         kind: GraphKind::Speculative, batch_capacity: 1, token_capacity: 1,
         draft_tokens: 0, packed_token_capacity: 1, mixed: None, requires_feedback: false,
         lanes: vec![ScheduledLane { request: RequestHandle { slot: 0, generation: 1 }, start_position: 64, tokens: 1 }],

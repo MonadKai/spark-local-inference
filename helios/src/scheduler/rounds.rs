@@ -287,7 +287,7 @@ impl RequestScheduler {
         for &(slot, length, _) in &offers {
             if mask & (1 << slot) != 0 { host_lengths[slot] = length; }
         }
-        Some(Candidate { host_lengths: Some(host_lengths), draft_tokens: shape.drafts, kind: GraphKind::Speculative,
+        Some(Candidate { initial_prompt_capacity: 0, host_lengths: Some(host_lengths), draft_tokens: shape.drafts, kind: GraphKind::Speculative,
             mask, batch: shape.batch, capacity: shape.width, packed_token_capacity: shape.tokens,
             prefill_capacity: 0, prefill_slot: None, work: 0, duration_ns: shape.nanos,
             rate: ValueRate::new(shape.nanos, value, age), feedback: false })
@@ -426,7 +426,7 @@ impl RequestScheduler {
                 }
             }
             if let Some((mask, value, host_lengths)) = best {
-                output.push(Candidate { host_lengths, draft_tokens: shape.drafts, kind: GraphKind::Speculative,
+                output.push(Candidate { initial_prompt_capacity: 0, host_lengths, draft_tokens: shape.drafts, kind: GraphKind::Speculative,
                     mask, batch: shape.batch, capacity: shape.width, packed_token_capacity: shape.tokens,
                     prefill_capacity: 0, prefill_slot: None, work: 0, duration_ns: nanos,
                     rate: ValueRate::new(nanos, value, age), feedback: false,

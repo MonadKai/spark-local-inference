@@ -53,6 +53,7 @@ impl NativeResources {
                     .position(|name| *name == g.name)
                     .ok_or_else(|| invalid("execution references an unknown graph"))?;
                 Ok(GraphDescriptor {
+                    initial_prompt_capacity: size(g.initial_prompt_capacity)?,
                     tuned_bindings: g.tuned_bindings.iter().map(|binding| TunedBinding {
                         buffer: binding.buffer.clone(), tuning_graph: binding.tuning_graph.clone(),
                     }).collect(),

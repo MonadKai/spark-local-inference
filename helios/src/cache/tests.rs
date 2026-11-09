@@ -139,12 +139,28 @@ fn immutable_request_values_match_independent_blake2b_vectors() {
             "5c8acbcee1087934ded58066ff27339a", "0f9f9a5c5f899d58bf7cf48e09ae277d"),
     ] {
         let event = ConditioningEvent::request_value(44, value);
+        assert_eq!(ConditioningEvent::request_value_with_extent(44, value, 0), event);
         assert_eq!(event.position, 0);
         assert_eq!(hexadecimal(event.identity), identity);
         let mut history = PrefixHistory::new([9; 32]);
         history.append(&(0..65).collect::<Vec<_>>(), &[event]).unwrap();
         assert_eq!(hexadecimal(history.key_at(64).unwrap().digest), block);
         assert_eq!(hexadecimal(history.key_at(65).unwrap().digest), tail);
+    }
+}
+
+#[test]
+fn immutable_request_extents_match_independent_blake2b_vectors() {
+    // hashlib.blake2b(digest_size=32) over the domain and little-endian i32/u64/u64.
+    for (value, extent, identity) in [
+        (65, 128, "6051cecb60f2cbcc152301e4c7da70ae3a4c6e9e553e88276e1452ad21606e6f"),
+        (65, 256, "281be925abd7e13773709372b39dec386d6e8ae3b2c83ae619a7f9748f924eda"),
+        (66, 128, "bc44d3b393e2ff61ec8e9e5e90b319288b9b716abae9ff9d9d47e0562c2fec69"),
+        (8192, 8192, "dab6bb290c983d5f897904e70e108df59a4df7e38b4947035713bb2119ddf71d"),
+    ] {
+        let event = ConditioningEvent::request_value_with_extent(44, value, extent);
+        assert_eq!(event.position, 0);
+        assert_eq!(hexadecimal(event.identity), identity);
     }
 }
 

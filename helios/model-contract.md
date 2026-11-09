@@ -119,6 +119,17 @@ An absent or empty list preserves the old history and hash bytes. Native packing
 and cache identity do not choose any model arithmetic or graph geometry; captured
 programs own how they consume the immutable value.
 
+An execution descriptor may additionally declare a positive
+`initial_prompt_capacity`: a physical prefill extent independent of its current
+fragment. Its graph must bind this immutable source. The shared catalog fixes
+the fitting extent at admission and carries it as execution geometry; packing
+validates that geometry against the request and binds the same original N.
+The immutable history event includes both exact N and resolved positive C;
+GPU and host/disk histories use that same event, including partial prefixes.
+This adds no executable metadata or model-selected scheduling policy. Zero
+preserves previous selection, transport and cache-history semantics. See the
+[manifest](manifest.md#serving-graph-transport) for complete-catalog validation.
+
 Indexing is explicit: scalar, submission row, active row, physical request row,
 or packed token. Active rows omit inactive tails; submission rows initialize
 padding across the request capacity. Packed-token indices follow each lane's

@@ -119,6 +119,23 @@ Prefill has batch capacity 1. Token capacities are 1, 16, or a multiple of 64
 within 64..=262144. The model configuration separately requires the captured
 catalog for its `prefill_chunk_size`; transport validation does not infer a
 scheduling policy or substitute a missing graph.
+
+`ExecutionGraph.initial_prompt_capacity` optionally declares the physical
+initial-prompt arithmetic extent C of a single-lane prefill or scored-prefill
+graph. An omitted or zero value preserves the historical catalog. Positive
+extents fit Int32 and are independent of the fragment's token capacity M;
+M may exceed C. Such graphs bind `INITIAL_PROMPT_TOKENS`, with the existing
+immutable cache dependency. All C values cover the same complete fragment
+catalog, including scored variants if present, and the largest covers the
+prepared context. A positive catalog cannot mix zero-C text prefill or Mixed
+graphs. Missing combinations reject before serving.
+
+Admission resolves the smallest declared C covering the validated original N
+from the full catalog. It retains C through queueing, fragments and generated
+history replay. Plans, cost measurements, graph selection, input packing,
+completion contracts and rank layout identity carry this exact extent. A
+different fitting C cannot substitute for it. This is capacity selection of
+existing operations; the prepared programs retain their model computation.
 State operations
 and resume use power-of-two batch capacities through 64. Vision batch capacity is 1, and its
 token capacity is one of 256, 1024, 4096, or 16384 patches.

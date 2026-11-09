@@ -182,7 +182,7 @@ fn speculative_allocation_and_feedback_follow_each_program_inputs() {
         graph.token_capacity, graph.packed_token_capacity, crate::execution::PrefixAllocation::Host)));
     assert_eq!(capabilities.completion_inputs.len(), 1);
     assert_eq!(capabilities.completion_inputs[0].0,
-        (graph.kind, graph.batch_capacity, graph.draft_tokens, graph.token_capacity, graph.packed_token_capacity, 0));
+        (graph.kind, graph.batch_capacity, graph.draft_tokens, graph.token_capacity, graph.packed_token_capacity, 0, 0));
 }
 
 #[test]

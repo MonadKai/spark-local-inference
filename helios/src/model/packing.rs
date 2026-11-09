@@ -29,6 +29,7 @@ struct BoundInput {
 }
 
 struct BoundGraph {
+    initial_prompt_capacity: usize,
     drafts: usize,
     semantics: GraphContract,
     inputs: Vec<BoundInput>,
@@ -268,6 +269,7 @@ impl Inputs {
                     })
                     .collect::<Result<Vec<_>>>()?;
                 Ok(BoundGraph {
+                    initial_prompt_capacity: graph.initial_prompt_capacity,
                     semantics: semantics.clone(),
                     inputs,
                     kind: graph.kind,
@@ -309,6 +311,7 @@ impl Inputs {
             .iter()
             .find(|g| {
                 g.kind == step.kind
+                    && g.initial_prompt_capacity == step.initial_prompt_capacity
                     && g.drafts == step.draft_tokens
                     && g.batch == step.batch_capacity
                     && g.tokens == step.token_capacity
@@ -400,6 +403,7 @@ impl Inputs {
             .iter()
             .find(|g| {
                 g.kind == frame.step.kind
+                    && g.initial_prompt_capacity == frame.step.initial_prompt_capacity
                     && g.drafts == frame.step.draft_tokens
                     && g.batch == frame.step.batch_capacity
                     && g.tokens == frame.step.token_capacity
