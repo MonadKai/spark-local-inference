@@ -14,7 +14,7 @@ import httpx
 
 from qualify.asr_vllm_performance_entry import validate_cohort
 from qualify.asr_vllm_worker_observations import validate_encoder_cohort
-from qualify.asr_workload import response_value, summarize
+from qualify.asr_workload import expected_rows, response_value, run, summarize
 
 
 def counter_delta(before, after):
@@ -37,18 +37,18 @@ def expected_chunks(prefix, counts):
         for index, count in enumerate(counts)]
 
 
-def check_client_phase(client, expected, *, suite, timed):
-    if client.get("engine") != "vllm" or client.get("status") != "cohort_drained" \
+def check_client_phase(client, expected, *, suite, timed, engine="vllm"):
+    if engine not in ("flare", "vllm") or client.get("engine") != engine or client.get("status") != "cohort_drained" \
             or client.get("errors") != [] or client.get("diagnostic_limit") is not None \
             or client.get("suite") != suite or suite not in ("short", "long", "mixed"):
-        raise ValueError("complete unabridged vLLM client phase required")
+        raise ValueError("complete unabridged client phase with matching engine required")
     rows = client["rows"]
     if len(rows) != len(expected):
         raise ValueError("client phase differs from its complete frozen request list")
     for index, (row, planned) in enumerate(zip(rows, expected, strict=True)):
         fields = ("id", "language", "samples", "pcm_s16le_sha256", "group")
         if row["ordinal"] != index or any(row[name] != planned[name] for name in fields) \
-                or row["status"] != "response_received_unverified_termination" \
+                or row["status"] != ("success" if engine == "flare" else "response_received_unverified_termination") \
                 or row["http_status"] != 200 or not row.get("text", "").strip() \
                 or any(type(row[name]) is not int for name in ("sent_ns", "received_ns", "finished_ns")) \
                 or not 0 <= row["sent_ns"] <= row["received_ns"] <= row["finished_ns"]:
@@ -64,14 +64,34 @@ def check_client_phase(client, expected, *, suite, timed):
                 raise ValueError("mixed latency omitted its frozen arrival or client waiting")
         response = httpx.Response(row["http_status"], headers=row["response_headers"],
             content=row["response_body"].encode("utf8"))
-        if response_value(response, "vllm", row["samples"])["text"] != row["text"]:
+        actual = response_value(response, engine, row["samples"])
+        if any(actual[name] != row.get(name) for name in ("text", "generated_tokens", "finish_reason")):
             raise ValueError("stored transcription differs from the actual HTTP body")
-    summary = summarize(rows, engine="vllm", suite=suite, diagnostic=False)
+    summary = summarize(rows, engine=engine, suite=suite, diagnostic=False)
     if summary["elapsed_seconds"] is None or summary["elapsed_seconds"] <= 0:
         raise ValueError("nonempty positive client measurement interval required")
     if timed and not summary["duration_count_client_criteria_passed"]:
         raise ValueError("timed phase misses frozen complete-count or duration criteria")
     return summary
+
+
+async def collect_client_phase(client, target, selected, pcm, *, engine, suite, regime, concurrency, save):
+    target.update(engine=engine, suite=suite, regime=regime, errors=[], diagnostic_limit=None,
+        status="running", rows=[dict(**row, ordinal=i, status="not_attempted")
+            for i, row in enumerate(expected_rows(selected))])
+    save()
+    try:
+        target["origin_ns"] = await run(client, selected, pcm, engine=engine, suite=suite,
+            concurrency=concurrency, request_prefix=target["request_prefix"], rows=target["rows"])
+        target["status"] = "cohort_drained"
+        check_client_phase(target, expected_rows(selected), suite=suite, timed=False, engine=engine)
+    except BaseException as error:
+        target["status"] = "failed_or_interrupted"
+        target["errors"].append(dict(type=type(error).__name__, message=str(error)))
+        raise
+    finally:
+        target["summary"] = summarize(target["rows"], engine=engine, suite=suite, diagnostic=False)
+        save()
 
 
 def active_seconds(rows):

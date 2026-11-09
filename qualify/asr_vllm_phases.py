@@ -20,8 +20,8 @@ import signal
 
 import httpx
 
-from qualify.asr_performance_run import active_seconds, check_client_phase
-from qualify.asr_workload import ROOT, load_pcm, plan, run, summarize
+from qualify.asr_performance_run import active_seconds, collect_client_phase
+from qualify.asr_workload import ROOT, expected_rows, load_pcm, plan
 
 
 REASONS = ("stop", "length", "abort", "error", "repetition")
@@ -95,14 +95,6 @@ async def get_metrics(client, observations, save, *, timeout):
         raise
 
 
-def expected_rows(requests):
-    return [dict(id=item["utterance"]["id"], language=item["utterance"]["language"],
-        samples=item["utterance"]["samples"], group=item["group"],
-        pcm_s16le_sha256=item["utterance"]["pcm_s16le_sha256"],
-        **({"scheduled_seconds": item["scheduled_seconds"]} if item["scheduled_seconds"] is not None else {}))
-        for item in requests]
-
-
 def chunk_counts(requests, prepared):
     result = []
     for item in requests:
@@ -174,22 +166,8 @@ async def collect(args, result, requests, development, pcm, save):
                 raise TimeoutError("official phase drain exceeded128 observations")
 
             async def phase(target, selected, suite):
-                target.update(engine="vllm", suite=suite, regime=args.regime, errors=[],
-                    diagnostic_limit=None, status="running", rows=[dict(**row, ordinal=i,
-                        status="not_attempted") for i, row in enumerate(expected_rows(selected))])
-                save()
-                try:
-                    target["origin_ns"] = await run(client, selected, pcm, engine="vllm", suite=suite,
-                        concurrency=args.concurrency, request_prefix=target["request_prefix"], rows=target["rows"])
-                    target["status"] = "cohort_drained"
-                    check_client_phase(target, expected_rows(selected), suite=suite, timed=False)
-                except BaseException as error:
-                    target["status"] = "failed_or_interrupted"
-                    target["errors"].append(dict(type=type(error).__name__, message=str(error)))
-                    raise
-                finally:
-                    target["summary"] = summarize(target["rows"], engine="vllm", suite=suite, diagnostic=False)
-                    save()
+                await collect_client_phase(client, target, selected, pcm, engine="vllm", suite=suite,
+                    regime=args.regime, concurrency=args.concurrency, save=save)
 
             initial_text = await metrics()
             initial = official_counters(initial_text)

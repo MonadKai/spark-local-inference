@@ -199,6 +199,29 @@ snapshots occur outside request timing. The launcher must still verify server
 identity, cache conditions, stable captured execution, resource isolation and
 collector overhead, and shut down normally to publish terminal observations.
 
+`python -m qualify.asr_flare_phases` runs the same complete warmup and timed
+workloads through native transcription, using each input set's JSONL native
+plan. Supply the authenticated served envelope identity, server PID and binary
+SHA256. It checks the live executable, start ticks and argv before and after
+phases. RAM delivery is explicit; cold runs also require explicit zero host
+prefix budgets, Request prefix scope and disabled prepared-input retention.
+The launcher still binds that process to the HTTP listener and actual loaded
+package, establishes isolation and records a normal shutdown.
+
+Raw JSON/Prometheus/JSON snapshots retain every attempt. Required fields,
+cumulative counters, histogram components, graph batches and uptime must remain
+consistent across observations; the warmup-to-timed boundary permits no observed
+counter work. Drain covers HTTP/frontend reservations, retiring model slots,
+host transfers, input retention and, in the cold regime, final KV reclamation.
+Complete child and actual header token totals are reconciled separately from
+the native encoder-window plan. Same-request readmission can increase prefix
+reuse and encoder execution: aggregate reuse is retained, and extra windows
+require observed preemption while their individual request attribution remains
+unknown. These observations cannot establish cache equivalence across engines.
+Unavailable raw recognition IDs, model TTFT, per-request queue time, stage GPU
+timings and physical compute padding remain null with reasons. Reconciliation
+does not qualify quality, observer overhead or the frozen performance comparison.
+
 `qualify.asr_performance_run.reconcile_vllm` checks those client phases against
 every planned terminal chunk, actual token IDs, encoder dispatches and official
 counter deltas. Failed warmup, truncated or missing chunks, and invalid input,

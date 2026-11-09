@@ -29,6 +29,14 @@ import httpx
 ROOT = Path(__file__).resolve().parents[1] / "benchmarks/qwen3_asr"
 
 
+def expected_rows(requests):
+    return [dict(id=item["utterance"]["id"], language=item["utterance"]["language"],
+        samples=item["utterance"]["samples"], group=item["group"],
+        pcm_s16le_sha256=item["utterance"]["pcm_s16le_sha256"],
+        **({"scheduled_seconds": item["scheduled_seconds"]} if item["scheduled_seconds"] is not None else {}))
+        for item in requests]
+
+
 def load_pcm(root, utterances):
     result = {}
     for row in utterances:
