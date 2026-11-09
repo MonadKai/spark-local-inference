@@ -229,6 +229,14 @@ def main():
                 body = copy.deepcopy(chat)
                 body["messages"][0]["content"] = [part]
                 submit_chat(name, body)
+            mp3_parts = [(key, (None, value)) for key, value in base]
+            mp3_parts.append(("file", ("input.mp3", mp3, "audio/mpeg")))
+            def natural_mp3(response, body):
+                transcription_success(response, body)
+                if response.headers["x-flare-finish-reason"] != "stop" or not body["text"]:
+                    raise AssertionError("MP3 transport fixture did not complete naturally")
+            observe("multipart-mp3", lambda: client.post("/v1/audio/transcriptions", files=mp3_parts),
+                200, natural_mp3)
             for suffix in ("wav", "mp3"):
                 url = ("https://raw.githubusercontent.com/MonadKai/spark-local-inference/"
                     + args.public_revision + "/tests/frontend/audio-inputs/en-61-70968-0058." + suffix)

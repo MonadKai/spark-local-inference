@@ -216,6 +216,17 @@ separately cover EOF, true size rejection, late transport errors and cancellatio
 with no child queueing and complete host-credit return. The one-second HTTP tail
 delay is a finite observation, not a proof of every ordering.
 
+The [multipart MP3 follow-up](native-http-multipart-mp3.json) retains all 89
+historical attempts from the byte-identical current HTTP collector
+(`011a01beb194218a19e68455bb5518a2ab4ad8e9c32667b26e5126014a809d1a`).
+Its new multipart MP3 case requires nonempty text, natural stop and an actual
+token-count header; it passed with seven generated tokens. Overall 87/89 passed:
+the public WAV fixture download failed with a network error, and the public MP3
+server fetch returned HTTP 400. Both failures remain. This run used the earlier
+`5a038ffab9e4846f8ec8fac7bd91e5853f468f82c92b576295290e07c035c67d` binary
+and `f5dd799ab4e18f015955b5e25630140a26dcc26f2a7dee8e3beaf20e570e129d`
+package file. It does not qualify the new norm package, all HTTP cases or performance.
+
 `legacy-qwen38-native.json` records a real previously published text package
 loaded by the original and candidate Rust binaries. All 70 published payloads
 were independently checked at the recorded immutable revision; both binaries
