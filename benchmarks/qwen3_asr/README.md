@@ -167,6 +167,25 @@ the independent engine observer reconciles every planned chunk and official
 counter. The client always leaves overall performance qualification false;
 the frozen block comparison and all model/lifecycle gates remain separate.
 
+`python -m qualify.asr_vllm_phases` collects one run from an independently
+managed pinned reference server with the encoder observer already installed.
+It loads and verifies all required PCM before warmup, binds the pinned processor
+chunk plans to the frozen audio, runs the complete development split followed
+by at least120 additional active request seconds, then consumes the complete
+timed workload. Unique-content runs call all three official cache reset routes;
+their responses are retained, and an HTTP200 from the processor or encoder
+route alone does not establish successful cache clearing. Counter and encoder
+snapshots occur outside request timing. The launcher must still verify server
+identity, cache conditions, stable captured execution, resource isolation and
+collector overhead, and shut down normally to publish terminal observations.
+
+`qualify.asr_performance_run.reconcile_vllm` checks those client phases against
+every planned terminal chunk, actual token IDs, encoder dispatches and official
+counter deltas. Failed warmup, truncated or missing chunks, and invalid input,
+arrival or token identity prevent complete-audio credit. Reconciliation leaves
+overall performance qualification false; it does not establish quality,
+independent blocks or the final throughput and latency criteria.
+
 `qualify.asr_performance_statistics.paired_interval` calculates the frozen
 five-block log-ratio Student t interval from already qualified scalar measurements.
 It uses 80-digit decimal arithmetic and rounds binary interval endpoints outward;

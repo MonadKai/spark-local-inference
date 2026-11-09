@@ -252,7 +252,11 @@ def main():
     paths = sorted((args.vllm_source / "vllm").rglob("*.py"))
     required = {"v1/engine/async_llm.py", "v1/engine/input_processor.py",
         "v1/worker/worker_base.py", "v1/worker/gpu/mm/encoder_runner.py",
-        "v1/worker/gpu/model_states/interface.py", "entrypoints/serve/dev/rpc/api_router.py"}
+        "v1/worker/gpu/model_states/interface.py", "entrypoints/serve/dev/rpc/api_router.py",
+        "entrypoints/launchers/api_server/routers.py", "entrypoints/serve/__init__.py",
+        "entrypoints/serve/dev/cache/api_router.py", "v1/engine/core.py", "v1/engine/core_client.py",
+        "v1/executor/abstract.py", "v1/executor/uniproc_executor.py", "v1/worker/gpu_worker.py",
+        "v1/worker/gpu/mm/encoder_cache.py", "v1/core/sched/scheduler.py", "v1/core/encoder_cache_manager.py"}
     if not paths or not required.issubset({path.relative_to(args.vllm_source / "vllm").as_posix() for path in paths}):
         raise ValueError("pinned observer boundary source missing")
     for path in paths:
