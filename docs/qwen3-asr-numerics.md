@@ -182,10 +182,27 @@ gain. [Component CUDA controls](../benchmarks/qwen3_asr/results/canonical-rmsnor
 pass original-implementation negative control, eager and complete-forward
 compiled capture over 17 physical row capacities, poisoned neighboring rows,
 guards and repeated replay without allocator counter changes. Coupled prepared
-attention/projection controls also pass. This does not qualify the new model:
-fresh whole-model capture, ordinary CLI export, Rust full-input replay, numerical, determinism and
-recognition gates remain required with their existing bounds. No reference or
-budget changes are authorized by this normalization change.
+attention/projection controls also pass.
+
+A fresh ordinary CLI export subsequently compiled 43 forwards and captured 55
+graphs. After the preparer exited, independent Rust package serving passed all
+20 frozen inputs in 60 generated-history cohorts and 62 batch/slot cohorts
+(190 natural requests). Complete same-path KV, BF16 logits and tokens, B1/2/4/8,
+row permutations, partial batches and slot reuse pass the unchanged frozen
+scalar bounds. Readiness barriers in these controls are test-only; they do not
+qualify automatic HTTP batching. The fixed 256-request recognition set also
+passes with natural stops and no failed or truncated requests; all texts equal
+the independent canonical reference. Actual response token counts total 5,147;
+this recognition collector does not observe raw token IDs. The
+[raw measurements and scope](../benchmarks/qwen3_asr/results/native-rmsnorm-twenty-replay-run.json)
+retain the package, source and reference identities.
+
+These finite results close the reproduced generated-history failure for this
+package and corpus. Complete new-norm intermediate-node/operator, full
+CUDA/native/lifecycle, current API/cache, historical VISION and sustained
+performance gates remain separate and open. Strict physical-release diagnostic
+failures remain failures. No reference or budget changes are authorized by this
+normalization change.
 
 Other registered recipes retain canonical or ATen-mean normalization in some
 decoder, draft or vision paths: Gemma4, Muse Spark, MiMo V2, Qwen3.8 and dense,

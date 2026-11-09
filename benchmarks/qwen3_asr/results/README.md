@@ -503,3 +503,28 @@ captured components, not exported-package serving measurements or a vLLM
 comparison. The full-model, native-serving and service-performance qualification
 flags remain false. The typed native C×M catalog is a separate implementation
 and requires its own numerical, lifecycle, export and serving checks.
+
+
+`native-rmsnorm-twenty-replay-run.json` records the new canonical RMSNorm
+ordinary CLI package: 43 compiled forwards, 55 captured graphs and independent
+Rust replay after preparation exits. The two complete scalar archives retain
+60 generated-history and 190 batch/slot requests over all 20 frozen inputs.
+All observed same-path KV planes, BF16 logits and tokens are exact; unchanged
+per-case scalar budgets pass. Snapshot parking, eviction/readmission, B1/2/4/8,
+row permutations, partial batches and slot reuse are covered. Test-only
+readiness barriers do not qualify automatic HTTP batching.
+
+The three recognition archives retain all 256 requests and both score results.
+Every request naturally stops, all text matches canonical, and actual response
+headers report 5,147 generated tokens; raw token IDs are not collected here.
+Against the actual pinned vLLM0.29 image, English WER is 70/2,875 versus69,
+English CER is 91/15,411 versus89, and Chinese CER is 35/1,861 for both. The
+10,000-pair bootstrap uses the unchanged frozen seed and gates: WER upper
+95% degradation is 0.0010183299389002 and Chinese CER upper is
+0.0011074197120709. All required point and interval gates pass. Historical
+package failures and measurements remain unchanged.
+
+This is finite native state/scalar/recognition qualification. Complete new-norm
+intermediate-node/operator, full CUDA/native/lifecycle, actual current HTTP/cache,
+old VISION, strict full storage and sustained performance gates remain open.
+Formal sustained comparative cells remain zero, with no vLLM performance claim.
