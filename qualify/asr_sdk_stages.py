@@ -16,6 +16,41 @@ from pathlib import Path
 import wave
 
 
+def snapshot_sdk_cache(cache, consumed):
+    """Copy the SDK's actual post-RoPE K and unrepeated V before another call."""
+    import torch
+
+    if type(consumed) is not int or consumed <= 0 or len(cache.layers) != 28 \
+            or cache.get_seq_length() != consumed:
+        raise ValueError("SDK cache does not describe the complete consumed prefix")
+    values = {}
+    for index, layer in enumerate(cache.layers):
+        for field in ("keys", "values"):
+            tensor = getattr(layer, field)
+            if tensor.dtype != torch.bfloat16 or tensor.shape != (1, 8, consumed, 128):
+                raise ValueError("SDK cache plane geometry or checkpoint dtype changed")
+            # CPU ownership must precede the SDK's next mutable cache update.
+            copied = tensor.detach().to(device="cpu", copy=True).contiguous()
+            if not bool(torch.isfinite(copied).all()):
+                raise ValueError("SDK cache contains nonfinite state")
+            values[f"thinker.model.cache.{index}.{field}"] = copied
+    return values
+
+
+def snapshot_sdk_positions(value, consumed, tokens):
+    """Preserve the fixed SDK's FP32 position bytes, including all three axes."""
+    import torch
+
+    if type(consumed) is not int or type(tokens) is not int or not 0 < tokens <= consumed \
+            or value.dtype != torch.float32 or value.shape != (3, 1, tokens):
+        raise ValueError("SDK rotary position geometry or original FP32 dtype changed")
+    copied = value.detach().to(device="cpu", copy=True).contiguous()
+    expected = torch.arange(consumed - tokens, consumed, dtype=torch.float32).view(1, 1, tokens)
+    if not bool(torch.isfinite(copied).all()) or not torch.equal(copied, expected.expand(3, 1, tokens)):
+        raise ValueError("SDK rotary positions differ from the actual dense ASR prefix")
+    return copied
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", type=Path, required=True)
@@ -27,7 +62,13 @@ def main():
                         help="diagnostic prefix length; zero records the complete generated sequence")
     parser.add_argument("--boundary-frames", nargs="+", type=int,
                         help="instead probe these prefix lengths of the longest development clip per language")
+    parser.add_argument("--cached-state", action="store_true",
+                        help="supplement complete cached KV and actual rotary positions; not a new oracle")
+    parser.add_argument("--frozen-sdk", type=Path,
+                        help="unchanged matching SDK observations required by cached-state collection")
     args = parser.parse_args()
+    if args.cached_state != (args.frozen_sdk is not None):
+        parser.error("cached-state and frozen-sdk must be supplied together")
     if args.teacher_tokens < 0:
         parser.error("teacher token count must be nonnegative")
     if args.boundary_frames and (len(set(args.boundary_frames)) != len(args.boundary_frames)
@@ -41,6 +82,7 @@ def main():
     from qwen_asr.core.transformers_backend import configuration_qwen3_asr as configuration
     from qwen_asr.core.transformers_backend import modeling_qwen3_asr as modeling
     from safetensors.torch import save_file
+    from safetensors import safe_open
 
     if (torch.__version__, transformers.__version__, flash_attn.__version__) != (
             "2.13.0+cu130", "4.57.6", "2.8.3"):
@@ -69,6 +111,21 @@ def main():
             selected.extend(dict(rows[-1], boundary_frames=frames) for frames in args.boundary_frames)
         else:
             selected.extend((rows[0], rows[-1]))
+    frozen_cases = {}
+    if args.cached_state:
+        frozen = json.loads((args.frozen_sdk / "result.json").read_bytes())
+        expected = {row["id"] + (f"-first-{row['boundary_frames']}f" if "boundary_frames" in row else "")
+                    for row in selected}
+        if frozen["errors"] or frozen["candidate_executed"] \
+                or frozen["sdk_revision"] != "7c6daf77a2421100f5fb066495372c00129d39ff" \
+                or frozen["checkpoint_revision"] != "7278e1e70fe206f11671096ffdd38061171dd6e5" \
+                or frozen["input_manifest_sha256"] != hashlib.sha256(args.manifest.read_bytes()).hexdigest() \
+                or len(frozen["cases"]) != len(expected) \
+                or {case["id"] for case in frozen["cases"]} != expected \
+                or any(case["status"] != "repeatable_controls_only" or not case["natural_stop"]
+                       for case in frozen["cases"]):
+            raise ValueError("complete matching original SDK observations are required")
+        frozen_cases = {case["id"]: case for case in frozen["cases"]}
     # Establish FP32 projection reductions before the first checkpoint forward.
     # This is an explicit reference numerical setting, not an SDK source patch.
     torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction = False
@@ -86,6 +143,7 @@ def main():
         bf16_reduced_precision_reduction=torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction,
         cudnn_benchmark=torch.backends.cudnn.benchmark, cudnn_deterministic=torch.backends.cudnn.deterministic,
         cases=[], errors=[], candidate_executed=False, cross_engine_tolerances_admitted=False)
+    record["cached_state"] = args.cached_state
     result_path = args.output / "result.json"
 
     def publish():
@@ -168,6 +226,30 @@ def main():
                 handle.remove()
             self.handles.clear()
 
+    def cached_forward(arguments, consumed):
+        if not args.cached_state:
+            return model.thinker(**arguments, use_cache=True), None
+        positions = {}
+
+        def observe_positions(module, positional, keywords):
+            if positions:
+                raise ValueError("SDK rotary positions were observed more than once")
+            value = positional[1] if len(positional) > 1 else keywords["position_ids"]
+            positions["thinker.model.rotary_emb.input.1"] = snapshot_sdk_positions(
+                value, consumed, arguments["input_ids"].shape[1])
+
+        hook = model.thinker.model.rotary_emb.register_forward_pre_hook(observe_positions, with_kwargs=True)
+        try:
+            result = model.thinker(**arguments, use_cache=True)
+        finally:
+            hook.remove()
+        if len(positions) != 1:
+            raise ValueError("SDK rotary position observation is absent")
+        state = snapshot_sdk_cache(result.past_key_values, consumed)
+        state.update(positions)
+        state["cached_logit_bf16"] = cpu(result.logits[:, -1])
+        return result, state
+
     with torch.inference_mode():
         for row in selected:
             case_id = row["id"] + (f"-first-{row['boundary_frames']}f" if "boundary_frames" in row else "")
@@ -195,6 +277,12 @@ def main():
                 p = inputs["input_ids"].shape[1]
                 case.update(padded_samples=len(samples), frames=frames, prompt=prompt,
                     prompt_ids=inputs["input_ids"][0].tolist())
+                if args.cached_state:
+                    previous = frozen_cases[case_id]
+                    fields = ("source_id", "language", "original_samples", "padded_samples", "frames",
+                              "prompt", "prompt_ids", "teacher_token_limit")
+                    if any(case[name] != previous[name] for name in fields):
+                        raise ValueError("SDK input or teacher selection differs from its frozen observation")
                 model.thinker.rope_deltas = None
                 warmup = model.thinker(**inputs, use_cache=False)
                 del warmup
@@ -234,6 +322,14 @@ def main():
                         assert same_bytes(repeated_stages.values[name], value), f"same-path stage changed: {name}"
                     del repeated, repeated_stages
                 stages.values["processor.input_features"] = cpu(inputs["input_features"])
+                if args.cached_state:
+                    with safe_open(args.frozen_sdk / (case_id + "-prefill.safetensors"), framework="pt") as frozen:
+                        if set(frozen.keys()) != stages.values.keys():
+                            raise ValueError("original SDK prefill stage coverage changed")
+                        for name, value in stages.values.items():
+                            if not same_bytes(value, frozen.get_tensor(name)):
+                                raise ValueError("original SDK prefill bytes changed: " + name)
+                    case["frozen_prefill_exact"] = True
                 save_file(stages.values, args.output / (case_id + "-prefill.safetensors"))
                 case["stages"] = {name: dict(shape=list(value.shape), dtype=str(value.dtype))
                                   for name, value in stages.values.items()}
@@ -254,19 +350,61 @@ def main():
                         clean_up_tokenization_spaces=False)[0],
                     prefill_same_path_repetitions=5, natural_generation_repetitions=2)
                 assert case["natural_stop"], "reference natural generation reached its output cap"
+                if args.cached_state and case["generated_ids"] != frozen_cases[case_id]["generated_ids"]:
+                    raise ValueError("original SDK natural token sequence changed")
                 t = y.shape[1] if args.teacher_tokens == 0 else min(args.teacher_tokens, y.shape[1])
                 teacher, reference = y[:, :t].to(model.device), None
+                frozen_teacher, state_reference = {}, {}
+                if args.cached_state:
+                    with safe_open(args.frozen_sdk / (case_id + "-cached-teacher.safetensors"), framework="pt") as frozen:
+                        if set(frozen.keys()) != {"target_ids", "logits_bf16"}:
+                            raise ValueError("frozen SDK teacher fields differ")
+                        frozen_teacher = {name: frozen.get_tensor(name) for name in frozen.keys()}
+                    if not same_bytes(teacher.cpu(), frozen_teacher["target_ids"]) \
+                            or frozen_teacher["logits_bf16"].shape != (t, 151936) \
+                            or frozen_teacher["logits_bf16"].dtype != torch.bfloat16 \
+                            or not bool(torch.isfinite(frozen_teacher["logits_bf16"]).all()):
+                        raise ValueError("frozen SDK teacher geometry, targets or finiteness changed")
+                    case["cached_state_steps"] = []
+
+                def observe_state(state, index, repetition, previous):
+                    if state is None:
+                        return
+                    positions = state["thinker.model.rotary_emb.input.1"]
+                    if positions.shape != (3, 1, p if index == 0 else 1):
+                        raise ValueError("cached SDK position count differs from the actual consumed call")
+                    if not same_bytes(state["cached_logit_bf16"],
+                                      frozen_teacher["logits_bf16"][index:index + 1]):
+                        raise ValueError("observing SDK state changed an original cached teacher logit")
+                    if previous is not None:
+                        for name, value in previous.items():
+                            if name.startswith("thinker.model.cache.") \
+                                    and not same_bytes(state[name][:, :, :value.shape[2]], value):
+                                raise ValueError("SDK cache update changed an already consumed prefix: " + name)
+                    if repetition == 0:
+                        state_reference[index] = state
+                        save_file(state, args.output / f"{case_id}-cached-state-step-{index}.safetensors")
+                        case["cached_state_steps"].append(index)
+                        publish()
+                    elif state.keys() != state_reference[index].keys() \
+                            or any(not same_bytes(value, state_reference[index][name]) for name, value in state.items()):
+                        raise ValueError("same-path SDK cached KV or rotary positions changed")
+
                 for repetition in range(5):
                     model.thinker.rope_deltas = None
-                    result = model.thinker(**inputs, use_cache=True, cache_position=torch.arange(p, device=model.device))
+                    result, state = cached_forward(dict(inputs,
+                        cache_position=torch.arange(p, device=model.device)), p)
+                    observe_state(state, 0, repetition, None)
                     rows = [cpu(result.logits[:, -1])]
                     for index in range(1, t):
-                        result = model.thinker(input_ids=teacher[:, index-1:index],
+                        previous_state = state
+                        result, state = cached_forward(dict(input_ids=teacher[:, index-1:index],
                             attention_mask=torch.cat((inputs["attention_mask"], torch.ones((1, index),
                                 device=model.device, dtype=inputs["attention_mask"].dtype)), dim=1),
                             past_key_values=result.past_key_values, input_features=None,
-                            cache_position=torch.tensor([p + index - 1], device=model.device), use_cache=True)
+                            cache_position=torch.tensor([p + index - 1], device=model.device)), p + index)
                         assert result.past_key_values.get_seq_length() == p + index
+                        observe_state(state, index, repetition, previous_state)
                         rows.append(cpu(result.logits[:, -1]))
                     values = torch.cat(rows, dim=0)
                     if repetition == 0:
@@ -277,6 +415,10 @@ def main():
                 save_file({"logits_bf16": reference, "target_ids": teacher.cpu()},
                     args.output / (case_id + "-cached-teacher.safetensors"))
                 case.update(teacher_rows=t, cached_teacher_same_path_repetitions=5, status="repeatable_controls_only")
+                if args.cached_state:
+                    if case["cached_state_steps"] != list(range(t)):
+                        raise ValueError("SDK cached state observation is incomplete")
+                    case.update(cached_state_same_path_repetitions=5, frozen_teacher_exact=True)
             except Exception as error:
                 case.update(status="failed", error_type=type(error).__name__, error=str(error), traceback=traceback.format_exc())
                 record["errors"].append(case_id)

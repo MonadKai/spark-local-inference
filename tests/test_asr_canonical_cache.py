@@ -3,7 +3,8 @@
 
 """CPU snapshot controls with the actual Transformers DynamicCache.
 
-These exercise observation/storage, not the original checkpoint forward.
+These exercise observation/storage with the installed cache implementation,
+not the original checkpoint forward or the separate pinned SDK environment.
 """
 
 import pytest
@@ -11,6 +12,7 @@ import torch
 from transformers.cache_utils import DynamicCache
 
 from qualify.asr_canonical_stages import snapshot_cached_state
+from qualify.asr_sdk_stages import snapshot_sdk_cache
 
 
 @pytest.fixture(autouse=True)
@@ -18,6 +20,12 @@ def no_cuda(monkeypatch):
     def forbidden(*args, **kwargs):
         raise AssertionError("CPU cache snapshot control attempted CUDA initialization")
     monkeypatch.setattr(torch.cuda, "_lazy_init", forbidden)
+
+
+@pytest.fixture(params=[(snapshot_cached_state, "canonical"), (snapshot_sdk_cache, "SDK")],
+                ids=["canonical", "sdk"])
+def snapshot(request):
+    return request.param
 
 
 def cache():
@@ -28,9 +36,10 @@ def cache():
     return result
 
 
-def test_actual_dynamic_cache_snapshot_keeps_complete_past_and_owns_copies():
+def test_actual_dynamic_cache_snapshot_keeps_complete_past_and_owns_copies(snapshot):
+    snapshot_fn, _ = snapshot
     actual = cache()
-    first = snapshot_cached_state(actual, 3)
+    first = snapshot_fn(actual, 3)
     assert len(first) == 56
     for layer in range(28):
         for name in ("keys", "values"):
@@ -42,7 +51,7 @@ def test_actual_dynamic_cache_snapshot_keeps_complete_past_and_owns_copies():
             assert value.data_ptr() != original.data_ptr()
         new = torch.full((1, 8, 1, 128), layer + 100., dtype=torch.bfloat16)
         actual.update(new, -new, layer)
-    second = snapshot_cached_state(actual, 4)
+    second = snapshot_fn(actual, 4)
     for key, before in first.items():
         assert before.shape[2] == 3
         assert torch.equal(second[key][:, :, :3].contiguous().view(torch.uint8), before.view(torch.uint8))
@@ -51,7 +60,8 @@ def test_actual_dynamic_cache_snapshot_keeps_complete_past_and_owns_copies():
 
 
 @pytest.mark.parametrize("defect", ["layer", "past-row", "head", "dtype", "nan", "infinity", "consumed"])
-def test_incomplete_or_corrupt_actual_cache_cannot_be_published(defect):
+def test_incomplete_or_corrupt_actual_cache_cannot_be_published(defect, snapshot):
+    snapshot_fn, label = snapshot
     actual = cache()
     consumed = 3
     if defect == "layer": actual.layers.pop()
@@ -61,5 +71,5 @@ def test_incomplete_or_corrupt_actual_cache_cannot_be_published(defect):
     if defect == "nan": actual.layers[17].keys[0, 0, 0, 0] = float("nan")
     if defect == "infinity": actual.layers[17].values[0, 0, 0, 0] = float("inf")
     if defect == "consumed": consumed += 1
-    with pytest.raises(ValueError, match="canonical"):
-        snapshot_cached_state(actual, consumed)
+    with pytest.raises(ValueError, match=label):
+        snapshot_fn(actual, consumed)
