@@ -40,6 +40,17 @@ def diagnostic_signals():
             signal.signal(sig, handler)
 
 
+@contextmanager
+def preparation_context(mode):
+    """Choose actual tensor dispatch identity, independently of the caller's mode."""
+    import torch
+
+    if mode not in ("inference", "no-grad"):
+        raise ValueError("unknown diagnostic preparation mode")
+    with torch.inference_mode(mode == "inference"), torch.no_grad():
+        yield
+
+
 def save_teacher_traces(traces, output, label, *, suffix=""):
     """Save completed CPU observations, including failing/nonfinite rows."""
     import torch
@@ -191,6 +202,14 @@ def main():
         help="bound preparation compiler processes, including diagnostic captures")
     parser.add_argument("--prefill-chunk-size", type=int, default=4096,
         help="explicit prepared prefill capacity; smaller diagnostic catalogs do not qualify larger capacities")
+    parser.add_argument("--preparation-mode", choices=("inference", "no-grad"), default="inference",
+        help="retain historical inference diagnosis or match ordinary CLI no-grad tensor identity")
+    parser.add_argument("--snapshot-budget-bytes", type=int, default=256 << 20,
+        help="explicit recipe continuation-storage budget; match the package under diagnosis")
+    parser.add_argument("--preparation-headroom-bytes", type=int, default=12 << 30,
+        help="explicit preparation headroom, including the recipe reserve")
+    parser.add_argument("--retain-graphs", action="store_true",
+        help="match ordinary export's retained graph templates during preparation")
     parser.add_argument("--contract", type=Path, default=Path("benchmarks/qwen3_asr/numerical-contract.json"))
     parser.add_argument("--sdk-observations", type=Path, action="append", required=True)
     parser.add_argument("--canonical-observations", type=Path, action="append", required=True)
@@ -231,6 +250,8 @@ def main():
     args = parser.parse_args()
     if args.compile_workers < 1:
         parser.error("compile-workers must be positive")
+    if args.snapshot_budget_bytes <= 0 or args.preparation_headroom_bytes < 0:
+        parser.error("positive snapshot budget and nonnegative preparation headroom required")
     if args.prefill_network_nodes and not args.full_prefill:
         parser.error("prefill-network-nodes requires the full production-prefill bridge")
     if args.focus_network_nodes and not (args.prefill_network_nodes or args.encoder_network_nodes):
@@ -382,10 +403,19 @@ def main():
     publish()
     config = PreparationConfig(kernel_cache=configuration.directory("kernel_cache"), compile_workers=args.compile_workers,
         prefill_chunk_size=args.prefill_chunk_size,
-        headroom_bytes=12 << 30)
+        snapshot_budget_bytes=args.snapshot_budget_bytes, headroom_bytes=args.preparation_headroom_bytes,
+        retain_graphs=args.retain_graphs)
     record["requested_prefill_chunk_size"] = args.prefill_chunk_size
     publish()
-    with diagnostic_signals(), torch.inference_mode(), fp32_reductions(), ModuleImages():
+    with diagnostic_signals(), preparation_context(args.preparation_mode), fp32_reductions(), ModuleImages():
+        record["preparation_context"] = dict(requested_mode=args.preparation_mode,
+            inference_mode=torch.is_inference_mode_enabled(), grad_enabled=torch.is_grad_enabled(),
+            num_threads=torch.get_num_threads(), snapshot_budget_bytes=config.snapshot_budget_bytes,
+            headroom_bytes=config.headroom_bytes, retain_graphs=config.retain_graphs,
+            allow_fp16_reduced_precision_reduction=torch.backends.cuda.matmul.allow_fp16_reduced_precision_reduction,
+            allow_bf16_reduced_precision_reduction=torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction,
+            allow_fp16_accumulation=torch.backends.cuda.matmul.allow_fp16_accumulation)
+        publish()
         torch.cuda.set_device(0)
         with PackageStorage(device=0) as storage:
             record["blas_before_preparation"] = str(torch.backends.cuda.preferred_blas_library())

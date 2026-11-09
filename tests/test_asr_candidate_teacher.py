@@ -213,3 +213,27 @@ print('termination reached cleanup')
     result = subprocess.run([sys.executable, "-c", code, name], text=True, capture_output=True, timeout=30)
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == "termination reached cleanup"
+
+
+@pytest.mark.parametrize("outer_inference", [False, True])
+@pytest.mark.parametrize("outer_grad", [False, True])
+@pytest.mark.parametrize("mode", ["inference", "no-grad"])
+def test_diagnostic_preparation_sets_real_tensor_dispatch_identity_and_restores_caller(outer_inference, outer_grad, mode):
+    from qualify.asr_candidate_teacher import preparation_context
+
+    with torch.inference_mode(outer_inference), torch.set_grad_enabled(outer_grad):
+        with preparation_context(mode):
+            assert not torch.is_grad_enabled()
+            assert torch.is_inference_mode_enabled() == (mode == "inference")
+            tensor = torch.empty(2)
+            assert tensor.is_inference() == (mode == "inference")
+        assert torch.is_inference_mode_enabled() == outer_inference
+        assert torch.is_grad_enabled() == outer_grad
+
+
+def test_diagnostic_preparation_rejects_unknown_mode_before_entering():
+    from qualify.asr_candidate_teacher import preparation_context
+
+    with pytest.raises(ValueError, match="unknown diagnostic preparation mode"):
+        with preparation_context("ambient"):
+            raise AssertionError("invalid mode entered the diagnostic")

@@ -232,6 +232,15 @@ canonical–SDK interval; it does not promise to admit every other legal path.
 Local operator, state, determinism and recognition gates still apply independently.
 No candidate output participates in generating this configuration.
 
+`qualify/asr_candidate_teacher.py` keeps its historical inference-mode default
+for reproducibility. To diagnose an ordinary CLI package, pass
+`--preparation-mode no-grad`, the package's `--snapshot-budget-bytes`,
+`--preparation-headroom-bytes` and `--retain-graphs`. The collector records actual
+inference/grad state, thread count, reduction settings and budgets. No-grad
+explicitly disables any outer inference mode, since tensor dispatch identity
+must match compiled bindings. These options change diagnostic preparation,
+never the independent references or frozen thresholds.
+
 `qualify/asr_candidate_teacher.py --full-prefill --prefill-network-nodes` adds
 preparation-only copies of the actual decoder module nodes. The collector remains
 under GPU qualification. Every observed graph must first reproduce the production
