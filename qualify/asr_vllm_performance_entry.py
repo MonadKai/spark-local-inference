@@ -212,8 +212,10 @@ def validate_cohort(observations, expected_chunk_ids, *, cache_mode):
         errors.append("planned_input_identity")
     for row in rows:
         identity, index, tokens, reason, stop, returned, cached = row
-        if index != 0 or identity != returned or reason != "stop" or stop is not None \
-                or not tokens or len(tokens) > 1024 or tokens[-1] != 151645 \
+        if type(index) is not int or index != 0 or identity != returned or reason != "stop" or stop is not None \
+                or not isinstance(tokens, (list, tuple)) or not tokens or len(tokens) > 1024 \
+                or any(type(token) is not int or not 0 <= token < 151936 for token in tokens) \
+                or tokens[-1] != 151645 \
                 or 151645 in tokens[:-1]:
             errors.append("non_natural_terminal")
         if cache_mode == "disabled" and (type(cached) is not int or cached != 0):

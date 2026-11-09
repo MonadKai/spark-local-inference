@@ -210,7 +210,7 @@ async def collect(args, result, requests, pcm):
         async with httpx.AsyncClient(base_url=args.base_url, timeout=1800,
                 limits=httpx.Limits(max_connections=limit, max_keepalive_connections=limit),
                 follow_redirects=False, trust_env=False) as client:
-            await run(client, requests, pcm, engine=args.engine, suite=args.suite,
+            result["origin_ns"] = await run(client, requests, pcm, engine=args.engine, suite=args.suite,
                 concurrency=args.concurrency, request_prefix=args.request_prefix, rows=result["rows"])
     finally:
         for sig in (signal.SIGINT, signal.SIGTERM):
