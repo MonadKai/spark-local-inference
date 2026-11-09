@@ -192,8 +192,9 @@ fn exercise_native_logits(replay_history: bool) {
         if let Some(cache) = &executor.manifest().cache {
             if !cache.snapshot_pages.is_empty() { scheduler.share_snapshot_pages(&cache.snapshot_pages).unwrap(); }
         }
-        scheduler.prefill_graphs(&executor.manifest().graphs.iter().filter(|g| g.kind == GraphKind::Prefill)
-            .map(|g| g.token_capacity).collect::<Vec<_>>()).unwrap();
+        let prefills = crate::model::catalog::prefill_fragment_capacities(&fixture.config,
+            executor.manifest(), GraphKind::Prefill).unwrap();
+        scheduler.prefill_graphs(&prefills).unwrap();
         let (sender, receiver) = mpsc::sync_channel(4);
         let mut worker = Worker::new(&fixture.config, &fixture.frontend, &fixture.stop,
             &fixture.metrics, scheduler, receiver, 32, super::super::super::PrefixCacheReuse::Shared);

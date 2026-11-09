@@ -136,8 +136,9 @@ fn cancellation_during_actual_feature_upload_cannot_publish_or_release_its_owner
         if let Some(cache) = &executor.manifest().cache {
             if !cache.snapshot_pages.is_empty() { scheduler.share_snapshot_pages(&cache.snapshot_pages).unwrap(); }
         }
-        scheduler.prefill_graphs(&executor.manifest().graphs.iter().filter(|graph| graph.kind == GraphKind::Prefill)
-            .map(|graph| graph.token_capacity).collect::<Vec<_>>()).unwrap();
+        let prefills = crate::model::catalog::prefill_fragment_capacities(&fixture.config,
+            executor.manifest(), GraphKind::Prefill).unwrap();
+        scheduler.prefill_graphs(&prefills).unwrap();
         let (sender, receiver) = mpsc::sync_channel(4);
         let mut worker = Worker::new(&fixture.config, &fixture.frontend, &fixture.stop,
             &fixture.metrics, scheduler, receiver, 4, super::super::super::PrefixCacheReuse::Shared);
