@@ -467,3 +467,28 @@ The raw `full_model_numerical_qualification=false` and
 `native_package_serving=false` remain intentional: this run does not qualify
 native readmission, the PCM frontend, recognition quality, larger prefill
 capacities, API/lifecycle/old-package behavior or serving performance.
+
+
+`prompt-capacity-components.json.gz` preserves the complete experiment on fixed
+operands, with source and geometry in `prompt-capacity-components-run.json`.
+All 20 frozen inputs, 28 layers and seven layer projections contribute 3,920
+observations and 6,664 fragments. Candidate prompt staging uses 256/512 rows
+instead of 8192, while each captured fragment has 64 rows. Every candidate and
+baseline matches its independent reference on the same BF16 operands; all
+published bytes, five repeated replays, output guards and observed PyTorch
+allocation counters pass. The collector's completion state enforces equality
+between candidate and baseline; independent-reference differences are recorded
+without changing its exit status. All 3,920 reference counts were checked
+individually as zero for this result. Completion alone does not establish
+canonical qualification. Prompt token IDs and checkpoint payloads are not
+revalidated by this tool. It does not observe the LM head, full network,
+frontend, API or native package replay.
+
+Timing covers only the first 64-row fragment of one 165-token input, across all
+196 layer projections: nine randomized paired blocks with ten replays per
+sample. The per-cell intervals are descriptive within one session; independent
+repeats and simultaneous coverage are not established. These are uncompiled
+captured components, not exported-package serving measurements or a vLLM
+comparison. The full-model, native-serving and service-performance qualification
+flags remain false. The typed native C×M catalog is a separate implementation
+and requires its own numerical, lifecycle, export and serving checks.

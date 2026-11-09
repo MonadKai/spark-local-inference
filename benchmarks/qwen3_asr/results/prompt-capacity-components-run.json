@@ -1,0 +1,127 @@
+{
+  "scope": "Complete fixed-operands prompt extent experiment; captured uncompiled components only, no model/native service qualification",
+  "raw": "prompt-capacity-components.json.gz",
+  "production_source": "55569a1afc50ff953dd9a2d7ca71f838a803dcc4",
+  "experiment_source": "qualify/asr_prompt_capacity.py",
+  "experiment_source_sha256": "bbad4cc0d612fd20fd746ad1a82581ad3a4e173a6aa179e6969b470080c2910a",
+  "checkpoint": {
+    "repository": "Qwen/Qwen3-ASR-1.7B",
+    "revision": "7278e1e70fe206f11671096ffdd38061171dd6e5",
+    "payload_rehashed_by_this_tool": false
+  },
+  "canonical": {
+    "transformers_revision": "1d9654e78a23fb167ef539cbd699dfbd3e4830cf",
+    "inputs": "benchmarks/qwen3_asr/numerical-contract.json",
+    "input_count": 20,
+    "actual_prompt_ids_revalidated_here": false,
+    "original_short_width_layout_required": true
+  },
+  "hardware": {
+    "gpu": "NVIDIA GB10",
+    "sm": "sm_121",
+    "architecture": "AArch64",
+    "driver": "580.95.05",
+    "torch": "2.14.1+cu132",
+    "cuda_runtime": "13.2",
+    "nvcc": "13.0.88"
+  },
+  "geometry": {
+    "baseline_prompt_rows": 8192,
+    "candidate_prompt_rows": [
+      256,
+      512
+    ],
+    "physical_fragment_rows": 64,
+    "projections": 3920,
+    "fragments": 6664,
+    "repeat_byte_checks_per_fragment": 5,
+    "weight_and_activation_operands": "All 28 decoder layers and seven actual frozen projection operands per input; LM head excluded"
+  },
+  "gates": {
+    "candidate_baseline_changed": 0,
+    "candidate_reference_changed": 0,
+    "baseline_reference_changed": 0,
+    "errors": [],
+    "same_path_byte_checks_passed": true,
+    "pytorch_replay_allocation_counters_stable": true,
+    "guard_checks_passed": true,
+    "canonical_equality_assessment": "All 3,920 recorded baseline/reference and candidate/reference counts were individually checked as zero during publication; collector completion alone does not enforce independent-reference equality"
+  },
+  "timing": {
+    "input": "zh-BAC009S0729W0241",
+    "initial_rows": 165,
+    "fragment_begin": 0,
+    "fragment_live_rows": 64,
+    "physical_candidate_rows": 256,
+    "cells": 196,
+    "randomized_paired_blocks": 9,
+    "replays_per_sample": 10,
+    "order_seed": 20261106,
+    "raw_ratio_key": "legacy_over_logical_geometric_ratio means8192/C in this experiment",
+    "interval": "Per-component descriptive df8 t interval on nine paired log ratios; independence unestablished; no simultaneous-coverage or complete-forward claim",
+    "execution": "torch CUDA Graph capture of uncompiled component calls; not ignition export/flare run",
+    "overlap": "All 196 timed cells completed before task CPU builds and acquisition restart; no formal isolation/observer-overhead qualification",
+    "operations": {
+      "self_attn.q_proj": {
+        "layers": 28,
+        "minimum_component_ratio": 13.344819756167649,
+        "median_component_ratio": 13.817346864531661,
+        "maximum_component_ratio": 14.185513622682803,
+        "pooled_confidence_interval": null,
+        "pooled_confidence_interval_reason": "Layers share one input/session and are not independent statistical repeats"
+      },
+      "self_attn.k_proj": {
+        "layers": 28,
+        "minimum_component_ratio": 10.966502240342656,
+        "median_component_ratio": 11.271248321541675,
+        "maximum_component_ratio": 11.600139178869902,
+        "pooled_confidence_interval": null,
+        "pooled_confidence_interval_reason": "Layers share one input/session and are not independent statistical repeats"
+      },
+      "self_attn.v_proj": {
+        "layers": 28,
+        "minimum_component_ratio": 10.927370037588332,
+        "median_component_ratio": 11.417325859560936,
+        "maximum_component_ratio": 11.658722980482215,
+        "pooled_confidence_interval": null,
+        "pooled_confidence_interval_reason": "Layers share one input/session and are not independent statistical repeats"
+      },
+      "self_attn.o_proj": {
+        "layers": 28,
+        "minimum_component_ratio": 13.33499448018726,
+        "median_component_ratio": 13.780723948077645,
+        "maximum_component_ratio": 14.213287670530269,
+        "pooled_confidence_interval": null,
+        "pooled_confidence_interval_reason": "Layers share one input/session and are not independent statistical repeats"
+      },
+      "mlp.gate_proj": {
+        "layers": 28,
+        "minimum_component_ratio": 7.648656656680906,
+        "median_component_ratio": 8.007372996301806,
+        "maximum_component_ratio": 8.24690492070845,
+        "pooled_confidence_interval": null,
+        "pooled_confidence_interval_reason": "Layers share one input/session and are not independent statistical repeats"
+      },
+      "mlp.up_proj": {
+        "layers": 28,
+        "minimum_component_ratio": 7.736967984653074,
+        "median_component_ratio": 8.009925807662178,
+        "maximum_component_ratio": 8.429406337527762,
+        "pooled_confidence_interval": null,
+        "pooled_confidence_interval_reason": "Layers share one input/session and are not independent statistical repeats"
+      },
+      "mlp.down_proj": {
+        "layers": 28,
+        "minimum_component_ratio": 8.158578495295657,
+        "median_component_ratio": 8.552717266682693,
+        "maximum_component_ratio": 8.928456808794309,
+        "pooled_confidence_interval": null,
+        "pooled_confidence_interval_reason": "Layers share one input/session and are not independent statistical repeats"
+      }
+    }
+  },
+  "full_model_numerical_qualification": false,
+  "native_package_serving": false,
+  "service_performance_qualified": false,
+  "vllm_comparison": false
+}
