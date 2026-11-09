@@ -51,6 +51,28 @@ def snapshot_sdk_positions(value, consumed, tokens):
     return copied
 
 
+def check_frozen_input(case, previous, *, boundary):
+    """Preserve original input identity, including the first whole-audio layout."""
+    fields = ("id", "language", "original_samples", "padded_samples", "frames",
+        "prompt", "prompt_ids", "teacher_token_limit")
+    if any(case.get(name) != previous.get(name) or name not in case or name not in previous for name in fields):
+        raise ValueError("SDK input or teacher selection differs from its frozen observation")
+    if "source_id" in previous:
+        source_id = previous["source_id"]
+    elif not boundary and case["id"] == case.get("source_id"):
+        # The first four whole-audio observations predate source_id. Their id
+        # already names the complete frozen source; boundary observations must
+        # retain the explicit source and prefix PCM identities.
+        source_id = previous["id"]
+    else:
+        raise ValueError("frozen SDK source identity is absent")
+    if source_id != case.get("source_id"):
+        raise ValueError("SDK source differs from its frozen observation")
+    if boundary and (not case.get("prefix_pcm_s16le_sha256")
+            or case["prefix_pcm_s16le_sha256"] != previous.get("prefix_pcm_s16le_sha256")):
+        raise ValueError("SDK prefix PCM differs from its frozen observation")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", type=Path, required=True)
@@ -279,10 +301,7 @@ def main():
                     prompt_ids=inputs["input_ids"][0].tolist())
                 if args.cached_state:
                     previous = frozen_cases[case_id]
-                    fields = ("source_id", "language", "original_samples", "padded_samples", "frames",
-                              "prompt", "prompt_ids", "teacher_token_limit")
-                    if any(case[name] != previous[name] for name in fields):
-                        raise ValueError("SDK input or teacher selection differs from its frozen observation")
+                    check_frozen_input(case, previous, boundary="boundary_frames" in row)
                 model.thinker.rope_deltas = None
                 warmup = model.thinker(**inputs, use_cache=False)
                 del warmup

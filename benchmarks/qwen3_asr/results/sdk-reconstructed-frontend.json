@@ -1,0 +1,297 @@
+{
+  "scope": "Actual reconstructed SDK CPU processor/prompt against all original frozen20 observations; no model, CUDA or new oracle",
+  "SDK_revision": "7c6daf77a2421100f5fb066495372c00129d39ff",
+  "checkpoint_revision": "7278e1e70fe206f11671096ffdd38061171dd6e5",
+  "local_reference_image_id": "sha256:c8f06fd060f4dbcbbce507cd33a8156cfde4c8c0e1b78e6c29a2194e5ac741d5",
+  "historical_image_id_unavailable": "sha256:e5cf25c3d78a01c3f4addfd1876b722fcc8acd7bc691b48796dea1ae68faacc1",
+  "registry_manifest_digest": null,
+  "cases": [
+    {
+      "id": "en-777-126732-0081",
+      "status": "passed_exact_CPU_processor_prompt_only",
+      "group": 5,
+      "frames": 151,
+      "prompt_ids": 38,
+      "feature_dtype": "torch.bfloat16",
+      "feature_shape": [
+        1,
+        128,
+        151
+      ],
+      "legacy_implicit_source": true
+    },
+    {
+      "id": "en-422-122949-0013",
+      "status": "passed_exact_CPU_processor_prompt_only",
+      "group": 5,
+      "frames": 3265,
+      "prompt_ids": 443,
+      "feature_dtype": "torch.bfloat16",
+      "feature_shape": [
+        1,
+        128,
+        3265
+      ],
+      "legacy_implicit_source": true
+    },
+    {
+      "id": "zh-BAC009S0727W0418",
+      "status": "passed_exact_CPU_processor_prompt_only",
+      "group": 5,
+      "frames": 165,
+      "prompt_ids": 40,
+      "feature_dtype": "torch.bfloat16",
+      "feature_shape": [
+        1,
+        128,
+        165
+      ],
+      "legacy_implicit_source": true
+    },
+    {
+      "id": "zh-BAC009S0729W0241",
+      "status": "passed_exact_CPU_processor_prompt_only",
+      "group": 5,
+      "frames": 1128,
+      "prompt_ids": 165,
+      "feature_dtype": "torch.bfloat16",
+      "feature_shape": [
+        1,
+        128,
+        1128
+      ],
+      "legacy_implicit_source": true
+    },
+    {
+      "id": "en-422-122949-0013-first-13f",
+      "status": "passed_exact_CPU_processor_prompt_only",
+      "group": 6,
+      "frames": 13,
+      "prompt_ids": 20,
+      "feature_dtype": "torch.bfloat16",
+      "feature_shape": [
+        1,
+        128,
+        13
+      ],
+      "legacy_implicit_source": false
+    },
+    {
+      "id": "en-422-122949-0013-first-99f",
+      "status": "passed_exact_CPU_processor_prompt_only",
+      "group": 6,
+      "frames": 99,
+      "prompt_ids": 31,
+      "feature_dtype": "torch.bfloat16",
+      "feature_shape": [
+        1,
+        128,
+        99
+      ],
+      "legacy_implicit_source": false
+    },
+    {
+      "id": "en-422-122949-0013-first-100f",
+      "status": "passed_exact_CPU_processor_prompt_only",
+      "group": 6,
+      "frames": 100,
+      "prompt_ids": 31,
+      "feature_dtype": "torch.bfloat16",
+      "feature_shape": [
+        1,
+        128,
+        100
+      ],
+      "legacy_implicit_source": false
+    },
+    {
+      "id": "en-422-122949-0013-first-101f",
+      "status": "passed_exact_CPU_processor_prompt_only",
+      "group": 6,
+      "frames": 101,
+      "prompt_ids": 32,
+      "feature_dtype": "torch.bfloat16",
+      "feature_shape": [
+        1,
+        128,
+        101
+      ],
+      "legacy_implicit_source": false
+    },
+    {
+      "id": "en-422-122949-0013-first-799f",
+      "status": "passed_exact_CPU_processor_prompt_only",
+      "group": 6,
+      "frames": 799,
+      "prompt_ids": 122,
+      "feature_dtype": "torch.bfloat16",
+      "feature_shape": [
+        1,
+        128,
+        799
+      ],
+      "legacy_implicit_source": false
+    },
+    {
+      "id": "en-422-122949-0013-first-800f",
+      "status": "passed_exact_CPU_processor_prompt_only",
+      "group": 6,
+      "frames": 800,
+      "prompt_ids": 122,
+      "feature_dtype": "torch.bfloat16",
+      "feature_shape": [
+        1,
+        128,
+        800
+      ],
+      "legacy_implicit_source": false
+    },
+    {
+      "id": "en-422-122949-0013-first-801f",
+      "status": "passed_exact_CPU_processor_prompt_only",
+      "group": 6,
+      "frames": 801,
+      "prompt_ids": 123,
+      "feature_dtype": "torch.bfloat16",
+      "feature_shape": [
+        1,
+        128,
+        801
+      ],
+      "legacy_implicit_source": false
+    },
+    {
+      "id": "zh-BAC009S0729W0241-first-13f",
+      "status": "passed_exact_CPU_processor_prompt_only",
+      "group": 6,
+      "frames": 13,
+      "prompt_ids": 20,
+      "feature_dtype": "torch.bfloat16",
+      "feature_shape": [
+        1,
+        128,
+        13
+      ],
+      "legacy_implicit_source": false
+    },
+    {
+      "id": "zh-BAC009S0729W0241-first-99f",
+      "status": "passed_exact_CPU_processor_prompt_only",
+      "group": 6,
+      "frames": 99,
+      "prompt_ids": 31,
+      "feature_dtype": "torch.bfloat16",
+      "feature_shape": [
+        1,
+        128,
+        99
+      ],
+      "legacy_implicit_source": false
+    },
+    {
+      "id": "zh-BAC009S0729W0241-first-100f",
+      "status": "passed_exact_CPU_processor_prompt_only",
+      "group": 6,
+      "frames": 100,
+      "prompt_ids": 31,
+      "feature_dtype": "torch.bfloat16",
+      "feature_shape": [
+        1,
+        128,
+        100
+      ],
+      "legacy_implicit_source": false
+    },
+    {
+      "id": "zh-BAC009S0729W0241-first-101f",
+      "status": "passed_exact_CPU_processor_prompt_only",
+      "group": 6,
+      "frames": 101,
+      "prompt_ids": 32,
+      "feature_dtype": "torch.bfloat16",
+      "feature_shape": [
+        1,
+        128,
+        101
+      ],
+      "legacy_implicit_source": false
+    },
+    {
+      "id": "zh-BAC009S0729W0241-first-799f",
+      "status": "passed_exact_CPU_processor_prompt_only",
+      "group": 6,
+      "frames": 799,
+      "prompt_ids": 122,
+      "feature_dtype": "torch.bfloat16",
+      "feature_shape": [
+        1,
+        128,
+        799
+      ],
+      "legacy_implicit_source": false
+    },
+    {
+      "id": "zh-BAC009S0729W0241-first-800f",
+      "status": "passed_exact_CPU_processor_prompt_only",
+      "group": 6,
+      "frames": 800,
+      "prompt_ids": 122,
+      "feature_dtype": "torch.bfloat16",
+      "feature_shape": [
+        1,
+        128,
+        800
+      ],
+      "legacy_implicit_source": false
+    },
+    {
+      "id": "zh-BAC009S0729W0241-first-801f",
+      "status": "passed_exact_CPU_processor_prompt_only",
+      "group": 6,
+      "frames": 801,
+      "prompt_ids": 123,
+      "feature_dtype": "torch.bfloat16",
+      "feature_shape": [
+        1,
+        128,
+        801
+      ],
+      "legacy_implicit_source": false
+    },
+    {
+      "id": "en-422-122949-0013-first-2f",
+      "status": "passed_exact_CPU_processor_prompt_only",
+      "group": 7,
+      "frames": 2,
+      "prompt_ids": 19,
+      "feature_dtype": "torch.bfloat16",
+      "feature_shape": [
+        1,
+        128,
+        2
+      ],
+      "legacy_implicit_source": false
+    },
+    {
+      "id": "zh-BAC009S0729W0241-first-2f",
+      "status": "passed_exact_CPU_processor_prompt_only",
+      "group": 7,
+      "frames": 2,
+      "prompt_ids": 19,
+      "feature_dtype": "torch.bfloat16",
+      "feature_shape": [
+        1,
+        128,
+        2
+      ],
+      "legacy_implicit_source": false
+    }
+  ],
+  "errors": [],
+  "candidate_imports_absent": true,
+  "CUDA_initialized": false,
+  "CPU_state_identity_controls_passed": 42,
+  "full_GPU_reference_equality_qualified": false,
+  "native_model_qualified": false,
+  "performance_qualified": false
+}

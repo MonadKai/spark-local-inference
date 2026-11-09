@@ -17,6 +17,21 @@ logical tensors to the original files. Neither reference imports Ignition or
 Heliopause. They retain separate environments and their actual Torch versions;
 cross-environment floating-point byte identity is not assumed.
 
+`qualify.asr_sdk_stages --cached-state --frozen-sdk ORIGINAL_OBSERVATIONS`
+supplements the SDK's complete cached KV and actual FP32 rotary positions only
+after matching the original input, full prefill tensors, natural token IDs and
+teacher logits/targets exactly. The first four whole-audio observations predate
+`source_id`: their complete source is the existing `id`. Accept that layout only
+for a whole-audio input whose current `id == source_id`. Boundary observations
+require their explicit source and identical prefix PCM hash. This preserves the
+original archives and numerical budgets.
+
+[The reconstructed SDK CPU observation](../benchmarks/qwen3_asr/results/sdk-reconstructed-frontend.json)
+matches all twenty original processor BF16 feature tensors and actual SDK prompt
+bytes/IDs. The new local reference image has a different identity from the
+unavailable historical image. These CPU checks do not establish the required
+frozen GPU prefill, cached state or logits equality.
+
 The original SDK retains 1500 audio positions; each convolution chunk uses at
 most thirteen. Compare that entire used FP32 prefix and both rotary-frequency
 buffers exactly. Canonical stores thirteen positions. The three original
