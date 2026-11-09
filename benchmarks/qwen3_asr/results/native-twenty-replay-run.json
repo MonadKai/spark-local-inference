@@ -1,0 +1,3458 @@
+{
+  "scope": "Actual unmodified exported package full20 batch/slot checks and repeatable G2 same-path state failure; finite diagnostic results only",
+  "source_head": "69ab162e71616d8fae7aae8ae6c991f06ea6ef0b",
+  "checkpoint_revision": "7278e1e70fe206f11671096ffdd38061171dd6e5",
+  "prepared_identity": "89fb4370aae9ff7e1c2ccec99aa1554ff2224899bb940b0b4f5eeb0d91108a1d",
+  "package_sha256": "7b6e09b0f4f7b0c1826efda7f4e3a9461ff678a853c883107a4a7e4ac8b6a1ff",
+  "package_sha256_note": "Primary signed package file",
+  "native_observer_binary_sha256": "529277f0b19104ce58bec51667ad1b5c70385cb3f3323e63a3cd4a011e5d7b66",
+  "hardware": "NVIDIA GB10 SM121",
+  "native_preparer_absent": true,
+  "case": "zh-BAC009S0729W0241-first-100f",
+  "original_prompt_tokens": 31,
+  "history": [
+    100015,
+    1773,
+    151645
+  ],
+  "layout": {
+    "dtype": "BF16",
+    "layers": 28,
+    "kv_heads": 8,
+    "head_dim": 128,
+    "token_major": true,
+    "bytes_per_token_per_plane": 2048
+  },
+  "G2_attempts": [
+    {
+      "input_count": 20,
+      "status": "failed_or_interrupted",
+      "errors": [
+        "KV changed across actual batch, slot or history replay"
+      ],
+      "completed_cohorts": 47,
+      "completed_kv_frames": 413,
+      "cold_fence": 300,
+      "replay_fence": 1083,
+      "replay_tokens": 33,
+      "original_prompt_KV_exact": true,
+      "planes": [
+        {
+          "buffer": "cache.layer0.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer0.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer1.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer1.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer2.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer2.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer3.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer3.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer4.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer4.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer5.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer5.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer6.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer6.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer7.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer7.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer8.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer8.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer9.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer9.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer10.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer10.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer11.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer11.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer12.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer12.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer13.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer13.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer14.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer14.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer15.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer15.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer16.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer16.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer17.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer17.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer18.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer18.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer19.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer19.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer20.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer20.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer21.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer21.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer22.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer22.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer23.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer23.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer24.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer24.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer25.key",
+          "elements": 33792,
+          "differing_elements": 246,
+          "differing_token_positions": [
+            31
+          ],
+          "max_abs": 0.0625
+        },
+        {
+          "buffer": "cache.layer25.value",
+          "elements": 33792,
+          "differing_elements": 387,
+          "differing_token_positions": [
+            31
+          ],
+          "max_abs": 0.125
+        },
+        {
+          "buffer": "cache.layer26.key",
+          "elements": 33792,
+          "differing_elements": 724,
+          "differing_token_positions": [
+            31,
+            32
+          ],
+          "max_abs": 0.125
+        },
+        {
+          "buffer": "cache.layer26.value",
+          "elements": 33792,
+          "differing_elements": 1078,
+          "differing_token_positions": [
+            31,
+            32
+          ],
+          "max_abs": 0.25
+        },
+        {
+          "buffer": "cache.layer27.key",
+          "elements": 33792,
+          "differing_elements": 1006,
+          "differing_token_positions": [
+            31,
+            32
+          ],
+          "max_abs": 0.25
+        },
+        {
+          "buffer": "cache.layer27.value",
+          "elements": 33792,
+          "differing_elements": 1462,
+          "differing_token_positions": [
+            31,
+            32
+          ],
+          "max_abs": 0.25
+        }
+      ],
+      "final_logits": {
+        "differing_elements": 107275,
+        "max_abs": 0.125,
+        "cold_top1": 151645,
+        "replay_top1": 151645
+      },
+      "failed_frame_planes_saved_before_assertion": true
+    },
+    {
+      "input_count": 4,
+      "status": "failed_or_interrupted",
+      "errors": [
+        "KV changed across actual batch, slot or history replay"
+      ],
+      "completed_cohorts": 5,
+      "completed_kv_frames": 35,
+      "cold_fence": 6,
+      "replay_fence": 68,
+      "replay_tokens": 33,
+      "original_prompt_KV_exact": true,
+      "planes": [
+        {
+          "buffer": "cache.layer0.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer0.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer1.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer1.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer2.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer2.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer3.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer3.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer4.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer4.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer5.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer5.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer6.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer6.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer7.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer7.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer8.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer8.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer9.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer9.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer10.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer10.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer11.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer11.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer12.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer12.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer13.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer13.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer14.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer14.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer15.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer15.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer16.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer16.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer17.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer17.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer18.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer18.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer19.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer19.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer20.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer20.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer21.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer21.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer22.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer22.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer23.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer23.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer24.key",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer24.value",
+          "elements": 33792,
+          "differing_elements": 0,
+          "differing_token_positions": [],
+          "max_abs": 0.0
+        },
+        {
+          "buffer": "cache.layer25.key",
+          "elements": 33792,
+          "differing_elements": 246,
+          "differing_token_positions": [
+            31
+          ],
+          "max_abs": 0.0625
+        },
+        {
+          "buffer": "cache.layer25.value",
+          "elements": 33792,
+          "differing_elements": 387,
+          "differing_token_positions": [
+            31
+          ],
+          "max_abs": 0.125
+        },
+        {
+          "buffer": "cache.layer26.key",
+          "elements": 33792,
+          "differing_elements": 724,
+          "differing_token_positions": [
+            31,
+            32
+          ],
+          "max_abs": 0.125
+        },
+        {
+          "buffer": "cache.layer26.value",
+          "elements": 33792,
+          "differing_elements": 1078,
+          "differing_token_positions": [
+            31,
+            32
+          ],
+          "max_abs": 0.25
+        },
+        {
+          "buffer": "cache.layer27.key",
+          "elements": 33792,
+          "differing_elements": 1006,
+          "differing_token_positions": [
+            31,
+            32
+          ],
+          "max_abs": 0.25
+        },
+        {
+          "buffer": "cache.layer27.value",
+          "elements": 33792,
+          "differing_elements": 1462,
+          "differing_token_positions": [
+            31,
+            32
+          ],
+          "max_abs": 0.25
+        }
+      ],
+      "final_logits": {
+        "differing_elements": 107275,
+        "max_abs": 0.125,
+        "cold_top1": 151645,
+        "replay_top1": 151645
+      },
+      "failed_frame_planes_saved_before_assertion": true
+    }
+  ],
+  "G2_gate_passed": false,
+  "first_KV_divergence": {
+    "layer": 25,
+    "token_position": 31,
+    "hidden_root_cause_established": false
+  },
+  "batch_slot": {
+    "status": "complete_native_twenty_input_diagnostic",
+    "input_count": 20,
+    "cohorts": 62,
+    "complete_requests": 190,
+    "native_errors": [],
+    "scalar_status": "complete_finite_native_scalar_checks_only",
+    "scalar_errors": [],
+    "physical_frames_and_complete_same_path_kv_checked": true,
+    "actual_case_decode_witnesses": {
+      "en-777-126732-0081": [
+        [
+          1,
+          1,
+          0,
+          0,
+          1
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          21
+        ],
+        [
+          2,
+          2,
+          1,
+          1,
+          2
+        ],
+        [
+          4,
+          3,
+          0,
+          0,
+          41
+        ],
+        [
+          4,
+          3,
+          0,
+          0,
+          51
+        ],
+        [
+          4,
+          3,
+          0,
+          0,
+          57
+        ],
+        [
+          4,
+          3,
+          2,
+          3,
+          2
+        ],
+        [
+          4,
+          3,
+          2,
+          6,
+          8
+        ],
+        [
+          4,
+          3,
+          2,
+          7,
+          2
+        ],
+        [
+          4,
+          4,
+          0,
+          0,
+          41
+        ],
+        [
+          4,
+          4,
+          0,
+          0,
+          62
+        ],
+        [
+          4,
+          4,
+          3,
+          3,
+          2
+        ],
+        [
+          4,
+          4,
+          3,
+          6,
+          11
+        ],
+        [
+          8,
+          5,
+          2,
+          3,
+          16
+        ],
+        [
+          8,
+          5,
+          2,
+          4,
+          5
+        ],
+        [
+          8,
+          6,
+          0,
+          0,
+          57
+        ],
+        [
+          8,
+          6,
+          2,
+          4,
+          5
+        ],
+        [
+          8,
+          6,
+          3,
+          3,
+          16
+        ],
+        [
+          8,
+          6,
+          5,
+          6,
+          8
+        ],
+        [
+          8,
+          7,
+          0,
+          0,
+          51
+        ],
+        [
+          8,
+          7,
+          0,
+          0,
+          57
+        ],
+        [
+          8,
+          7,
+          0,
+          0,
+          62
+        ],
+        [
+          8,
+          7,
+          6,
+          6,
+          8
+        ],
+        [
+          8,
+          7,
+          6,
+          6,
+          11
+        ],
+        [
+          8,
+          7,
+          6,
+          7,
+          2
+        ],
+        [
+          8,
+          8,
+          0,
+          0,
+          51
+        ],
+        [
+          8,
+          8,
+          3,
+          3,
+          16
+        ],
+        [
+          8,
+          8,
+          4,
+          4,
+          5
+        ],
+        [
+          8,
+          8,
+          7,
+          7,
+          2
+        ]
+      ],
+      "en-422-122949-0013": [
+        [
+          1,
+          1,
+          0,
+          0,
+          2
+        ],
+        [
+          1,
+          1,
+          0,
+          0,
+          22
+        ],
+        [
+          1,
+          1,
+          0,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          0,
+          1,
+          21
+        ],
+        [
+          1,
+          1,
+          0,
+          1,
+          31
+        ],
+        [
+          1,
+          1,
+          0,
+          1,
+          37
+        ],
+        [
+          1,
+          1,
+          0,
+          2,
+          2
+        ],
+        [
+          1,
+          1,
+          0,
+          2,
+          16
+        ],
+        [
+          1,
+          1,
+          0,
+          5,
+          5
+        ],
+        [
+          1,
+          1,
+          0,
+          5,
+          8
+        ],
+        [
+          1,
+          1,
+          0,
+          6,
+          2
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          22
+        ],
+        [
+          2,
+          2,
+          0,
+          1,
+          21
+        ],
+        [
+          2,
+          2,
+          0,
+          1,
+          31
+        ],
+        [
+          2,
+          2,
+          0,
+          1,
+          37
+        ],
+        [
+          2,
+          2,
+          0,
+          5,
+          5
+        ],
+        [
+          2,
+          2,
+          1,
+          1,
+          1
+        ],
+        [
+          2,
+          2,
+          1,
+          2,
+          2
+        ],
+        [
+          2,
+          2,
+          1,
+          2,
+          16
+        ],
+        [
+          2,
+          2,
+          1,
+          5,
+          8
+        ],
+        [
+          2,
+          2,
+          1,
+          6,
+          2
+        ],
+        [
+          4,
+          3,
+          1,
+          1,
+          21
+        ],
+        [
+          4,
+          3,
+          1,
+          1,
+          31
+        ],
+        [
+          4,
+          3,
+          1,
+          1,
+          37
+        ],
+        [
+          4,
+          3,
+          1,
+          2,
+          2
+        ],
+        [
+          4,
+          3,
+          1,
+          5,
+          8
+        ],
+        [
+          4,
+          3,
+          1,
+          6,
+          2
+        ],
+        [
+          4,
+          4,
+          1,
+          1,
+          21
+        ],
+        [
+          4,
+          4,
+          1,
+          2,
+          16
+        ],
+        [
+          4,
+          4,
+          2,
+          2,
+          2
+        ],
+        [
+          4,
+          4,
+          2,
+          5,
+          5
+        ],
+        [
+          8,
+          5,
+          1,
+          2,
+          16
+        ],
+        [
+          8,
+          5,
+          3,
+          5,
+          5
+        ],
+        [
+          8,
+          6,
+          1,
+          1,
+          37
+        ],
+        [
+          8,
+          6,
+          2,
+          2,
+          16
+        ],
+        [
+          8,
+          6,
+          3,
+          5,
+          5
+        ],
+        [
+          8,
+          6,
+          4,
+          5,
+          8
+        ],
+        [
+          8,
+          7,
+          1,
+          1,
+          31
+        ],
+        [
+          8,
+          7,
+          1,
+          1,
+          37
+        ],
+        [
+          8,
+          7,
+          5,
+          5,
+          8
+        ],
+        [
+          8,
+          7,
+          5,
+          6,
+          2
+        ],
+        [
+          8,
+          8,
+          1,
+          1,
+          31
+        ],
+        [
+          8,
+          8,
+          2,
+          2,
+          16
+        ],
+        [
+          8,
+          8,
+          5,
+          5,
+          5
+        ],
+        [
+          8,
+          8,
+          6,
+          6,
+          2
+        ]
+      ],
+      "zh-BAC009S0727W0418": [
+        [
+          1,
+          1,
+          0,
+          0,
+          3
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          23
+        ],
+        [
+          2,
+          2,
+          1,
+          1,
+          4
+        ],
+        [
+          4,
+          4,
+          1,
+          1,
+          22
+        ],
+        [
+          4,
+          4,
+          2,
+          2,
+          1
+        ],
+        [
+          8,
+          6,
+          1,
+          1,
+          36
+        ],
+        [
+          8,
+          6,
+          2,
+          2,
+          17
+        ],
+        [
+          8,
+          6,
+          3,
+          4,
+          8
+        ],
+        [
+          8,
+          6,
+          4,
+          6,
+          5
+        ],
+        [
+          8,
+          7,
+          2,
+          2,
+          11
+        ],
+        [
+          8,
+          7,
+          2,
+          2,
+          17
+        ],
+        [
+          8,
+          7,
+          4,
+          4,
+          8
+        ],
+        [
+          8,
+          7,
+          4,
+          5,
+          2
+        ],
+        [
+          8,
+          8,
+          1,
+          1,
+          36
+        ],
+        [
+          8,
+          8,
+          2,
+          2,
+          11
+        ],
+        [
+          8,
+          8,
+          5,
+          5,
+          2
+        ],
+        [
+          8,
+          8,
+          6,
+          6,
+          5
+        ]
+      ],
+      "zh-BAC009S0729W0241": [
+        [
+          1,
+          1,
+          0,
+          0,
+          4
+        ],
+        [
+          1,
+          1,
+          0,
+          0,
+          24
+        ],
+        [
+          1,
+          1,
+          0,
+          1,
+          3
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          24
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          42
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          56
+        ],
+        [
+          2,
+          2,
+          0,
+          3,
+          18
+        ],
+        [
+          2,
+          2,
+          0,
+          4,
+          2
+        ],
+        [
+          2,
+          2,
+          1,
+          1,
+          3
+        ],
+        [
+          2,
+          2,
+          1,
+          3,
+          1
+        ],
+        [
+          2,
+          2,
+          1,
+          3,
+          11
+        ],
+        [
+          2,
+          2,
+          1,
+          3,
+          17
+        ],
+        [
+          2,
+          2,
+          1,
+          7,
+          5
+        ],
+        [
+          4,
+          3,
+          0,
+          0,
+          42
+        ],
+        [
+          4,
+          3,
+          0,
+          3,
+          18
+        ],
+        [
+          4,
+          3,
+          0,
+          4,
+          2
+        ],
+        [
+          4,
+          3,
+          2,
+          3,
+          1
+        ],
+        [
+          4,
+          3,
+          2,
+          3,
+          11
+        ],
+        [
+          4,
+          3,
+          2,
+          3,
+          17
+        ],
+        [
+          4,
+          4,
+          0,
+          0,
+          42
+        ],
+        [
+          4,
+          4,
+          0,
+          0,
+          56
+        ],
+        [
+          4,
+          4,
+          3,
+          3,
+          1
+        ],
+        [
+          4,
+          4,
+          3,
+          7,
+          5
+        ],
+        [
+          8,
+          5,
+          0,
+          0,
+          56
+        ],
+        [
+          8,
+          5,
+          4,
+          7,
+          5
+        ],
+        [
+          8,
+          6,
+          0,
+          0,
+          56
+        ],
+        [
+          8,
+          6,
+          2,
+          3,
+          18
+        ],
+        [
+          8,
+          6,
+          3,
+          3,
+          17
+        ],
+        [
+          8,
+          6,
+          5,
+          7,
+          5
+        ],
+        [
+          8,
+          7,
+          3,
+          3,
+          11
+        ],
+        [
+          8,
+          7,
+          3,
+          3,
+          17
+        ],
+        [
+          8,
+          7,
+          3,
+          3,
+          18
+        ],
+        [
+          8,
+          7,
+          3,
+          4,
+          2
+        ],
+        [
+          8,
+          8,
+          0,
+          0,
+          56
+        ],
+        [
+          8,
+          8,
+          3,
+          3,
+          11
+        ],
+        [
+          8,
+          8,
+          4,
+          4,
+          2
+        ],
+        [
+          8,
+          8,
+          7,
+          7,
+          5
+        ]
+      ],
+      "en-422-122949-0013-first-13f": [
+        [
+          1,
+          1,
+          0,
+          0,
+          5
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          25
+        ],
+        [
+          2,
+          2,
+          1,
+          1,
+          6
+        ],
+        [
+          4,
+          4,
+          0,
+          0,
+          43
+        ],
+        [
+          4,
+          4,
+          3,
+          3,
+          4
+        ],
+        [
+          8,
+          7,
+          2,
+          2,
+          18
+        ],
+        [
+          8,
+          7,
+          4,
+          4,
+          7
+        ],
+        [
+          8,
+          8,
+          3,
+          3,
+          12
+        ],
+        [
+          8,
+          8,
+          4,
+          4,
+          1
+        ]
+      ],
+      "en-422-122949-0013-first-99f": [
+        [
+          1,
+          1,
+          0,
+          0,
+          6
+        ],
+        [
+          1,
+          1,
+          0,
+          0,
+          26
+        ],
+        [
+          1,
+          1,
+          0,
+          1,
+          5
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          26
+        ],
+        [
+          2,
+          2,
+          1,
+          1,
+          5
+        ],
+        [
+          4,
+          3,
+          0,
+          1,
+          23
+        ],
+        [
+          4,
+          3,
+          2,
+          2,
+          4
+        ],
+        [
+          4,
+          4,
+          1,
+          1,
+          23
+        ],
+        [
+          4,
+          4,
+          2,
+          2,
+          4
+        ],
+        [
+          8,
+          6,
+          1,
+          1,
+          38
+        ],
+        [
+          8,
+          6,
+          4,
+          5,
+          7
+        ],
+        [
+          8,
+          7,
+          1,
+          1,
+          38
+        ],
+        [
+          8,
+          7,
+          2,
+          2,
+          12
+        ],
+        [
+          8,
+          7,
+          4,
+          5,
+          1
+        ],
+        [
+          8,
+          7,
+          5,
+          5,
+          7
+        ],
+        [
+          8,
+          8,
+          2,
+          2,
+          12
+        ],
+        [
+          8,
+          8,
+          5,
+          5,
+          1
+        ]
+      ],
+      "en-422-122949-0013-first-100f": [
+        [
+          1,
+          1,
+          0,
+          0,
+          7
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          27
+        ],
+        [
+          2,
+          2,
+          1,
+          1,
+          8
+        ],
+        [
+          4,
+          3,
+          1,
+          1,
+          24
+        ],
+        [
+          4,
+          3,
+          1,
+          2,
+          3
+        ],
+        [
+          4,
+          4,
+          1,
+          1,
+          24
+        ],
+        [
+          4,
+          4,
+          2,
+          2,
+          3
+        ],
+        [
+          8,
+          6,
+          0,
+          0,
+          58
+        ],
+        [
+          8,
+          6,
+          5,
+          6,
+          7
+        ],
+        [
+          8,
+          7,
+          0,
+          0,
+          58
+        ],
+        [
+          8,
+          7,
+          1,
+          1,
+          32
+        ],
+        [
+          8,
+          7,
+          5,
+          6,
+          1
+        ],
+        [
+          8,
+          7,
+          6,
+          6,
+          7
+        ],
+        [
+          8,
+          8,
+          1,
+          1,
+          32
+        ],
+        [
+          8,
+          8,
+          6,
+          6,
+          1
+        ]
+      ],
+      "en-422-122949-0013-first-101f": [
+        [
+          1,
+          1,
+          0,
+          0,
+          8
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          28
+        ],
+        [
+          2,
+          2,
+          1,
+          1,
+          7
+        ],
+        [
+          4,
+          3,
+          0,
+          0,
+          44
+        ],
+        [
+          4,
+          3,
+          2,
+          3,
+          3
+        ],
+        [
+          4,
+          4,
+          0,
+          0,
+          44
+        ],
+        [
+          4,
+          4,
+          0,
+          0,
+          59
+        ],
+        [
+          4,
+          4,
+          3,
+          3,
+          3
+        ],
+        [
+          4,
+          4,
+          3,
+          6,
+          10
+        ],
+        [
+          8,
+          7,
+          0,
+          0,
+          52
+        ],
+        [
+          8,
+          7,
+          0,
+          0,
+          59
+        ],
+        [
+          8,
+          7,
+          6,
+          6,
+          10
+        ],
+        [
+          8,
+          7,
+          6,
+          7,
+          1
+        ],
+        [
+          8,
+          8,
+          0,
+          0,
+          52
+        ],
+        [
+          8,
+          8,
+          7,
+          7,
+          1
+        ]
+      ],
+      "en-422-122949-0013-first-799f": [
+        [
+          1,
+          1,
+          0,
+          0,
+          9
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          29
+        ],
+        [
+          2,
+          2,
+          1,
+          1,
+          10
+        ],
+        [
+          4,
+          3,
+          0,
+          0,
+          45
+        ],
+        [
+          4,
+          3,
+          0,
+          0,
+          53
+        ],
+        [
+          4,
+          3,
+          0,
+          1,
+          39
+        ],
+        [
+          4,
+          3,
+          2,
+          3,
+          6
+        ],
+        [
+          4,
+          3,
+          2,
+          5,
+          10
+        ],
+        [
+          4,
+          3,
+          2,
+          7,
+          4
+        ],
+        [
+          4,
+          4,
+          0,
+          0,
+          45
+        ],
+        [
+          4,
+          4,
+          0,
+          0,
+          53
+        ],
+        [
+          4,
+          4,
+          1,
+          1,
+          39
+        ],
+        [
+          4,
+          4,
+          2,
+          5,
+          10
+        ],
+        [
+          4,
+          4,
+          3,
+          3,
+          6
+        ],
+        [
+          4,
+          4,
+          3,
+          7,
+          4
+        ],
+        [
+          8,
+          7,
+          1,
+          1,
+          39
+        ],
+        [
+          8,
+          7,
+          5,
+          5,
+          10
+        ],
+        [
+          8,
+          8,
+          0,
+          0,
+          53
+        ],
+        [
+          8,
+          8,
+          7,
+          7,
+          4
+        ]
+      ],
+      "en-422-122949-0013-first-800f": [
+        [
+          1,
+          1,
+          0,
+          0,
+          10
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          30
+        ],
+        [
+          2,
+          2,
+          1,
+          1,
+          9
+        ],
+        [
+          4,
+          3,
+          1,
+          1,
+          25
+        ],
+        [
+          4,
+          3,
+          1,
+          1,
+          33
+        ],
+        [
+          4,
+          3,
+          1,
+          2,
+          6
+        ],
+        [
+          4,
+          3,
+          1,
+          2,
+          19
+        ],
+        [
+          4,
+          3,
+          1,
+          4,
+          10
+        ],
+        [
+          4,
+          3,
+          1,
+          6,
+          4
+        ],
+        [
+          4,
+          4,
+          1,
+          1,
+          25
+        ],
+        [
+          4,
+          4,
+          1,
+          1,
+          33
+        ],
+        [
+          4,
+          4,
+          1,
+          4,
+          10
+        ],
+        [
+          4,
+          4,
+          2,
+          2,
+          6
+        ],
+        [
+          4,
+          4,
+          2,
+          2,
+          19
+        ],
+        [
+          4,
+          4,
+          2,
+          6,
+          4
+        ],
+        [
+          8,
+          7,
+          2,
+          2,
+          19
+        ],
+        [
+          8,
+          7,
+          4,
+          4,
+          10
+        ],
+        [
+          8,
+          8,
+          1,
+          1,
+          33
+        ],
+        [
+          8,
+          8,
+          6,
+          6,
+          4
+        ]
+      ],
+      "en-422-122949-0013-first-801f": [
+        [
+          1,
+          1,
+          0,
+          0,
+          11
+        ],
+        [
+          1,
+          1,
+          0,
+          0,
+          31
+        ],
+        [
+          1,
+          1,
+          0,
+          1,
+          12
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          31
+        ],
+        [
+          2,
+          2,
+          1,
+          1,
+          12
+        ],
+        [
+          4,
+          3,
+          0,
+          1,
+          26
+        ],
+        [
+          4,
+          3,
+          0,
+          3,
+          20
+        ],
+        [
+          4,
+          3,
+          0,
+          5,
+          4
+        ],
+        [
+          4,
+          3,
+          2,
+          2,
+          5
+        ],
+        [
+          4,
+          3,
+          2,
+          2,
+          13
+        ],
+        [
+          4,
+          3,
+          2,
+          3,
+          19
+        ],
+        [
+          4,
+          4,
+          0,
+          3,
+          20
+        ],
+        [
+          4,
+          4,
+          1,
+          1,
+          26
+        ],
+        [
+          4,
+          4,
+          1,
+          5,
+          4
+        ],
+        [
+          4,
+          4,
+          2,
+          2,
+          5
+        ],
+        [
+          4,
+          4,
+          2,
+          2,
+          13
+        ],
+        [
+          4,
+          4,
+          3,
+          3,
+          19
+        ],
+        [
+          8,
+          7,
+          3,
+          3,
+          19
+        ],
+        [
+          8,
+          7,
+          3,
+          3,
+          20
+        ],
+        [
+          8,
+          8,
+          2,
+          2,
+          13
+        ],
+        [
+          8,
+          8,
+          5,
+          5,
+          4
+        ]
+      ],
+      "zh-BAC009S0729W0241-first-13f": [
+        [
+          1,
+          1,
+          0,
+          0,
+          12
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          32
+        ],
+        [
+          2,
+          2,
+          1,
+          1,
+          11
+        ],
+        [
+          4,
+          4,
+          0,
+          0,
+          46
+        ],
+        [
+          4,
+          4,
+          3,
+          3,
+          5
+        ],
+        [
+          8,
+          7,
+          2,
+          2,
+          20
+        ],
+        [
+          8,
+          7,
+          4,
+          4,
+          9
+        ],
+        [
+          8,
+          8,
+          3,
+          3,
+          13
+        ],
+        [
+          8,
+          8,
+          4,
+          4,
+          4
+        ]
+      ],
+      "zh-BAC009S0729W0241-first-99f": [
+        [
+          1,
+          1,
+          0,
+          0,
+          13
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          33
+        ],
+        [
+          2,
+          2,
+          1,
+          1,
+          14
+        ],
+        [
+          4,
+          4,
+          0,
+          0,
+          47
+        ],
+        [
+          4,
+          4,
+          3,
+          3,
+          8
+        ],
+        [
+          8,
+          7,
+          1,
+          1,
+          40
+        ],
+        [
+          8,
+          7,
+          5,
+          5,
+          9
+        ],
+        [
+          8,
+          8,
+          3,
+          3,
+          14
+        ],
+        [
+          8,
+          8,
+          4,
+          4,
+          3
+        ]
+      ],
+      "zh-BAC009S0729W0241-first-100f": [
+        [
+          1,
+          1,
+          0,
+          0,
+          14
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          34
+        ],
+        [
+          2,
+          2,
+          1,
+          1,
+          13
+        ],
+        [
+          4,
+          4,
+          1,
+          1,
+          27
+        ],
+        [
+          4,
+          4,
+          2,
+          2,
+          8
+        ],
+        [
+          8,
+          7,
+          0,
+          0,
+          60
+        ],
+        [
+          8,
+          7,
+          6,
+          6,
+          9
+        ],
+        [
+          8,
+          8,
+          2,
+          2,
+          14
+        ],
+        [
+          8,
+          8,
+          5,
+          5,
+          3
+        ]
+      ],
+      "zh-BAC009S0729W0241-first-101f": [
+        [
+          1,
+          1,
+          0,
+          0,
+          15
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          35
+        ],
+        [
+          2,
+          2,
+          1,
+          1,
+          16
+        ],
+        [
+          4,
+          4,
+          1,
+          1,
+          28
+        ],
+        [
+          4,
+          4,
+          2,
+          2,
+          7
+        ],
+        [
+          8,
+          7,
+          0,
+          0,
+          61
+        ],
+        [
+          8,
+          7,
+          6,
+          6,
+          12
+        ],
+        [
+          8,
+          8,
+          1,
+          1,
+          34
+        ],
+        [
+          8,
+          8,
+          6,
+          6,
+          3
+        ]
+      ],
+      "zh-BAC009S0729W0241-first-799f": [
+        [
+          1,
+          1,
+          0,
+          0,
+          16
+        ],
+        [
+          1,
+          1,
+          0,
+          0,
+          36
+        ],
+        [
+          1,
+          1,
+          0,
+          0,
+          48
+        ],
+        [
+          1,
+          1,
+          0,
+          1,
+          15
+        ],
+        [
+          1,
+          1,
+          0,
+          3,
+          7
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          36
+        ],
+        [
+          2,
+          2,
+          1,
+          1,
+          15
+        ],
+        [
+          4,
+          3,
+          0,
+          1,
+          41
+        ],
+        [
+          4,
+          3,
+          2,
+          5,
+          12
+        ],
+        [
+          4,
+          4,
+          0,
+          0,
+          48
+        ],
+        [
+          4,
+          4,
+          0,
+          0,
+          54
+        ],
+        [
+          4,
+          4,
+          0,
+          1,
+          41
+        ],
+        [
+          4,
+          4,
+          3,
+          3,
+          7
+        ],
+        [
+          4,
+          4,
+          3,
+          5,
+          12
+        ],
+        [
+          4,
+          4,
+          3,
+          7,
+          3
+        ],
+        [
+          8,
+          7,
+          1,
+          1,
+          41
+        ],
+        [
+          8,
+          7,
+          5,
+          5,
+          12
+        ],
+        [
+          8,
+          8,
+          0,
+          0,
+          54
+        ],
+        [
+          8,
+          8,
+          7,
+          7,
+          3
+        ]
+      ],
+      "zh-BAC009S0729W0241-first-800f": [
+        [
+          1,
+          1,
+          0,
+          0,
+          17
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          37
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          49
+        ],
+        [
+          2,
+          2,
+          1,
+          1,
+          18
+        ],
+        [
+          2,
+          2,
+          1,
+          3,
+          10
+        ],
+        [
+          4,
+          3,
+          1,
+          2,
+          21
+        ],
+        [
+          4,
+          3,
+          1,
+          4,
+          12
+        ],
+        [
+          4,
+          4,
+          0,
+          0,
+          49
+        ],
+        [
+          4,
+          4,
+          0,
+          0,
+          55
+        ],
+        [
+          4,
+          4,
+          1,
+          2,
+          21
+        ],
+        [
+          4,
+          4,
+          2,
+          4,
+          12
+        ],
+        [
+          4,
+          4,
+          3,
+          3,
+          10
+        ],
+        [
+          4,
+          4,
+          3,
+          7,
+          6
+        ],
+        [
+          8,
+          5,
+          0,
+          0,
+          55
+        ],
+        [
+          8,
+          5,
+          4,
+          7,
+          6
+        ],
+        [
+          8,
+          6,
+          0,
+          0,
+          55
+        ],
+        [
+          8,
+          6,
+          5,
+          7,
+          6
+        ],
+        [
+          8,
+          7,
+          2,
+          2,
+          21
+        ],
+        [
+          8,
+          7,
+          4,
+          4,
+          12
+        ],
+        [
+          8,
+          8,
+          0,
+          0,
+          55
+        ],
+        [
+          8,
+          8,
+          7,
+          7,
+          6
+        ]
+      ],
+      "zh-BAC009S0729W0241-first-801f": [
+        [
+          1,
+          1,
+          0,
+          0,
+          18
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          38
+        ],
+        [
+          2,
+          2,
+          0,
+          2,
+          10
+        ],
+        [
+          2,
+          2,
+          1,
+          1,
+          17
+        ],
+        [
+          2,
+          2,
+          1,
+          1,
+          29
+        ],
+        [
+          4,
+          3,
+          0,
+          3,
+          22
+        ],
+        [
+          4,
+          3,
+          2,
+          3,
+          21
+        ],
+        [
+          4,
+          4,
+          1,
+          1,
+          29
+        ],
+        [
+          4,
+          4,
+          1,
+          1,
+          35
+        ],
+        [
+          4,
+          4,
+          1,
+          3,
+          22
+        ],
+        [
+          4,
+          4,
+          2,
+          2,
+          10
+        ],
+        [
+          4,
+          4,
+          2,
+          3,
+          21
+        ],
+        [
+          4,
+          4,
+          2,
+          6,
+          6
+        ],
+        [
+          8,
+          5,
+          1,
+          1,
+          35
+        ],
+        [
+          8,
+          5,
+          3,
+          6,
+          6
+        ],
+        [
+          8,
+          6,
+          1,
+          1,
+          35
+        ],
+        [
+          8,
+          6,
+          4,
+          6,
+          6
+        ],
+        [
+          8,
+          7,
+          3,
+          3,
+          21
+        ],
+        [
+          8,
+          7,
+          3,
+          3,
+          22
+        ],
+        [
+          8,
+          8,
+          1,
+          1,
+          35
+        ],
+        [
+          8,
+          8,
+          6,
+          6,
+          6
+        ]
+      ],
+      "en-422-122949-0013-first-2f": [
+        [
+          1,
+          1,
+          0,
+          0,
+          19
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          39
+        ],
+        [
+          2,
+          2,
+          1,
+          1,
+          20
+        ],
+        [
+          4,
+          4,
+          1,
+          1,
+          30
+        ],
+        [
+          4,
+          4,
+          2,
+          2,
+          9
+        ],
+        [
+          8,
+          7,
+          2,
+          2,
+          22
+        ],
+        [
+          8,
+          7,
+          4,
+          4,
+          11
+        ],
+        [
+          8,
+          8,
+          2,
+          2,
+          15
+        ],
+        [
+          8,
+          8,
+          5,
+          5,
+          6
+        ]
+      ],
+      "zh-BAC009S0729W0241-first-2f": [
+        [
+          1,
+          1,
+          0,
+          0,
+          20
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          40
+        ],
+        [
+          2,
+          2,
+          1,
+          1,
+          19
+        ],
+        [
+          4,
+          4,
+          0,
+          0,
+          50
+        ],
+        [
+          4,
+          4,
+          3,
+          3,
+          9
+        ],
+        [
+          8,
+          7,
+          1,
+          1,
+          42
+        ],
+        [
+          8,
+          7,
+          5,
+          5,
+          11
+        ],
+        [
+          8,
+          8,
+          3,
+          3,
+          15
+        ],
+        [
+          8,
+          8,
+          4,
+          4,
+          6
+        ]
+      ]
+    },
+    "readiness_barriers_are_test_only": true,
+    "automatic_HTTP_batching_qualified": false
+  },
+  "full_model_numerical_qualification": false,
+  "full_lifecycle_qualified": false,
+  "performance_qualified": false,
+  "formal_sustained_cells": 0
+}

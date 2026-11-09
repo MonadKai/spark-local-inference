@@ -354,3 +354,18 @@ vLLM reference. This is four numerical inputs and one finite recognition set.
 All 20 native inputs, complete operator/state/API/lifecycle and strict allocation
 gates, historical VISION service, observer calibration and sustained performance
 comparisons remain separate. No throughput win follows from this observation.
+
+[The subsequent full 20-input package diagnostic](results/native-twenty-replay-run.json)
+retains a failed G2 run and its smaller four-input reproduction. Both produce
+the same six changed KV planes on the Chinese 100-frame boundary input after
+checkpoint eviction; original prompt KV is exact, but generated-history KV and
+final BF16 logits differ. Equal EOS argmax does not satisfy the byte gate.
+The hidden-state root cause is not established by those KV observations.
+
+A separate unmodified-package batch/slot run completes 62 cohorts and 190 natural
+requests over all 20 inputs. Its [complete raw scalar checks](results/native-twenty-batch-slot-scalar.json.gz)
+pass the unchanged frozen budgets, actual per-case batch/row witnesses and
+complete same-path KV checks. The readiness barriers are test-only; these are
+not automatic HTTP batching or serving-throughput observations. The G2 failure,
+full model/lifecycle/operator qualification and strict allocation gate remain
+open. Formal sustained comparison cells remain zero.
