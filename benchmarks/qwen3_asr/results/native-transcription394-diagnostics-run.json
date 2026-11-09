@@ -1,0 +1,60 @@
+{
+  "scope": "Finite long-child attribution; original failures preserved; not model or performance qualification",
+  "model_qualified": false,
+  "performance_qualified": false,
+  "formal_sustained_cells": 0,
+  "checkpoint": {
+    "model": "Qwen/Qwen3-ASR-1.7B",
+    "revision": "7278e1e70fe206f11671096ffdd38061171dd6e5"
+  },
+  "prepared_source": "b5754581fe44ff54b85a0845e122ca5b3382769a",
+  "native_runtime_source": "69ab162e71616d8fae7aae8ae6c991f06ea6ef0b",
+  "endpoint_observer_source": "018950945fb26e73edba5e573510bc1d7cdaab4a",
+  "endpoint_test_binary_sha256": "08ead5e81d3790e3e17fa5ec3eb753e4fce2d855c6e176560ff391921daf3728",
+  "prepared_identity": "3fa029cdfb84854100c617c86c89581b517a7376f47ac802e13e8b10b5b8f3a2",
+  "package_sha256": "0d5f2748c9a64c8d9d54a8d429ca126b0ebad3f57e7af6a99e14eb3659c6c8fa",
+  "SDK": {
+    "revision": "7c6daf77a2421100f5fb066495372c00129d39ff",
+    "image_id": "sha256:c8f06fd060f4dbcbbce507cd33a8156cfde4c8c0e1b78e6c29a2194e5ac741d5",
+    "repo_digests": [],
+    "torch": "2.13.0+cu130",
+    "transformers": "4.57.6",
+    "flash_attention": "2.8.3"
+  },
+  "input": {
+    "parent": "L_R003S01C02-540s",
+    "ordinal": 10,
+    "samples": 468800,
+    "sample_rate": 16000,
+    "PCM_s16le_sha256": "d41d6099cef1a6582b772c470ff809e6dfe445b16c22154bfb6fced721672ccd",
+    "frames": 2930,
+    "features": 381,
+    "prompt_tokens": 394
+  },
+  "raw": {
+    "native-transcription394-whole.json.gz": {
+      "source_kind": "native-long-transcription394-whole-r1/result.json"
+    },
+    "native-transcription394-partitioned.json.gz": {
+      "source_kind": "native-long-transcription394-partitioned-r1/result.json"
+    },
+    "sdk-native-feature-control.json.gz": {
+      "source_kind": "sdk-long-encoder-control-gpu-r1/result.json"
+    },
+    "sdk-native-feature-decoder-nodes.json.gz": {
+      "source_kind": "sdk-long-decoder-nodes-gpu-r1/result.json"
+    },
+    "native-transcription394-path-comparisons.json.gz": {
+      "source_kind": "native-transcription394-first-divergence-r2.json"
+    },
+    "native-transcription394-same-feature-comparisons.json.gz": {
+      "source_kind": "native-transcription394-same-features-r1.json"
+    }
+  },
+  "caveats": [
+    "Both native arms stop at original natural-teacher assertion on generated token16; neither completes the94-token request. Other three configured inputs were unrun.",
+    "Snapshot observations are live request pages after GPU completion and before publication, not immutable checkpoint destinations. Device position bytes were not observed.",
+    "The native-feature SDK control deliberately shares actual candidate encoder features. It is an attribution control, never an independent encoder oracle or substitute frozen reference.",
+    "Full original numerical/operator, storage release, lifecycle, legacy VISION and sustained comparative gates remain open. No thresholds or references changed."
+  ]
+}

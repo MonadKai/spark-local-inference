@@ -412,3 +412,41 @@ complete same-path KV checks. The readiness barriers are test-only; these are
 not automatic HTTP batching or serving-throughput observations. The G2 failure,
 full model/lifecycle/operator qualification and strict allocation gate remain
 open. Formal sustained comparison cells remain zero.
+
+
+[The matched 394-token long-child configuration](results/native-transcription394-diagnostics-run.json)
+retains both actual native attempts and the independent SDK attribution controls.
+The whole prompt and the 388+6 message partition both fail the original
+natural-teacher assertion at generated token 16: actual 72448, expected 42140.
+They have identical 381 encoder features, all 56 final-prefill KV planes and
+all 16 observed BF16 logit rows. The first 388 live KV rows are also unchanged
+across the partition's Snapshot and suffix. These reads observe live request
+pages after GPU completion, not immutable checkpoint destinations; device
+position bytes were not observed. Both attempts drain normally. Neither
+completes the 94-token request; their other three configured inputs are unrun.
+
+[The original SDK encoder-node control](results/sdk-native-feature-control.json.gz)
+first preserves all original 394-token prefill tensors, 64 teacher rows and 94 natural
+tokens, twice. Its 447 encoder nodes are read-only observations. Replacing only
+its encoder output with the actual native 381 features then naturally stops
+at 97 tokens, twice; this does not reproduce the candidate loop or qualify a
+candidate fix. Actual native versus independent SDK encoder relative L2 is
+0.030207190959377794. The input PCM is identical; 26 FP32 Mel elements differ
+by at most 2.384185791015625e-7, and every BF16 model Mel value is identical.
+
+[Same-feature scalar comparisons](results/native-transcription394-same-feature-comparisons.json.gz)
+localize a separate decoder discrepancy: layer 0 K/V are entirely byte-identical,
+but layer 1 differs already at pure-text token 1, before audio positions 4..384.
+At generated step 15, actual 42140/72448 logits are 32.5/32.75; the SDK with those
+same features produces 33.0/32.75. The previous 15 generated IDs match.
+[The decoder node collection](results/sdk-native-feature-decoder-nodes.json.gz)
+adds 38 original SDK prefill nodes and preserves every tensor byte, 64 teacher
+rows and natural generation from the preceding same-feature control.
+These causal controls deliberately share candidate features and cannot serve
+as independent encoder oracles. They change no frozen reference or budget.
+
+The current finite primary qualification and same-path batch/slot checks do
+not waive this long-child failure. Complete intermediate/operator, strict
+storage release, lifecycle/cache and old-package serving gates, formal
+sustained comparisons and final whole-task reviews remain open. Formal
+comparative cells remain zero.
