@@ -570,3 +570,15 @@ long child's exact94 reference tokens and byte-exact batch/slot logit repeats.
 This explicitly different diagnostic input set does not replace the frozen
 four/twenty-input acceptance sets. It does not exercise transcription394
 message partitioning or establish a fix for the actual HTTP regression.
+
+
+`native-rmsnorm-current-http-retry-run.json` and its raw retry archive retain
+the unchanged extended HTTP client after public transport recovered. All90
+checks pass, including the original immutable public HTTPS WAV/MP3 model
+requests. The package and native runtime identities match the preceding attempt;
+full ownership metrics drain before/after, and the process exits normally with
+its listener/GPU released. The earlier86/88 network failure stays retained.
+Long and finite concurrency clients were not repeated in this retry. The
+394-token transcription long-child regression remains open; this HTTP coverage
+does not establish its repair, complete lifecycle/model qualification or a
+sustained performance comparison. Formal sustained comparative cells remain0.

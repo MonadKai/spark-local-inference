@@ -1,0 +1,30 @@
+{
+  "scope": "Current exported package full extended HTTP client after independent transport recovery; long regression remains unresolved, no performance qualification.",
+  "status": "passed_finite_current_HTTP_only",
+  "source_head": "609edd83d8dfd0197346bc7babf2be77ba65765a",
+  "preparation_source_head": "b5754581fe44ff54b85a0845e122ca5b3382769a",
+  "runtime_source_head": "69ab162e71616d8fae7aae8ae6c991f06ea6ef0b",
+  "package_primary_sha256": "0d5f2748c9a64c8d9d54a8d429ca126b0ebad3f57e7af6a99e14eb3659c6c8fa",
+  "binary_sha256": "1c177cda5f5640888e54842af9ffaaf2ca15b261c19b4f06c69a25bdb75bd687",
+  "native_python_torch_mappings_absent": true,
+  "complete_idle_boundaries": [
+    "before-clients",
+    "after-HTTP-extended"
+  ],
+  "actual_HTTP_case_count": 90,
+  "client_exit_code": 0,
+  "server_exit_code": 0,
+  "normal_native_exit_and_listener_GPU_release": true,
+  "actual_transcription394_long_regression_unresolved": true,
+  "other_long_and_concurrency_suites_not_repeated": true,
+  "performance_qualified": false,
+  "final_task_qualified": false,
+  "started_at": "2026-11-09T18:39:21.057732+00:00",
+  "finished_at": "2026-11-09T18:41:17.172389+00:00",
+  "errors": [],
+  "raw": "native-rmsnorm-current-http-retry.json.gz",
+  "original_fixed_public_revision": "b8bf56e72accd8e9538a1c02a4595be0c6932ccd",
+  "original_fixed_public_URLs_unchanged": true,
+  "prior_failed_attempt": "native-rmsnorm-current-api-run.json",
+  "formal_sustained_comparative_cells": 0
+}
