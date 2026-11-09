@@ -529,6 +529,47 @@ describes the additional native immutable-input and real cache dependency needed
 before using this mechanism in serving. Neither is implemented by these component
 controls. Existing full-model, native batch/slot and performance gates remain open.
 
+## Positioned causal attention
+
+`PreparedPositionedCausalAttention` gathers a single request's read-only paged
+KV into caller-owned contiguous storage and places the current query fragment
+at its original absolute positions. Existing b12x causal varlen attention uses
+the immutable original prompt length for both cumulative lengths. Unavailable
+future KV is zeroed; the causal mask prevents it from affecting published
+fragment rows. The prepared capacity and kernel plan stay fixed across fragments.
+Only active operands must be finite. Invalid active metadata produces execution
+errors and nonfinite output; inactive output and errors are zero. The component
+does not write KV or select native scheduling policy.
+
+The [same-operand control](../benchmarks/qwen3_asr/results/positioned-causal-same-operands.json.gz)
+compares the existing b12x default plan with the original SDK on actual layer-0
+Q/K/V: all 806,912 BF16 elements agree, including three captured replays.
+The earlier ATen path differs at 51 elements on these operands; these controls
+do not identify a universal accuracy ordering between attention implementations.
+Captured component controls cover capacities
+[256](../benchmarks/qwen3_asr/results/positioned-causal-controls-C256.json.gz),
+[512](../benchmarks/qwen3_asr/results/positioned-causal-controls-C512.json.gz) and
+[8192](../benchmarks/qwen3_asr/results/positioned-causal-controls-C8192.json.gz),
+fragments, inactive poison, invalid metadata, guards and recovery. The N19
+reference is a causal prefix of the actual SDK N394 control, not a separately
+executed SDK N19 forward.
+
+The [complete decoder diagnostic](../benchmarks/qwen3_asr/results/positioned-causal-full-prefill-SDK.json.gz)
+changes only prompt attention before preparation. Whole394, prefix388 and
+suffix6 agree with the original SDK on all 56 KV planes and the final BF16
+LM-head row, using the same actual native encoder features. It uses reconstructed
+component metadata, not observed native fragment positions. It does not qualify
+the encoder, cached decode, natural output or package serving.
+
+The [seven ordinary CUDA tests](../benchmarks/qwen3_asr/results/positioned-causal-component-tests.json)
+also compare random operands with an independent direct b12x invocation, permute
+physical KV pages, verify constant-value GQA, and execute the real tuning fixture
+with implicit and explicit key lengths. Explicit full-capacity key lengths must
+use the private benchmark lengths, rather than the producer's inactive lengths.
+These runs use default-only preparation for diagnosis. Normal production
+autotuning and the unchanged full-model, package, lifecycle, numerical and
+performance gates remain required. No frozen reference or budget is changed.
+
 ## Native logits and frontend boundary diagnosis
 
 The ignored native Worker test authenticates an exported package, verifies its

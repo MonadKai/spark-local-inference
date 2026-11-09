@@ -1,0 +1,53 @@
+{
+  "scope": "Ordinary actual compiled/captured component regressions, not a native ASR package or performance qualification",
+  "status": "passed",
+  "tests": [
+    {
+      "name": "test_fragments_keep_bytes_with_future_poison_and_recover[256-19-64]",
+      "seconds": 8.17,
+      "status": "passed"
+    },
+    {
+      "name": "test_fragments_keep_bytes_with_future_poison_and_recover[256-165-4096]",
+      "seconds": 7.771,
+      "status": "passed"
+    },
+    {
+      "name": "test_fragments_keep_bytes_with_future_poison_and_recover[512-394-512]",
+      "seconds": 7.47,
+      "status": "passed"
+    },
+    {
+      "name": "test_fragments_keep_bytes_with_future_poison_and_recover[8192-394-4096]",
+      "seconds": 8.091,
+      "status": "passed"
+    },
+    {
+      "name": "test_uniform_attention_keeps_constant_values_exact",
+      "seconds": 5.908,
+      "status": "passed"
+    },
+    {
+      "name": "test_tuning_fixture_uses_private_full_key_lengths[False]",
+      "seconds": 5.515,
+      "status": "passed"
+    },
+    {
+      "name": "test_tuning_fixture_uses_private_full_key_lengths[True]",
+      "seconds": 5.484,
+      "status": "passed"
+    }
+  ],
+  "source_base": "558802de6503ff91538da2b9c3dc8dc08c02c3c9",
+  "source_changes": [
+    "ignition/components/positioned_causal_attention.py",
+    "ignition/preparation/fixtures/varlen_attention.py",
+    "tests/components/test_positioned_causal_attention_cuda.py"
+  ],
+  "test_source_exact_before_launch": true,
+  "autotune_effort": "off",
+  "tuning_scope": "Default-only component diagnostic; production autotuning remains required.",
+  "model_qualified": false,
+  "performance_qualified": false,
+  "formal_sustained_comparative_cells": 0
+}

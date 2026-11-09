@@ -65,6 +65,11 @@ def benchmark_call(state, *, arguments, inputs, workspace):
     inputs = inputs()
     arguments = {**arguments, **{key: getattr(inputs, key)
                                   for key in ("q", "k", "v", "cu_seqlens_q")}}
+    if "cu_seqlens_k" in arguments:
+        if (arguments["k"].shape[0] != arguments["q"].shape[0]
+                or arguments["max_seqlen_k"] != arguments["max_seqlen_q"]):
+            raise ValueError("attention benchmark requires matching full-capacity query and key segments")
+        arguments = {**arguments, "cu_seqlens_k": inputs.cu_seqlens_q}
     if "out" in arguments:
         arguments = {**arguments, "out": torch.empty_like(arguments["out"])}
     scratch = planned_scratch(state.scratch_plan.scratch_specs(), workspace)
