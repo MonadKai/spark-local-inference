@@ -546,3 +546,27 @@ drain and eight subsequent requests. It does not observe raw token/slot/fence
 IDs or an unrelated short request during cancellation. Full ownership metrics
 drain at every suite boundary; the native process exits normally. These finite
 results do not qualify complete API/lifecycle/model behavior or performance.
+
+
+`native-rmsnorm-long-child-diagnostic.json.gz` retains all19 actual service-child
+responses derived from the unchanged frozen long PCM. Eighteen naturally stop;
+child10 (468800 samples,29.3 seconds) repeats499 filler phrases and reaches the
+unchanged1024-token limit. The parent failure remains in the long denominator.
+Native decoded PCM is exact. Original-SDK and native FP32 Mel differ in26
+values (maximum2.384185791015625e-7), while all375040 BF16 model inputs match.
+Both independently repeated SDK prompts naturally stop at94 tokens: original
+SDK/chat has399 prompt tokens; the matching empty-context transcription prompt
+has394. Their actual prompt bytes/IDs, token IDs/text and repeat observations
+are retained separately. Matching394 renderer bytes/base IDs were checked on
+the native CPU path; expansion is derived, pending actual runtime observation.
+These controls localize the regression. They do not establish that it is fixed,
+that the parent HTTP lifecycle is equivalent, or that any performance gate passed.
+
+
+`native-rmsnorm-long-sdk399.json.gz` then observes the same failing long child
+through the existing native worker's original-SDK399 whole-prompt path. The
+four diagnostic inputs complete11 cohorts/39 natural requests, including the
+long child's exact94 reference tokens and byte-exact batch/slot logit repeats.
+This explicitly different diagnostic input set does not replace the frozen
+four/twenty-input acceptance sets. It does not exercise transcription394
+message partitioning or establish a fix for the actual HTTP regression.
