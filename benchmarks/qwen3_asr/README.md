@@ -167,6 +167,26 @@ the independent engine observer reconciles every planned chunk and official
 counter. The client always leaves overall performance qualification false;
 the frozen block comparison and all model/lifecycle gates remain separate.
 
+Build `test_audio` with `audio,runtime-package,test-tools` and use
+`test_audio plan PACKAGE PUBLISHERS_JSON TP INPUTS_JSON OUTPUT_JSONL ACCEPTED_NAMESPACE`
+to obtain native CPU frontend plans. The input manifest is an array of
+`id`, encoded audio `path`, `samples` and `pcm_f32le_sha256` records. The tool
+authenticates the package catalog and the unique requested deployment, checks
+the accepted publisher namespace, and consumes its actual typed audio settings
+and capacity. It verifies real decoded FP32 PCM, splits service chunks, then
+prepares each whole chunk's Log-Mel once before enumerating encoder windows.
+Service children and encoder windows therefore have separate counts.
+
+JSON schema errors reject the entire manifest before execution. For structurally
+valid rows, semantic identity, decoding and preparation failures retain their
+ordinal and do not suppress independent following rows. Read every JSONL row
+and require the final zero-failure summary; a partial file is not a complete
+plan. Each chunk's Mel storage drops before the next chunk is prepared. This
+CPU tool does not load executable payloads, validate the full execution contract,
+initialize CUDA or establish actual encoder/model execution. Its native
+regressions cover both declared padding modes, non-hop tails, silence split
+ties, distinct window counts, authentication rejection and failed-row retention.
+
 `python -m qualify.asr_vllm_phases` collects one run from an independently
 managed pinned reference server with the encoder observer already installed.
 It loads and verifies all required PCM before warmup, binds the pinned processor

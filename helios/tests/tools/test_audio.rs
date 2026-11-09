@@ -6,8 +6,15 @@
 use flare_helios::frontend::audio::{self, AudioLimits, AudioProcessor, LogMelPlan};
 use std::{fs, io::Write, sync::atomic::AtomicBool};
 
+#[cfg(feature = "runtime-package")]
+mod audio_plan;
+
 fn run() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<_> = std::env::args().collect();
+    #[cfg(feature = "runtime-package")]
+    if args.len() == 8 && args[1] == "plan" {
+        return audio_plan::run(&args[2..]);
+    }
     if args.len() == 5 && args[1] == "fetch" {
         let settings = serde_json::from_slice(&fs::read(&args[4])?)?;
         let processor = AudioProcessor::new(settings, 1)?;
@@ -32,7 +39,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
     if args.len() != 4 || !matches!(args[1].as_str(), "decode" | "features" | "features-fma") {
-        return Err("usage: test_audio {decode|features|features-fma} INPUT OUTPUT_F32LE; or split INPUT_F32LE OUTPUT_JSON SETTINGS_JSON; or fetch HTTPS_URL OUTPUT_AUDIO SETTINGS_JSON".into());
+        return Err("usage: test_audio {decode|features|features-fma} INPUT OUTPUT_F32LE; or split INPUT_F32LE OUTPUT_JSON SETTINGS_JSON; or fetch HTTPS_URL OUTPUT_AUDIO SETTINGS_JSON; or plan PACKAGE PUBLISHERS_JSON TP INPUTS_JSON OUTPUT_JSONL ACCEPTED_NAMESPACE (requires runtime-package)".into());
     }
     let cancelled = AtomicBool::new(false);
     let size = fs::metadata(&args[2])?.len();
