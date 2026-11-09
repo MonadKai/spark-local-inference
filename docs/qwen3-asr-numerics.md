@@ -139,6 +139,37 @@ fails before any norm, ratio or aggregate is calculated.
 
 ## Network and decision gates
 
+### Small-batch normalization and history replay
+
+The original canonical RMSNorm's FP32 mean can select a different reduction
+layout for eight physical decode rows and 64 prefill rows. An unchanged native
+package reproduced a Chinese 100-frame readmission failure: the original prompt
+KV remained exact, but generated-history KV first differed at layer 25. Copies
+of existing compiled nodes reproduced all 56 KV planes and logits exactly both
+before and after observation. At layer 24 post-attention normalization, equal
+BF16 inputs and FP32 squares produced means differing by `6.103515625e-5`,
+21 different BF16 normalized values and 20 different affine values. Earlier
+means already had smaller FP32 differences; this is a demonstrated BF16
+divergence, not the first FP32 difference in the network.
+
+New ASR preparation composes `CanonicalRMSNorm` for hidden-state and final
+normalization. It pads only an FP32 square operand with fewer than 64 physical
+rows, computes the row-local mean and selects the original rows. It preserves
+the checkpoint gain object, epsilon, FP32 normalization and both BF16 rounding
+nodes. Larger extents retain the original expression; Q/K normalization and
+resume's already-normalized hidden state retain their existing composition.
+This does not change previous packages' captured graphs.
+
+For the actual failing operand, padding to 64 rows reproduced the observed
+prefill mean, FP32 normalized values, BF16 normalized values and affine output
+exactly. The small operator fixture preserves that operand and its unchanged
+gain. This local attribution does not qualify the new model: fresh compiled
+capture, ordinary CLI export, Rust full-input replay, numerical, determinism and
+recognition gates remain required with their existing bounds. No reference or
+budget changes are authorized by this normalization change.
+
+### Frozen network comparisons
+
 [The numerical fixture configuration](../benchmarks/qwen3_asr/numerical-contract.json)
 freezes a max-absolute and relative-L2 scalar for every named BF16 development
 probe, and separately for every teacher-forced logit row. L2 always uses the

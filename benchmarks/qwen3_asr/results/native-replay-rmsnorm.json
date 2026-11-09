@@ -1,0 +1,175 @@
+{
+  "scope": "Existing compiled node observation and actual-operand mean-padding attribution only; not model qualification or a serving performance measurement",
+  "source_head": "69ab162e71616d8fae7aae8ae6c991f06ea6ef0b",
+  "checkpoint_revision": "7278e1e70fe206f11671096ffdd38061171dd6e5",
+  "case": "zh-BAC009S0729W0241-first-100f",
+  "finished_at": "2026-11-09T11:15:05.975125+00:00",
+  "bridges": [
+    {
+      "label": "cold-unobserved-1",
+      "kv_planes": 56,
+      "differing_KV_bytes": 0,
+      "differing_logit_bytes": 0
+    },
+    {
+      "label": "cold-unobserved-2",
+      "kv_planes": 56,
+      "differing_KV_bytes": 0,
+      "differing_logit_bytes": 0
+    },
+    {
+      "label": "replay-unobserved",
+      "kv_planes": 56,
+      "differing_KV_bytes": 0,
+      "differing_logit_bytes": 0
+    },
+    {
+      "label": "cold-observed-1",
+      "kv_planes": 56,
+      "differing_KV_bytes": 0,
+      "differing_logit_bytes": 0
+    },
+    {
+      "label": "cold-observed-2",
+      "kv_planes": 56,
+      "differing_KV_bytes": 0,
+      "differing_logit_bytes": 0
+    },
+    {
+      "label": "replay-observed",
+      "kv_planes": 56,
+      "differing_KV_bytes": 0,
+      "differing_logit_bytes": 0
+    }
+  ],
+  "compiled_nodes": [
+    {
+      "name": "decode1",
+      "projection_scope": "L24 gate/up/down and L25 Q/K/V only; virtual KV writers excluded",
+      "maximum_copy_bytes": 1572864,
+      "copied_nodes": 240,
+      "means": 113,
+      "projection_calls": 6,
+      "wrapper_source_sha256": "1fad02a0c1af1b50f5ea794c065b6e133064594e52200201a386a3b8a0129585"
+    },
+    {
+      "name": "prefill64_initial256",
+      "projection_scope": "L24 gate/up/down and L25 Q/K/V only; virtual KV writers excluded",
+      "maximum_copy_bytes": 1572864,
+      "copied_nodes": 240,
+      "means": 113,
+      "projection_calls": 6,
+      "wrapper_source_sha256": "65f6febf00d3f775c74261e14f5e68b72e579c582abb657b12a1a787df3118ae"
+    }
+  ],
+  "actual_input_exact": true,
+  "layer": 24,
+  "norm": "post_attention_layernorm",
+  "consumed_generated_token_position": 31,
+  "physical8_mean": 667.5809936523438,
+  "physical64_mean": 667.5810546875,
+  "observations": [
+    {
+      "label": "physical8",
+      "against_actual_physical64": {
+        "mean": {
+          "differing_bytes": 1,
+          "max_abs": 6.103515625e-05
+        },
+        "normalized": {
+          "differing_bytes": 2006,
+          "max_abs": 1.9073486328125e-06
+        },
+        "rounded": {
+          "differing_bytes": 21,
+          "max_abs": 0.00390625
+        },
+        "affine": {
+          "differing_bytes": 20,
+          "max_abs": 0.015625
+        }
+      }
+    },
+    {
+      "label": "padded64",
+      "against_actual_physical64": {
+        "mean": {
+          "differing_bytes": 0,
+          "max_abs": 0.0
+        },
+        "normalized": {
+          "differing_bytes": 0,
+          "max_abs": 0.0
+        },
+        "rounded": {
+          "differing_bytes": 0,
+          "max_abs": 0.0
+        },
+        "affine": {
+          "differing_bytes": 0,
+          "max_abs": 0.0
+        }
+      }
+    }
+  ],
+  "actual_cuda_kernels": [
+    {
+      "name": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::MeanOps<float, float, float, float>, unsigned int, float, 4, 4> >(at::native::ReduceOp<float, at::native::MeanOps<float, float, float, float>, unsigned int, float, 4, 4>)",
+      "args": {
+        "External id": 2,
+        "stream": 7,
+        "grid": [
+          1,
+          1,
+          1
+        ],
+        "block": [
+          64,
+          8,
+          1
+        ]
+      }
+    },
+    {
+      "name": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::MeanOps<float, float, float, float>, unsigned int, float, 4, 4> >(at::native::ReduceOp<float, at::native::MeanOps<float, float, float, float>, unsigned int, float, 4, 4>)",
+      "args": {
+        "External id": 4,
+        "stream": 7,
+        "grid": [
+          4,
+          1,
+          1
+        ],
+        "block": [
+          32,
+          16,
+          1
+        ]
+      }
+    },
+    {
+      "name": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::MeanOps<float, float, float, float>, unsigned int, float, 4, 4> >(at::native::ReduceOp<float, at::native::MeanOps<float, float, float, float>, unsigned int, float, 4, 4>)",
+      "args": {
+        "External id": 6,
+        "stream": 7,
+        "grid": [
+          4,
+          1,
+          1
+        ],
+        "block": [
+          32,
+          16,
+          1
+        ]
+      }
+    }
+  ],
+  "earlier_FP32_mean_differences_present": true,
+  "minimum_fixture": "tests/fixtures/asr-rmsnorm-replay.safetensors",
+  "new_component_GPU_tested": false,
+  "new_export_tested": false,
+  "model_qualified": false,
+  "performance_qualified": false,
+  "formal_performance_cells": 0
+}

@@ -12,6 +12,7 @@ from ignition.components.embedding import PreparedEmbedding
 from ignition.components.collectives import PreparedAllGather
 from ignition.components.decode_rows import PreparedDecodeRows
 from ignition.components.canonical_projection import PreparedCanonicalProjection
+from ignition.components.canonical_rms_norm import CanonicalRMSNorm
 from ignition.components.reduction_projection import PreparedReductionProjection
 from ignition.components.paged_attention import PagedAttentionMetadata, PreparedPagedKVWriter
 from ignition.components.request_flash import PreparedRequestFlashAttention
@@ -217,6 +218,12 @@ class PreparedDecoder:
             prefix = f"{name}.layers.{index}"
             stage = sequential.fork()
             stages.append(stage)
+            # Match the physical mean layout of the smallest prefill variant.
+            # Q/K norms already have at least 64 flattened head rows in decode.
+            layer.input_layernorm = CanonicalRMSNorm(layer.input_layernorm.weight,
+                layer.input_layernorm.variance_epsilon, minimum_rows=64)
+            layer.post_attention_layernorm = CanonicalRMSNorm(layer.post_attention_layernorm.weight,
+                layer.post_attention_layernorm.variance_epsilon, minimum_rows=64)
             layer.self_attn = _Attention(layer.self_attn, scratch.activations, metadata,
                 self.cache_metadata, pool, index, mode=mode, session=session, workspace=workspace,
                 scratch=layer_scratch, name=prefix + ".self_attn", buffers=stage,
@@ -226,6 +233,7 @@ class PreparedDecoder:
                 session=session, name=prefix + ".mlp", buffers=buffers, workspace=workspace,
                 projection=projection)
         buffers.join(*stages)
+        tree.norm = CanonicalRMSNorm(tree.norm.weight, tree.norm.variance_epsilon, minimum_rows=64)
         # BF16 is the required LM-head result node. Sampling may convert this
         # tensor to FP32 afterwards; the projection must not bypass its rounding.
         # These are request rows, which may have inactive holes. Compute their
