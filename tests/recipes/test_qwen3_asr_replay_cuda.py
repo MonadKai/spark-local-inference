@@ -23,7 +23,8 @@ pytestmark = pytest.mark.skipif(os.environ.get("FLARE_RUN_CUDA_TESTS") != "1",
 def test_shared_projection_scratch_preserves_published_rows_and_decode_arithmetic(tmp_path):
     from ignition.components.reduction_projection import PreparedReductionProjection
     from ignition.recipes.qwen3_asr.numerics import fp32_reductions
-    from ignition.recipes.qwen3_asr.replay import PreparedReplayProjection, ReplayScratch
+    from ignition.recipes.qwen3_asr.replay import (
+        PreparedReplayProjection, ReplayScratch, history_projection_count)
     from tests.components.test_reduction_projection_cuda import _session
 
     owners, graphs = [], []
@@ -32,6 +33,8 @@ def test_shared_projection_scratch_preserves_published_rows_and_decode_arithmeti
         owners.extend((images, private))
         buffers = private.cursor()
         count, original, prompt = [buffers.zeros((1,), torch.int32) for _ in range(3)]
+        history_count = buffers.zeros((1,), torch.int32)
+        rows = torch.arange(128, device="cuda")
         positions = buffers.zeros((128,), torch.int64)
         scratch = ReplayScratch.allocate(128, 8192, buffers)
         sources, full_sources, modules, outputs, guards, operations, reference_ops = [], [], [], [], [], [], []
@@ -47,7 +50,8 @@ def test_shared_projection_scratch_preserves_published_rows_and_decode_arithmeti
                 guard = buffers.full((128 * columns + 16,), 37, torch.bfloat16)
                 output = guard[8:-8].view(128, columns)
                 operation = PreparedReplayProjection(source, module, output, count, prompt_count=prompt,
-                    positions=positions, original=original, scratch=scratch, session=session,
+                    positions=positions, original=original, history_count=history_count,
+                    scratch=scratch, session=session,
                     name=f"replay{index}", buffers=buffers, workspace=None)
                 rs = buffers.zeros((8, width), torch.bfloat16)
                 ro = buffers.zeros((8, columns), torch.bfloat16)
@@ -61,6 +65,7 @@ def test_shared_projection_scratch_preserves_published_rows_and_decode_arithmeti
             session.tune()
             def forward():
                 prompt.copy_(torch.minimum(count, (original.long() - positions[:1]).clamp(min=0)).int())
+                history_count.copy_(history_projection_count(rows, count, positions, original))
                 for operation, source in zip(operations, sources, strict=True):
                     operation(source)
             compiled = compile_forward(forward)
@@ -70,10 +75,10 @@ def test_shared_projection_scratch_preserves_published_rows_and_decode_arithmeti
             with session.capture(), torch.cuda.graph(graph):
                 compiled()
             distinguished = False
-            for n, start, live in ((19, 0, 128), (165, 0, 128), (165, 128, 128),
+            for n, start, live in ((165, 0, 0), (19, 0, 19), (19, 0, 128), (165, 0, 128), (165, 128, 128),
                     (165, 165, 128), (165, 256, 128), (165, 8064, 128), (165, 0, 0)):
                 original.fill_(n); count.fill_(live)
-                positions.fill_(-1)
+                positions.fill_(n + 999)
                 positions[:live].copy_(torch.arange(start, start + live, device="cuda"))
                 expected = []
                 for source, full, module, (reference, rs, ro, rc) in zip(
@@ -92,12 +97,15 @@ def test_shared_projection_scratch_preserves_published_rows_and_decode_arithmeti
                         distinguished |= not torch.equal(canonical[start:start + p].view(torch.uint8), ordinary[:p].view(torch.uint8))
                         target[:p].copy_(canonical[start:start + p])
                     expected.append(target)
-                for _ in range(5):
+                for repeat in range(5):
+                    for source in sources:
+                        source[live:].fill_(float("inf") if repeat % 2 else float("nan"))
                     scratch.full_input.fill_(float("nan")); scratch.full_output.fill_(float("nan"))
                     scratch.history_output.fill_(float("nan"))
                     for guard in guards: guard.fill_(37)
                     torch.cuda.synchronize(); before = torch.cuda.memory_stats()
                     graph.replay(); torch.cuda.synchronize(); after = torch.cuda.memory_stats()
+                    assert history_count.item() == (live if start + live > n and live else 0)
                     for field in ("allocation.all.allocated", "allocation.all.freed", "segment.all.allocated", "segment.all.freed"):
                         assert before[field] == after[field], field
                     # Check every published value after the final, differently
@@ -106,6 +114,15 @@ def test_shared_projection_scratch_preserves_published_rows_and_decode_arithmeti
                         assert torch.equal(output.cpu().contiguous().view(torch.uint8), target.view(torch.uint8)), (index, n, start, live)
                         assert guard[:8].eq(37).all() and guard[-8:].eq(37).all()
             assert distinguished, "operands failed to distinguish original and ordinary-decode arithmetic"
+            for invalid in (-1, 129):
+                count.fill_(invalid)
+                graph.replay(); torch.cuda.synchronize()
+                assert history_count.item() == invalid
+                assert operations[-1].history_output.isnan().all()
+            count.zero_()
+            graph.replay(); torch.cuda.synchronize()
+            assert history_count.item() == 0
+            assert all(output.eq(0).all() for output in outputs)
             graph.reset()
 
 

@@ -113,6 +113,16 @@ legal arithmetic candidates. The runtime count remains device data; a partial
 batch uses its graph's prepared choice. This preparation distinction alone does
 not establish a component or service speedup.
 
+Prefill computes one device history count from the same row predicate that
+selects published history results. If a valid fragment selects no history row,
+the reduction kernels receive zero: they still launch and clear their outputs,
+but skip operand reads and accumulation. Otherwise they retain the full fragment
+count, including prompt rows before a history suffix. Invalid counts retain
+their original value and nonfinite guard. Prompt arithmetic, final selection
+and ordinary decode are unchanged. Component capture, poison, inactive-row,
+invalid-count and allocation checks pass; whole-model, newly exported native
+replay and performance qualification of this change remain pending.
+
 One-query GQA batches independent requests within each original FA2 catalog
 family. Each request still selects its original split, partition and key bound;
 all families execute and device metadata selects represented output bits.

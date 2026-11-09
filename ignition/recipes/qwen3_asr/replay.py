@@ -12,6 +12,13 @@ from ignition.components.reduction_projection import PreparedReductionProjection
 from ignition.components.request_flash import PreparedRequestFlashAttention
 
 
+def history_projection_count(rows, count, positions, original):
+    """Skip operand reads only when no published row selects history arithmetic."""
+    selected = (rows < count) & (positions >= original)
+    valid = (count >= 0) & (count <= rows.numel())
+    return torch.where(valid & ~selected.any(), 0, count)
+
+
 @dataclass(frozen=True)
 class ReplayScratch:
     context: int
@@ -30,7 +37,7 @@ class ReplayScratch:
 
 class PreparedReplayProjection(torch.nn.Module):
     def __init__(self, source, module, output, count, *, prompt_count, positions,
-                 original, scratch, session, name, buffers, workspace):
+                 original, history_count, scratch, session, name, buffers, workspace):
         super().__init__()
         if module.bias is not None or max(source.shape[1], output.shape[1]) > 6144:
             raise ValueError("ASR replay projections require checkpoint bias-free widths at most6144")
@@ -45,7 +52,7 @@ class PreparedReplayProjection(torch.nn.Module):
         self.prompt = PreparedPositionedProjection(source, module.weight, output,
             prompt_count, positions, original, staging, projected, subrow_extents=(19, 27, 32, 64))
         self.history = PreparedReductionProjection(source, module.weight, self.history_output,
-            count, session=session, name=name + ".history")
+            history_count, session=session, name=name + ".history")
 
     def forward(self, source):
         self.prompt(source)

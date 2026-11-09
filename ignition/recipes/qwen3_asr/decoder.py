@@ -17,7 +17,7 @@ from ignition.components.paged_attention import PagedAttentionMetadata, Prepared
 from ignition.components.request_flash import PreparedRequestFlashAttention
 
 from .pool import PAGE_TOKENS
-from .replay import PreparedReplayAttention, PreparedReplayProjection, ReplayScratch
+from .replay import PreparedReplayAttention, PreparedReplayProjection, ReplayScratch, history_projection_count
 
 
 @dataclass(frozen=True)
@@ -205,9 +205,12 @@ class PreparedDecoder:
         projection = partial(_DecodeProjection, benchmark_rows=self.metadata.lengths.numel())
         if mode == "prefill":
             self.prompt_count = buffers.zeros((1,), torch.int32)
+            self.history_count = buffers.zeros((1,), torch.int32)
+            self.projection_rows = torch.arange(scratch.activations.shape[0], device=metadata.positions.device)
             replay = ReplayScratch.allocate(scratch.activations.shape[0], original_capacity, buffers)
             projection = partial(PreparedReplayProjection, prompt_count=self.prompt_count,
-                positions=metadata.positions, original=original_prompt_tokens, scratch=replay)
+                positions=metadata.positions, original=original_prompt_tokens,
+                history_count=self.history_count, scratch=replay)
         sequential = buffers.fork()
         stages = []
         for index, layer in enumerate(tree.layers):
@@ -239,6 +242,8 @@ class PreparedDecoder:
             self.execution_errors.bitwise_or_(invalid.int() * (self.metadata.lengths > 0).int())
             self.prompt_count.copy_(torch.minimum(self.metadata.live_counts[:1],
                 (self.original.long() - self.metadata.positions[:1]).clamp(min=0)).int())
+            self.history_count.copy_(history_projection_count(self.projection_rows,
+                self.metadata.live_counts[:1], self.metadata.positions, self.original))
         if self.decode_rows is not None:
             self.decode_rows()
         self.cache_metadata()
