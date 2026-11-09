@@ -194,6 +194,49 @@ def compare_prefill(actual, reference, case):
         passed=absolute <= budget["max_abs"] and relative <= budget["relative_l2"] and last["passed"])
 
 
+def load_reference_tensors(references, *, inference_mode, grad_enabled):
+    """Read unchanged independent CPU tensors after compiler owners have retired."""
+    import torch
+    from safetensors import safe_open
+    if __package__:
+        from .asr_freeze_numerics import validate_identical_features
+    else:
+        from asr_freeze_numerics import validate_identical_features
+
+    inputs, expected, encoder_reference, encoder_stages = {}, {}, {}, {}
+    with torch.inference_mode(inference_mode), torch.set_grad_enabled(grad_enabled):
+        for case, sdk_root, canonical_root in references:
+            identity, target_rows = case["id"], len(case["teacher_rows"])
+            with safe_open(sdk_root / (identity + "-prefill.safetensors"), framework="pt") as file:
+                stored = file.get_tensor("processor.input_features").squeeze(0).contiguous()
+                original_convolution = file.get_tensor("thinker.audio_tower.conv2d1.input.0")
+            if stored.shape != (128, case["frames"]) or stored.dtype != torch.bfloat16 or not torch.isfinite(stored).all():
+                raise ValueError("SDK Mel geometry or precision differs")
+            # The independent stage reference records the BF16 model input. Exact
+            # widening preserves that node through this graph's FP32 upload ABI.
+            inputs[identity] = stored.float()
+            with safe_open(canonical_root / (identity + "-prefill.safetensors"), framework="pt") as file:
+                validate_identical_features(file.get_tensor("thinker.audio_tower.conv2d1.input.0"), original_convolution)
+                encoder_reference[identity] = file.get_tensor("thinker.audio_tower.proj2.output")
+                names = ["thinker.audio_tower.conv_out.output", "thinker.audio_tower.proj1.output", "thinker.audio_tower.proj2.output"]
+                for layer in range(24):
+                    prefix = f"thinker.audio_tower.layers.{layer}"
+                    names += [prefix + f".self_attn.{field}.output" for field in ("q_proj", "k_proj", "v_proj", "out_proj")]
+                    names += [prefix + ".self_attn.out_proj.input.0", prefix + ".fc1.output", prefix + ".fc2.output"]
+                encoder_stages[identity] = {name: file.get_tensor(name) for name in names}
+            with safe_open(canonical_root / (identity + "-cached-teacher.safetensors"), framework="pt") as file:
+                expected[identity] = file.get_tensor("logits_bf16")
+                if file.get_tensor("target_ids").reshape(-1).tolist() != case["teacher_history"]:
+                    raise ValueError("canonical teacher history differs from frozen contract")
+            if expected[identity].shape != (target_rows, 151936) or expected[identity].dtype != torch.bfloat16 \
+                    or not torch.isfinite(expected[identity]).all():
+                raise ValueError("canonical teacher logits geometry differs")
+            if expected[identity].argmax(-1).tolist() != case["teacher_top1"]:
+                raise ValueError("canonical top1 differs from frozen contract")
+
+    return inputs, expected, encoder_reference, encoder_stages
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", type=Path, required=True)
@@ -272,13 +315,6 @@ def main():
     import torch
     from safetensors import safe_open
     from safetensors.torch import save_file
-    from ignition.components.sampling import RequestAdmission, RUNNING, FINISHED
-    from ignition.preparation.module_images import ModuleImages
-    from ignition.preparation.package_storage import PackageStorage
-    from ignition.preparation.failure import drain_or_retain, retain_undrained, retain_on_failed_drain
-    from ignition.recipes.qwen3_asr.bootstrap import PreparationConfig, prepare
-    from ignition.recipes.qwen3_asr.audio_generation import PreparedAudioGeneration
-    from ignition.recipes.qwen3_asr.pool import PAGE_TOKENS
     from ignition.recipes.qwen3_asr.numerics import POLICY, fp32_reductions
     if __package__:
         from .asr_freeze_numerics import check, validate_case_layout, validate_identical_features
@@ -325,10 +361,11 @@ def main():
                 for _, case, data in cached.values()):
             raise ValueError("complete repeated cached operands with unchanged frozen logits required")
     cases = frozen["cases"]
-    inputs, expected, encoder_reference, encoder_stages = {}, {}, {}, {}
+    references = []
+    reference_context = (torch.is_inference_mode_enabled(), torch.is_grad_enabled())
     for case in cases:
         identity = case["id"]
-        root, source, sdk_record = sdk[identity]
+        sdk_root, source, sdk_record = sdk[identity]
         if sdk_record["sdk_revision"] != frozen["sdk_revision"]:
             raise ValueError("SDK source revision differs from frozen contract")
         target_rows = len(case["teacher_rows"])
@@ -336,39 +373,25 @@ def main():
             raise ValueError("inconsistent frozen teacher row counts")
         if (source["frames"], source["prompt_ids"]) != (case["frames"], case["prompt_ids"]):
             raise ValueError("SDK input differs from frozen contract")
-        with safe_open(root / (identity + "-prefill.safetensors"), framework="pt") as file:
-            stored = file.get_tensor("processor.input_features").squeeze(0).contiguous()
-            original_convolution = file.get_tensor("thinker.audio_tower.conv2d1.input.0")
-        if stored.shape != (128, case["frames"]) or stored.dtype != torch.bfloat16 or not torch.isfinite(stored).all():
-            raise ValueError("SDK Mel geometry or precision differs")
-        # The independent stage reference records the BF16 model input. Exact
-        # widening preserves that node through this graph's FP32 upload ABI.
-        inputs[identity] = stored.float()
-        root, canonical_case, canonical_record = canonical[identity]
+        canonical_root, canonical_case, canonical_record = canonical[identity]
         validate_case_layout(canonical_record, canonical_case, source)
-        with safe_open(root / (identity + "-prefill.safetensors"), framework="pt") as file:
-            validate_identical_features(file.get_tensor("thinker.audio_tower.conv2d1.input.0"), original_convolution)
-            encoder_reference[identity] = file.get_tensor("thinker.audio_tower.proj2.output")
-            names = ["thinker.audio_tower.conv_out.output", "thinker.audio_tower.proj1.output", "thinker.audio_tower.proj2.output"]
-            for layer in range(24):
-                prefix = f"thinker.audio_tower.layers.{layer}"
-                names += [prefix + f".self_attn.{field}.output" for field in ("q_proj", "k_proj", "v_proj", "out_proj")]
-                names += [prefix + ".self_attn.out_proj.input.0", prefix + ".fc1.output", prefix + ".fc2.output"]
-            encoder_stages[identity] = {name: file.get_tensor(name) for name in names}
-        with safe_open(root / (identity + "-cached-teacher.safetensors"), framework="pt") as file:
-            expected[identity] = file.get_tensor("logits_bf16")
-            if file.get_tensor("target_ids").reshape(-1).tolist() != case["teacher_history"]:
-                raise ValueError("canonical teacher history differs from frozen contract")
-        if expected[identity].shape != (target_rows, 151936) or expected[identity].dtype != torch.bfloat16 \
-                or not torch.isfinite(expected[identity]).all():
-            raise ValueError("canonical teacher logits geometry differs")
-        if expected[identity].argmax(-1).tolist() != case["teacher_top1"]:
-            raise ValueError("canonical top1 differs from frozen contract")
+        references.append((case, sdk_root, canonical_root))
 
     if args.check_inputs:
+        load_reference_tensors(references, inference_mode=reference_context[0], grad_enabled=reference_context[1])
         print(json.dumps(dict(cases=len(cases), teacher_rows=sum(len(case["teacher_rows"]) for case in cases),
             independent_inputs_validated=True, candidate_executed=False)))
         return
+
+    # Input-only validation reads independent CPU files without importing the
+    # GPU candidate or FlashInfer's device-initializing sampling modules.
+    from ignition.components.sampling import RequestAdmission, RUNNING, FINISHED
+    from ignition.preparation.module_images import ModuleImages
+    from ignition.preparation.package_storage import PackageStorage
+    from ignition.preparation.failure import drain_or_retain, retain_undrained, retain_on_failed_drain
+    from ignition.recipes.qwen3_asr.bootstrap import PreparationConfig, prepare
+    from ignition.recipes.qwen3_asr.audio_generation import PreparedAudioGeneration
+    from ignition.recipes.qwen3_asr.pool import PAGE_TOKENS
 
     args.output.mkdir(parents=True, exist_ok=False)
     record = dict(scope=__doc__.strip(), status="preparing", numerical_policy=POLICY, source_contract=str(args.contract),
@@ -488,6 +511,16 @@ def main():
                         observer.prepare(prepared, prepared.signatures[name], storage, config.kernel_cache)
                     pool.clear_for_preparation()
                     torch.cuda.synchronize()
+                # These CPU references are not inputs to preparation or capture.
+                # Keep them out of the compiler's unified-memory residency window.
+                record["reference_tensor_loading"] = "after_observer_capture"
+                publish()
+                inputs, expected, encoder_reference, encoder_stages = load_reference_tensors(references,
+                    inference_mode=reference_context[0], grad_enabled=reference_context[1])
+                record["reference_tensor_context"] = dict(inference_mode=reference_context[0],
+                    grad_enabled=reference_context[1])
+                record["independent_reference_tensors_validated"] = True
+                publish()
                 epoch = 0
 
                 def observe_state(identity, stage, values, context):
