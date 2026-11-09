@@ -10,18 +10,25 @@ import sys
 from types import SimpleNamespace
 
 from ignition.preparation.runtime_package import (
-    Allocation, Argument, Kernel, Reference, Relocation, RuntimePackage, _Cuda,
+    Allocation, Argument, Kernel, Reference, Relocation, RuntimePackage,
 )
 from cuda_graph_fixture import KernelParams
 from signing import publisher
 
 
 def prepare(root):
-    cuda = _Cuda()
-    cuda.call("cuInit", C.c_uint(0))
-    device, context = C.c_int(), C.c_void_p()
-    cuda.call("cuDeviceGet", C.byref(device), C.c_int(0))
-    cuda.call("cuCtxCreate_v2", C.byref(context), C.c_uint(0), device)
+    import torch
+    from ignition.preparation.package_storage import PackageStorage
+
+    torch.cuda.set_device(0)
+    with PackageStorage() as storage:
+        _prepare(root, storage)
+
+
+def _prepare(root, storage):
+    import torch
+
+    cuda, device = storage.cuda, C.c_int(storage.device)
     architecture = []
     for attribute in (75, 76):
         value = C.c_int()
@@ -44,8 +51,8 @@ extern "C" __global__ void shared_requirement(int *out, int bytes) {
     cuda.call("cuModuleLoadData", C.byref(module), image)
     cuda.call("cuModuleGetFunction", C.byref(function), module, b"shared_requirement")
     cuda.call("cuFuncSetAttribute", function, C.c_int(8), C.c_int(96 << 10))
-    output = C.c_uint64()
-    cuda.call("cuMemAlloc_v2", C.byref(output), C.c_size_t(4))
+    tensor = torch.empty(1, dtype=torch.int32, device="cuda")
+    output = C.c_uint64(tensor.data_ptr())
     graphs = {}
     for shared in (64 << 10, 96 << 10, 60 << 10):
         count = C.c_int(shared)
@@ -65,7 +72,6 @@ extern "C" __global__ void shared_requirement(int *out, int bytes) {
             Argument(8, (Relocation(0, Reference("output")),)), Argument(4)))])
     from fixture_frontend import server_config
     package.write(root / "package", graphs, publisher=publisher(), server=server_config(root))
-    cuda.call("cuCtxDestroy_v2", context)
 
 
 if __name__ == "__main__":

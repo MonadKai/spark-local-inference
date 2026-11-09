@@ -12,18 +12,25 @@ import sys
 from types import SimpleNamespace
 
 from ignition.preparation.runtime_package import (
-    Allocation, Argument, Kernel, RuntimePackage, _Cuda,
+    Allocation, Argument, Kernel, RuntimePackage,
 )
 from cuda_graph_fixture import KernelParams
 from signing import publisher
 
 
 def prepare(root):
-    cuda = _Cuda()
-    cuda.call("cuInit", C.c_uint(0))
-    device, context = C.c_int(), C.c_void_p()
-    cuda.call("cuDeviceGet", C.byref(device), C.c_int(0))
-    cuda.call("cuCtxCreate_v2", C.byref(context), C.c_uint(0), device)
+    import torch
+    from ignition.preparation.package_storage import PackageStorage
+
+    torch.cuda.set_device(0)
+    with PackageStorage() as storage:
+        _prepare(root, storage)
+
+
+def _prepare(root, storage):
+    import torch
+
+    cuda, device = storage.cuda, C.c_int(storage.device)
     attributes = []
     for attribute in (75, 76, 16):
         value = C.c_int()
@@ -65,7 +72,7 @@ extern "C" __global__ void ordinary(int *out, int n) { work<false>(out, n); }
         cuda.call("cuFuncSetAttribute", function, C.c_int(8), C.c_int(65536))
         functions[name] = function
     elements = 500003
-    allocations, graphs, expected, exported_grids = [], {}, {}, {}
+    allocations, graphs, expected, exported_grids, outputs = [], {}, {}, {}, []
     for name, block, shared, other, size, axis in (
         ("smaller", (32, 4, 1), 0, (1, 1), "small", 0),
         ("exact", (32, 4, 1), 0, (1, 1), "exact", 0),
@@ -89,9 +96,10 @@ extern "C" __global__ void ordinary(int *out, int n) { work<false>(out, n); }
         captured_grid, expected_grid = list(other), list(other)
         captured_grid.insert(axis, workers)
         expected_grid.insert(axis, workers if name == "ordinary" else min(workers, max_workers))
-        output = C.c_uint64()
         nbytes = (elements * 2 + 3) * 4
-        cuda.call("cuMemAlloc_v2", C.byref(output), C.c_size_t(nbytes))
+        tensor = torch.empty(elements * 2 + 3, dtype=torch.int32, device="cuda")
+        outputs.append(tensor)
+        output = C.c_uint64(tensor.data_ptr())
         allocations.append(Allocation(name, output.value, nbytes, initialize="zero"))
         count = C.c_int(elements)
         arguments = (C.c_void_p * 2)(C.addressof(output), C.addressof(count))
@@ -169,7 +177,6 @@ extern "C" __global__ void ordinary(int *out, int n) { work<false>(out, n); }
     write_sources(rewritten, index, sorted(payload), **metadata)
     combine(root / "package", [rewritten], [], publisher=publisher())
     (root / "expected.json").write_text(json.dumps({"length": elements, "grids": expected}))
-    cuda.call("cuCtxDestroy_v2", context)
 
 
 if __name__ == "__main__":
