@@ -305,3 +305,20 @@ pinned splitting results for8,169 performance parents/8,176 chunks,256 developme
 parents/258 chunks and nine long parents/95 chunks. Its three raw files retain
 every input identity and chunk sample count. These precomputed expected sets
 support later observer reconciliation; they are not ASR or performance results.
+
+
+[Current-image deployment exploration](results/vllm-development-attention-configurations.json.gz)
+retains four fixed-order configurations: FlashAttention/FlashInfer and default/
+additional partial-batch graph capacities. [The run configuration](results/vllm-development-attention-run.json)
+records eight fixed development inputs, real arguments and296 complete requests.
+All terminal and encoder identities/counts reconcile. FlashInfer actually selects
+TRTLLM XQA with16-token pages; both backends retain compile and CUDA Graphs.
+The observations use the published reference-worker helpers. All task containers
+exit normally and are removed. These short, startup-separated, uncalibrated
+trials establish functional availability. Their fixed order and three cohorts
+per principal batch do not establish a statistical ranking or formal ASR throughput.
+Encoder compile/graph availability, observer overhead and sustained cells remain
+separate; the default backend is not presented as a qualified global optimum.
+The run configuration links all four raw terminal ledgers, including actual
+token IDs and encoder media identities: each configuration naturally emits
+1,358 tokens across74 requests. Counts come from engine terminal output.
