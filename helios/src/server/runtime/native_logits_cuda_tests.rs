@@ -196,7 +196,7 @@ fn exercise_native_logits(replay_history: bool) {
             .map(|g| g.token_capacity).collect::<Vec<_>>()).unwrap();
         let (sender, receiver) = mpsc::sync_channel(4);
         let mut worker = Worker::new(&fixture.config, &fixture.frontend, &fixture.stop,
-            &fixture.metrics, scheduler, receiver, 32);
+            &fixture.metrics, scheduler, receiver, 32, super::super::super::PrefixCacheReuse::Shared);
         worker.inputs = Some(crate::model::Inputs::new(&fixture.config, executor.manifest()).unwrap());
         let mut baseline: HashMap<usize, Vec<Vec<u8>>> = HashMap::new();
         let mut baseline_kv: HashMap<usize, Vec<Vec<u8>>> = HashMap::new();

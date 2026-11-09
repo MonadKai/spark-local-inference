@@ -140,7 +140,7 @@ fn cancellation_during_actual_feature_upload_cannot_publish_or_release_its_owner
             .map(|graph| graph.token_capacity).collect::<Vec<_>>()).unwrap();
         let (sender, receiver) = mpsc::sync_channel(4);
         let mut worker = Worker::new(&fixture.config, &fixture.frontend, &fixture.stop,
-            &fixture.metrics, scheduler, receiver, 4);
+            &fixture.metrics, scheduler, receiver, 4, super::super::super::PrefixCacheReuse::Shared);
         worker.inputs = Some(crate::model::Inputs::new(&fixture.config, executor.manifest()).unwrap());
         worker.encoded_inputs = Some(super::super::encoded::EncodedInputs::new(store));
         let (first, mut baseline_generation) = incoming(&fixture, prompt(&fixture, &bytes), 1);

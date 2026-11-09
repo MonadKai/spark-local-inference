@@ -712,6 +712,7 @@ impl ModelRuntime {
                     scheduler,
                     receiver,
                     queue_capacity,
+                    prefix_cache_reuse,
                 );
                 #[cfg(feature = "audio")]
                 if let Some(store) = worker_encoded_store {
@@ -1092,6 +1093,7 @@ struct Worker<'a> {
     admissions: Vec<Option<crate::model::Admission>>,
     inputs: Option<crate::model::Inputs>,
     queue_capacity: usize,
+    prefix_cache_reuse: super::PrefixCacheReuse,
     store: Option<Box<dyn flare_selene::HostStore>>,
     deferred_stores: Vec<(crate::cache::CheckpointId, flare_selene::StoreReason)>,
     store_progress: u64,
@@ -1118,6 +1120,7 @@ impl<'a> Worker<'a> {
         scheduler: RequestScheduler,
         receiver: mpsc::Receiver<Vec<Incoming>>,
         queue_capacity: usize,
+        prefix_cache_reuse: super::PrefixCacheReuse,
     ) -> Self {
         Self {
             config,
@@ -1127,6 +1130,7 @@ impl<'a> Worker<'a> {
             scheduler,
             receiver,
             queue_capacity,
+            prefix_cache_reuse,
             store: None,
             deferred_stores: Vec::new(),
             store_progress: 0,
@@ -1200,6 +1204,10 @@ impl<'a> Worker<'a> {
                     std::hint::spin_loop();
                     thread::yield_now();
                 } else {
+                    if self.trim_request_cache(executor.outstanding())? {
+                        self.metrics.scheduler(self.scheduler.stats());
+                        continue;
+                    }
                     self.scheduler.idle()?;
                     let wait = self.idle_wait();
                     match self.receiver.recv_timeout(wait) {
@@ -1211,6 +1219,28 @@ impl<'a> Worker<'a> {
             }
         }
         Ok(())
+    }
+
+    /// Progress from new arrivals or safe reclamation of ended request scopes.
+    fn trim_request_cache(&mut self, outstanding: usize) -> Result<bool> {
+        if self.prefix_cache_reuse != super::PrefixCacheReuse::Request || outstanding != 0
+            || !self.pending.is_empty() || !self.parked.is_empty()
+            || self.active.iter().any(Option::is_some) || self.preparing_image.is_some()
+            || !self.exports.is_empty()
+            || self.store.as_ref().is_some_and(|store| {
+                let stats = store.stats();
+                stats.inbound_in_flight != 0 || stats.outbound_in_flight != 0
+            }) {
+            return Ok(false);
+        }
+        // Only new externally scoped generations may arrive after this check.
+        // Internal readmission retains its Incoming in parked, checked above.
+        match self.receiver.try_recv() {
+            Ok(group) => { self.enqueue(group); return Ok(true); }
+            Err(mpsc::TryRecvError::Empty) => {}
+            Err(mpsc::TryRecvError::Disconnected) => return Ok(false),
+        }
+        self.scheduler.discard_idle_checkpoints()
     }
 
     fn idle_wait(&self) -> std::time::Duration {

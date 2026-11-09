@@ -1187,6 +1187,12 @@ keeps that namespace through preemption and readmission, so its complete
 checkpoint can still restore rather than losing state. GPU/host checkpoint
 publication, storage, eviction and fence retirement remain active; this mode
 isolates cross-request reuse, not checkpoint maintenance or allocation.
+After the runtime has no active, pending or parked generation, it reclaims
+unreachable request-scoped GPU checkpoints through ordinary fenced eviction.
+Queued work, inbound tickets, copy/export pins and outstanding executor work
+prevent that reclamation. Shared-mode checkpoints remain available to later
+requests. This idle reclamation does not clear host, disk or prepared-input
+stores; their separate retention limits still apply.
 The host memory/disk limits alone do not disable GPU prefix reuse. Frontend
 FFT/Mel plans and request-owned decoded inputs remain reusable within their
 existing lifetimes. Model identities, media identities, tokens and sampling seeds

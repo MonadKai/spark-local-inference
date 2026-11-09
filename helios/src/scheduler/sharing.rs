@@ -84,6 +84,20 @@ impl RequestScheduler {
         report
     }
 
+    /// Drop unreachable request-scoped checkpoints after every GPU owner drains.
+    /// The caller must also exclude pending and parked external consumers.
+    pub(crate) fn discard_idle_checkpoints(&mut self) -> Result<bool> {
+        if !self.submissions.is_empty() || !self.tickets.is_empty() || !self.retired.is_empty()
+            || self.slots.iter().any(|slot| slot.request.is_some() || slot.retiring)
+            || !self.cache.idle_reclamation_ready() {
+            return Ok(false);
+        }
+        let evicted = self.evict(EvictionTarget { pages: 0, snapshots: self.limits.snapshots as usize });
+        self.stats.snapshot_evictions += evicted.retired.len() as u64;
+        self.advance_retirement(self.completed)?;
+        Ok(!evicted.retired.is_empty())
+    }
+
     /// Evictions since tracking was enabled or the previous call, oldest first.
     pub fn take_evictions(&mut self) -> Vec<EvictedCheckpoint> {
         std::mem::take(&mut self.evictions)
