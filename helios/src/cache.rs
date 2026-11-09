@@ -216,6 +216,13 @@ impl PrefixCheckpointCache {
         self.completed
     }
 
+    /// Ready, unpinned checkpoints have no remaining cache or GPU user.
+    pub(crate) fn idle_reclamation_ready(&self) -> bool {
+        self.retirement.is_empty() && self.nodes.values().all(|node|
+            node.ready && node.pins == 0 && node.last_use <= self.completed
+                && node.ready_after <= self.completed)
+    }
+
     pub fn checkpoint(&self, id: CheckpointId) -> Result<&Checkpoint> {
         self.nodes.get(&id).ok_or_else(|| {
             crate::Error::execution(

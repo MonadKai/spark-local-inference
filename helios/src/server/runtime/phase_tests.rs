@@ -23,6 +23,9 @@ mod response_lifecycle_tests;
 #[path = "admission_waiter_tests.rs"]
 mod admission_waiter_tests;
 
+#[path = "request_cache_tests.rs"]
+mod request_cache_tests;
+
 #[cfg(feature = "audio")]
 #[path = "transcription_tests.rs"]
 mod transcription_tests;
@@ -204,6 +207,7 @@ impl Fixture {
             scheduler,
             receiver,
             4,
+            super::super::PrefixCacheReuse::Shared,
         );
         worker.inputs = Some(
             crate::model::Inputs::new(&self.config, &crate::model::testing::manifest(&self.config))
@@ -1710,6 +1714,7 @@ fn packed_dashboard_depth_uses_allocated_prefixes_and_live_request_count() {
         scheduler,
         receiver,
         4,
+        super::super::PrefixCacheReuse::Shared,
     );
     worker.inputs = Some(crate::model::Inputs::new(&fixture.config, &manifest).unwrap());
     assert_eq!(worker.admit().unwrap(), ControlFlow::Continue(true));
@@ -4890,6 +4895,7 @@ fn worker_restores_conditioned_windows_with_fresh_generation_and_unchanged_sampl
         scheduler,
         receiver,
         4,
+        super::super::PrefixCacheReuse::Shared,
     );
     worker.inputs = Some(crate::model::Inputs::new(&fixture.config, &manifest).unwrap());
     worker.image_preparation = Some(ImagePreparation::new(None));
