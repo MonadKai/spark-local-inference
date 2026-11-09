@@ -263,3 +263,45 @@ CER has no bootstrap interval in the frozen scoring contract. The historical vLL
 not transfer GPU qualification to a newly rebuilt image. This primary-set
 recognition result does not establish complete numerical/operator, real-long,
 API/lifecycle, old-package or sustained-performance qualification.
+
+
+`runtime_package::test_support::programs` reads launch geometry through the
+existing authenticated package readers. Its explicit ignored CPU collector
+also verifies the existing signed prepared-weight catalog against the same
+envelope. Four ordinary protobuf/geometry/DAG rejection controls and one real
+signed-package CPU read pass; the complete native CPU suite passes1,391 tests,
+with32 ignored. This does not load CUDA or establish historical-model serving.
+Bare eight-byte values are labelled untyped address candidates. Matching them
+to named storage does not prove pointer ABI or operator semantics. Current
+native trace copy-byte discrepancies remain unresolved; kernel-sequence matching
+does not establish complete node coverage or calibrate profiler overhead.
+
+[Logical-live-row tuning measurements](results/projection-logical-workload-selection.json.gz)
+compare legacy count8 and B1/2/4/8 preparation with the same six legal arithmetic
+candidates and physical8 rows. [The run configuration](results/projection-logical-workload-run.json)
+preserves the complete27-test CUDA/native gate, prior fixture failure, and the
+[zero-cell reference-directory failure](results/projection-logical-workload-launch-failure.json).
+All28 rotated layer weights reuse the same frozen layer0 activation rows;
+every actual captured per-layer output has independent guards and five exact
+replays. All compilation/tuning/capture finishes before nine randomized timing
+blocks. These are descriptive within-session component intervals. Down improves
+about2.4–2.9%, most intervals include1 and some gate/gate-up cells regress.
+No overall benefit, full-model selection or serving-performance win is established.
+Packed projections and the reduction head remain diagnostics; the production
+BF16 LM head is unchanged.
+
+[The current rebuilt vLLM image result](results/vllm-recognition-rebuilt-553.json)
+binds image553/manifestfb9789ff to actual GPU execution:256 primary and nine long
+parents,356 naturally stopped chunks and11,318 actual tokens reconcile with
+engine counters and encoder dispatch. The actual backend is FlashAttention;
+compile mode3 and full/piecewise CUDA Graphs are enabled. Encoder compile/graphs
+remain disabled and their availability was not tested in this run. Flare also
+passes the unchanged primary quality margins against this new reference.
+Actual prompt IDs and sampling after engine cloning were not captured here;
+API parity, observer overhead and reasonable deployment tuning remain separate.
+
+[The CPU media-plan configuration](results/vllm-cpu-chunks-run.json) binds actual
+pinned splitting results for8,169 performance parents/8,176 chunks,256 development
+parents/258 chunks and nine long parents/95 chunks. Its three raw files retain
+every input identity and chunk sample count. These precomputed expected sets
+support later observer reconciliation; they are not ASR or performance results.
