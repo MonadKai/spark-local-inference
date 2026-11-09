@@ -570,6 +570,32 @@ These runs use default-only preparation for diagnosis. Normal production
 autotuning and the unchanged full-model, package, lifecycle, numerical and
 performance gates remain required. No frozen reference or budget is changed.
 
+The [normal-tuning recipe prototype](../benchmarks/qwen3_asr/results/positioned-causal-normal-tuning-rejections.json)
+fails the existing Torch FLASH SDPA byte gate in all three attention cases;
+the other three affected tests pass. Its source is retained as a rejected
+patch, with the original assertions. A separate first attempt has five SPAWN
+launcher failures and one passing feature test; adding the launcher's main
+guard exposes the actual arithmetic failures rather than resolving them.
+The tight M64/C8192/N165 reproduction selects tile128/48 and differs at 5,777
+of 131,072 BF16 elements, beginning at row48, with no nonfinite output. This
+does not identify the cause or qualify a plan. The component's earlier
+default-only SDK bridges do not waive these failures. Recipe integration
+requires a fix that preserves the original regressions and model gates.
+
+The [complete existing-candidate control](../benchmarks/qwen3_asr/results/positioned-causal-arithmetic-candidates.json.gz)
+enumerates 28 configurations through the library's actual eligibility contract,
+including audit candidates. All 280 captured replays repeat exactly and preserve
+the four recorded Torch allocation counters. None matches the complete saved
+Torch165 reference; the closest configurations still differ at 3,179 elements.
+Only the four configurations with `tile_n=64` match all 806,912 SDK394 elements.
+The tuned tile128/48 direct captured call matches the failing component's
+first64 rows exactly. The discrepancy therefore also occurs without positioned
+gather or complete-forward transformation; a separate eager/capture byte bridge
+was not recorded.
+These results reject this recipe substitution; the production recipe retains
+its prior attention computation. The component remains diagnostic, and no
+unused legacy class or changed reference is used to make the suite pass.
+
 ## Native logits and frontend boundary diagnosis
 
 The ignored native Worker test authenticates an exported package, verifies its
