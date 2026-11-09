@@ -528,3 +528,21 @@ This is finite native state/scalar/recognition qualification. Complete new-norm
 intermediate-node/operator, full CUDA/native/lifecycle, actual current HTTP/cache,
 old VISION, strict full storage and sustained performance gates remain open.
 Formal sustained comparative cells remain zero, with no vLLM performance claim.
+
+
+`native-rmsnorm-current-api-run.json` retains all attempted current-package
+HTTP, annotated long speech and finite concurrency clients. The HTTP raw has
+88 checks:86 pass, while both immutable public fixture prefetches fail with
+network-unreachable errors. Their two dependent model URL requests are unrun;
+the full extended plan would contain90 checks. An earlier guard's HTTP89 label
+came from a historical run and is not this attempt's count.
+
+All nine fixed annotated long inputs remain included: eight naturally stop,
+while `L_R003S01C02-540s` contains repeated filler and a service child reaches
+its1024-token output cap (2483 aggregate tokens). The long suite fails; neither
+its input nor output limit is changed. The separate144-request B1/2/4/8
+text/count schedule passes, including active-and-queued parent disconnect,
+drain and eight subsequent requests. It does not observe raw token/slot/fence
+IDs or an unrelated short request during cancellation. Full ownership metrics
+drain at every suite boundary; the native process exits normally. These finite
+results do not qualify complete API/lifecycle/model behavior or performance.
