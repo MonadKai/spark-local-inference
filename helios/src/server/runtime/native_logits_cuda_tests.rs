@@ -82,11 +82,76 @@ fn kv_prefix_matches(actual: &[Vec<u8>], reference: &[Vec<u8>]) -> bool {
     actual.len() == reference.len() && actual.iter().zip(reference).all(|(a, b)| a == b)
 }
 
+fn observation_scope(cohort: usize, request: usize) -> [u8; 24] {
+    let mut scope = [0; 24];
+    scope[..8].copy_from_slice(b"ASRLOGIT");
+    scope[8..16].copy_from_slice(&u64::try_from(cohort).unwrap().to_le_bytes());
+    scope[16..].copy_from_slice(&u64::try_from(request).unwrap().to_le_bytes());
+    scope
+}
+
+// The four-input pilot retains its historical schedule. The complete frozen
+// set visits every input in each full logical batch and in a seven-row B8.
+fn observation_cohorts(count: usize, history: bool) -> Vec<(Vec<usize>, Option<bool>, Option<usize>)> {
+    assert!(matches!(count, 4 | 20));
+    if history {
+        return (0..count).map(|case| (vec![case], None, None))
+            .chain((0..count).flat_map(|case| [false, true]
+                .map(move |evict| (vec![case], Some(evict), None)))).collect();
+    }
+    if count == 4 {
+        return [vec![0], vec![1], vec![2], vec![3], vec![0,1], vec![2,3], vec![0,1,2,3],
+            vec![3,2,1,0], vec![0,1,2,3,0,1,2,3], vec![3,2,1,0,3,2,1,0], vec![0,1,2,3,0,1,2]]
+            .into_iter().map(|order| {
+                let capacity = (order.len() >= 7).then_some(8);
+                (order, None, capacity)
+            }).collect();
+    }
+    let mut result = (0..count).map(|case| (vec![case], None, None)).collect::<Vec<_>>();
+    for capacity in [2, 4, 8] {
+        for start in (0..count).step_by(capacity) {
+            let order = (0..capacity).map(|row| (start + row) % count).collect::<Vec<_>>();
+            result.push((order.clone(), None, Some(capacity)));
+            result.push((order.into_iter().rev().collect(), None, Some(capacity)));
+        }
+    }
+    for start in (0..count).step_by(7) {
+        let order = (0..7).map(|row| (start + row) % count).collect::<Vec<_>>();
+        result.push((order.clone(), None, Some(8)));
+        result.push((order.into_iter().rev().collect(), None, Some(8)));
+    }
+    result
+}
+
+#[test]
+fn full_observation_schedule_has_unique_scopes_and_per_case_batch_and_row_coverage() {
+    let mut scopes = std::collections::HashSet::new();
+    let mut coverage = vec![std::collections::HashSet::new(); 20];
+    for history in [false, true] {
+        let cohorts = observation_cohorts(20, history);
+        for (cohort, (order, _, capacity)) in cohorts.iter().enumerate() {
+            for (row, &case) in order.iter().enumerate() {
+                assert!(scopes.insert((history, observation_scope(cohort, row))));
+                if !history { coverage[case].insert((capacity.unwrap_or(1), order.len(), row)); }
+            }
+        }
+    }
+    assert_ne!(observation_scope(0, 0), observation_scope(32, 0));
+    for seen in coverage {
+        for capacity in [1, 2, 4, 8] {
+            assert!(seen.iter().any(|&(b, live, _)| b == capacity && live == capacity));
+        }
+        assert!(seen.iter().any(|&(b, live, _)| b == 8 && live == 7));
+        assert!(seen.iter().any(|&(_, _, row)| row > 0));
+    }
+}
+
 fn exercise_native_logits(replay_history: bool) {
     let path = std::env::var("FLARE_PROMPT_TEST_PACKAGE").unwrap();
     let publishers = std::env::var("FLARE_PROMPT_TEST_PUBLISHERS").unwrap();
     let cases: Vec<Case> = serde_json::from_slice(&std::fs::read(std::env::var("FLARE_NATIVE_LOGITS_CASES").unwrap()).unwrap()).unwrap();
-    assert_eq!(cases.len(), 4);
+    assert!(matches!(cases.len(), 4 | 20));
+    assert_eq!(cases.iter().map(|case| &case.id).collect::<std::collections::HashSet<_>>().len(), cases.len());
     let output = PathBuf::from(std::env::var("FLARE_NATIVE_LOGITS_OUTPUT").unwrap());
     std::fs::create_dir(&output).unwrap();
     let publishers: Vec<Publisher> = serde_json::from_slice(&std::fs::read(publishers).unwrap()).unwrap();
@@ -112,9 +177,9 @@ fn exercise_native_logits(replay_history: bool) {
     for name in ["audio_features", "audio_generations", "audio_counts", "audio_feature_slot"] {
         audio_views.insert(name.into(), sampling::named_buffer(&authorized, 0, name).unwrap());
     }
-    let original_count = replay_history.then(|| sampling::named_buffer(&authorized, 0,
+    let original_count = (replay_history || cases.len() == 20).then(|| sampling::named_buffer(&authorized, 0,
         "original_prompt_tokens").unwrap());
-    let history_package = replay_history.then(|| VerifiedPackage::open(std::path::Path::new(&path),
+    let history_package = (replay_history || cases.len() == 20).then(|| VerifiedPackage::open(std::path::Path::new(&path),
         &publishers, None).unwrap().authorize(&namespace, true).unwrap());
     let envelope = authorized.envelope_digest();
     let options = LoadOptions { max_concurrency: Some(8), kv_cache_limit: KvCacheLimit::Concurrency,
@@ -152,7 +217,7 @@ fn exercise_native_logits(replay_history: bool) {
         assert_eq!(layout.strides, [layout.shape[1], 1]);
         (sampling::named_buffer(package, 0, &table.buffer).unwrap(), layout.shape[1])
     });
-    if replay_history {
+    if history_package.is_some() {
         assert_eq!(kv_views.len(), 56);
         assert_eq!(fixture.config.contract.cache.immutable_request_values,
             [crate::model::contract::ValueSource::InitialPromptTokens]);
@@ -172,7 +237,8 @@ fn exercise_native_logits(replay_history: bool) {
         }
     }
     let mut executor = unsafe { RankExecutor::new(manifest, None).unwrap() };
-    let mut report = serde_json::json!({"scope":"Native package BF16 logits and actual natural histories; four full original PCM inputs, not all twenty frozen controls or complete lifecycle/performance qualification",
+    let mut report = serde_json::json!({"scope":"Native package BF16 logits and actual natural histories for the supplied frozen inputs; not complete operator, lifecycle or performance qualification",
+        "input_count":cases.len(),
         "prompt_endpoint":"Original SDK/chat template and forced-language suffix; separate from transcription API semantics",
         "prepared_identity":owner.server_config()["identity"],
         "runtime_cache_identity":fixture.config.identity.iter().map(|v| format!("{v:02x}")).collect::<String>(),
@@ -180,7 +246,7 @@ fn exercise_native_logits(replay_history: bool) {
         "audio_storage":audio, "status":"running", "single_inflight":true,
         "frames":[], "audio_frames":[], "cohorts":[], "errors":[], "kv_frames":[],
         "generated_history_probe":replay_history, "preemption_policy_qualified":false,
-        "capacity_schedule":"Seven/eight-request cohorts defer decode until every real request has naturally sampled its first token. The test selects legal production plans through test-only phase selection; this is not automatic scheduling or performance qualification.",
+        "capacity_schedule":"Declared batch cohorts defer decode until every real request has naturally sampled its first token. The test selects legal production plans through test-only phase selection; this is not automatic scheduling or performance qualification.",
         "decode_readiness_barriers":[],
         "parking":[]} );
     save(&output, &report);
@@ -201,26 +267,24 @@ fn exercise_native_logits(replay_history: bool) {
         worker.inputs = Some(crate::model::Inputs::new(&fixture.config, executor.manifest()).unwrap());
         let mut baseline: HashMap<usize, Vec<Vec<u8>>> = HashMap::new();
         let mut baseline_kv: HashMap<usize, Vec<Vec<u8>>> = HashMap::new();
-        let cohorts: Vec<(Vec<usize>, Option<bool>)> = if replay_history {
-            (0..4).map(|case| (vec![case], None)).chain((0..4).flat_map(|case|
-                [false, true].map(move |evict| (vec![case], Some(evict))))).collect()
-        } else {
-            [vec![0], vec![1], vec![2], vec![3], vec![0,1], vec![2,3], vec![0,1,2,3],
-                vec![3,2,1,0], vec![0,1,2,3,0,1,2,3], vec![3,2,1,0,3,2,1,0], vec![0,1,2,3,0,1,2]]
-                .into_iter().map(|order| (order, None)).collect()
-        };
+        let cohorts = observation_cohorts(cases.len(), replay_history);
         let mut seen_decode = std::collections::HashSet::new();
-        for (cohort, (order, eviction)) in cohorts.iter().enumerate() {
+        let mut seen_by_case = vec![std::collections::HashSet::new(); cases.len()];
+        for (cohort, (order, eviction, expected_capacity)) in cohorts.iter().enumerate() {
             assert_eq!(executor.outstanding(), 0);
             let mut generations = Vec::new();
             let mut arrivals = Vec::new();
             let mut files = Vec::new();
+            let mut request_indices = HashMap::new();
             for (index, &case) in order.iter().enumerate() {
                 let bytes = std::fs::read(&cases[case].path).unwrap();
                 assert_eq!(format!("{:x}", Sha256::digest(&bytes)), cases[case].wav_sha256);
                 let prepared = reference_prompt(&fixture, &bytes, &cases[case].language);
                 assert_eq!(prepared.tokens, cases[case].prompt_ids, "actual native prompt differs for {}", cases[case].id);
-                let (request, generation) = incoming(&fixture, prepared, (cohort * 8 + index + 1) as u8);
+                let (mut request, generation) = incoming(&fixture, prepared, 0);
+                let scope = observation_scope(cohort, index);
+                request.prefix_scope = Some(scope);
+                assert!(request_indices.insert(scope, index).is_none());
                 arrivals.push(request); generations.push(generation);
                 files.push(std::fs::OpenOptions::new().create_new(true).write(true)
                     .open(output.join(format!("cohort{cohort}-request{index}-logits.bf16"))).unwrap());
@@ -238,7 +302,7 @@ fn exercise_native_logits(replay_history: bool) {
             let mut pressure_reservations = 0;
             let mut poisoned_prefill_submissions = 0;
             let mut submitted: Option<crate::scheduler::ScheduledPlan> = None;
-            let mut decode_barrier = !replay_history && order.len() >= 7;
+            let mut decode_barrier = expected_capacity.is_some();
             let deadline = Instant::now() + Duration::from_secs(300);
             loop {
                 assert!(Instant::now() < deadline, "native logits cohort did not finish");
@@ -269,7 +333,8 @@ fn exercise_native_logits(replay_history: bool) {
                                 else { "subsequent_snapshot_completed" },"graph":graph.name,
                             "request_slot":lane.request.slot,"generation":lane.request.generation,
                             "fence":completion.fence.0,"consumed":record.consumed_tokens,
-                            "lane_start":lane.start_position,"lane_tokens":lane.tokens}));
+                            "lane_start":lane.start_position,"lane_tokens":lane.tokens,
+                            "completion_record":record.fields()}));
                         save(&output, &report);
                     }
                     if graph.kind == GraphKind::AudioEncode {
@@ -295,7 +360,9 @@ fn exercise_native_logits(replay_history: bool) {
                         }
                         let request = plan.lanes[0].request;
                         let slot = request.slot as usize;
-                        let index = (worker.active[slot].as_ref().unwrap().incoming.prefix_scope.unwrap()[0] as usize - 1) % 8;
+                        let active = worker.active[slot].as_ref().unwrap();
+                        assert_eq!(active.request, request);
+                        let index = request_indices[&active.incoming.prefix_scope.unwrap()];
                         report["audio_frames"].as_array_mut().unwrap().push(serde_json::json!({"cohort":cohort,
                             "graph":graph.name,"fence":completion.fence.0,"buffers":inputs,
                             "request":index,"case":cases[order[index]].id,
@@ -303,15 +370,6 @@ fn exercise_native_logits(replay_history: bool) {
                         save(&output, &report);
                     }
                     if let Some(view) = views.get(graph.name.as_str()) {
-                        if let Some(original_count) = original_count.as_ref().filter(|_| graph.kind == GraphKind::Prefill) {
-                            let original = i32s(&sampling::download(&owner, 0, original_count).unwrap());
-                            assert_eq!(original[0] as usize, cases[order[0]].prompt_ids.len());
-                            let lane = &plan.lanes[0];
-                            if lane.start_position + lane.tokens as u64 > original[0] as u64 {
-                                assert!(readmitted_once);
-                                history_prefill = true;
-                            }
-                        }
                         let logits = sampling::download(&owner, 0, &view.logits).unwrap();
                         // Preserve the complete physical frame before trusting
                         // its row map or any completion/nonfinite assertion.
@@ -321,7 +379,19 @@ fn exercise_native_logits(replay_history: bool) {
                         let epochs = i64s(&sampling::download(&owner, 0, &view.epochs).unwrap());
                         let live = i32s(&sampling::download(&owner, 0, &view.live).unwrap())[0] as usize;
                         report["frames"].as_array_mut().unwrap().push(serde_json::json!({"cohort":cohort,
-                            "graph":graph.name,"capacity":graph.batch_capacity,"live":live,"slots":slots,
+                            "graph":graph.name,"kind":format!("{:?}", graph.kind),
+                            "initial_prompt_capacity":graph.initial_prompt_capacity,"token_capacity":graph.token_capacity,
+                            "lanes":plan.lanes.iter().enumerate().map(|(row, lane)| {
+                                let active = worker.active[lane.request.slot as usize].as_ref().unwrap();
+                                assert_eq!(active.request, lane.request);
+                                let scope = active.incoming.prefix_scope.unwrap();
+                                let index = request_indices[&scope];
+                                serde_json::json!({"row":row,"request":index,"case":cases[order[index]].id,
+                                    "scope":scope,"slot":lane.request.slot,"generation":lane.request.generation,
+                                    "start":lane.start_position,"tokens":lane.tokens,
+                                    "history_step":histories[index].len()})
+                            }).collect::<Vec<_>>(),
+                            "capacity":graph.batch_capacity,"live":live,"slots":slots,
                             "epochs":epochs,"fence":completion.fence.0,"raw_frame":raw_name,
                             "completion_records":completion.records.iter().map(|r| r.fields()).collect::<Vec<_>>()}));
                         save(&output, &report);
@@ -333,12 +403,89 @@ fn exercise_native_logits(replay_history: bool) {
                             let record = &completion.records[slot];
                             assert_eq!(record.generation, epochs[row]);
                             assert_eq!(record.submission_sequence, completion.fence.0 as i64);
-                            let index = (worker.active[slot].as_ref().unwrap().incoming.prefix_scope.unwrap()[0] as usize - 1) % 8;
+                            let active = worker.active[slot].as_ref().unwrap();
+                            assert_eq!(active.request, lane.request);
+                            let index = request_indices[&active.incoming.prefix_scope.unwrap()];
                             assert_eq!(record.error_code, 0);
                             let count = record.vector.as_ref().unwrap().emitted_count;
-                            if count == 0 { continue; }
-                            assert_eq!(count, 1);
                             let case = order[index];
+                            if let Some(original_count) = original_count.as_ref().filter(|_| graph.kind == GraphKind::Prefill) {
+                                let original = i32s(&sampling::download(&owner, 0, original_count).unwrap());
+                                assert_eq!(original[0] as usize, cases[case].prompt_ids.len());
+                                if lane.start_position + lane.tokens as u64 > original[0] as u64 {
+                                    assert!(readmitted_once);
+                                    history_prefill = true;
+                                }
+                            }
+                            if graph.kind == GraphKind::Decode {
+                                seen_by_case[case].insert((graph.batch_capacity, live, row, slot, lane.request.generation));
+                            }
+                            let step = histories[index].len();
+                            let observe_kv = history_package.is_some() && (graph.kind == GraphKind::Prefill
+                                || graph.kind == GraphKind::ScoredPrefill
+                                || (count != 0 && step < cases[case].teacher_history.len())
+                                || (replay_history && step == 2));
+                            if count == 0 { assert!(graph.kind.is_prefill()); }
+                            if count > 0 { assert_eq!(count, 1); }
+                            if observe_kv {
+                                assert!((1..=2).contains(&record.status));
+                                assert_eq!(record.consumed_tokens as u64,
+                                    lane.start_position.checked_add(lane.tokens as u64).unwrap());
+                                let consumed = record.consumed_tokens as usize;
+                                let request = worker.scheduler.request(lane.request).unwrap();
+                                let pages = request.pages().map(|page| page.0).collect::<Vec<_>>();
+                                let geometry = executor.manifest().cache.as_ref().unwrap();
+                                let (table, columns) = page_table_view.as_ref().unwrap();
+                                let actual_table = i32s(&sampling::download(&owner, 0, table).unwrap());
+                                let needed = consumed.div_ceil(fixture.config.contract.cache.page_tokens);
+                                assert_eq!(&actual_table[slot * columns..slot * columns + needed],
+                                    pages[..needed].iter().map(|page| *page as i32).collect::<Vec<_>>());
+                                let compared_with_baseline = cohort >= cases.len();
+                                let mut values = Vec::new();
+                                let mut planes = Vec::new();
+                                for view in &kv_views {
+                                    assert!(sampling::download_kv_prefix(&owner, 0, view, geometry,
+                                        &[], consumed).is_err());
+                                    assert!(sampling::download_kv_prefix(&owner, 0, view, geometry,
+                                        &pages, 0).is_err());
+                                    let mut bad_pages = pages.clone();
+                                    bad_pages[0] = u32::try_from(geometry.page_capacity).unwrap();
+                                    assert!(sampling::download_kv_prefix(&owner, 0, view, geometry,
+                                        &bad_pages, consumed).is_err());
+                                    let value = sampling::download_kv_prefix(&owner, 0, view, geometry,
+                                        &pages, consumed).unwrap();
+                                    let file = format!("cohort{cohort}-request{index}-fence{}-{}.kv",
+                                        completion.fence.0, view.buffer);
+                                    std::fs::write(output.join(&file), &value).unwrap();
+                                    planes.push(serde_json::json!({"buffer":view.buffer,"file":file,"nbytes":value.len()}));
+                                    values.push(value);
+                                }
+                                if compared_with_baseline {
+                                    let expected = &baseline_kv[&case];
+                                    let prefix = expected.iter().map(|plane| plane[..consumed * 2048].to_vec()).collect::<Vec<_>>();
+                                    assert!(kv_prefix_matches(&values, &prefix), "KV changed across actual batch, slot or history replay");
+                                } else {
+                                    if let Some(previous) = baseline_kv.get(&case) {
+                                        for (value, before) in values.iter().zip(previous) {
+                                            assert!(value.starts_with(before), "earlier consumed KV changed within B1");
+                                        }
+                                    }
+                                    baseline_kv.insert(case, values);
+                                }
+                                report["kv_frames"].as_array_mut().unwrap().push(serde_json::json!({
+                                    "cohort":cohort,"request":index,"case":cases[case].id,"consumed":consumed,
+                                    "fence":completion.fence.0,"kind":format!("{:?}",graph.kind),
+                                    "initial_prompt_capacity":graph.initial_prompt_capacity,"token_capacity":graph.token_capacity,
+                                    "lane_start":lane.start_position,"lane_tokens":lane.tokens,
+                                    "request_slot":slot,"generation":lane.request.generation,"pages":pages,
+                                    "graph":graph.name,"original_prompt_tokens":cases[case].prompt_ids.len(),
+                                    "history_step":step,"planes":planes,"actual_page_table_matches":true,
+                                    "compared_with_baseline":compared_with_baseline,
+                                    "exact_if_compared":compared_with_baseline.then_some(true)}));
+                                save(&output, &report);
+                            }
+                            if count == 0 { continue; }
+
                             assert_eq!(record.consumed_tokens as usize, cases[case].prompt_ids.len() + histories[index].len());
                             let bytes = logits[row * 151936 * 2..(row + 1) * 151936 * 2].to_vec();
                             files[index].write_all(&bytes).unwrap();
@@ -351,47 +498,6 @@ fn exercise_native_logits(replay_history: bool) {
                                 if value > maximum { maximum = value; argmax = token; }
                             }
                             assert_eq!(record.token_id, argmax as i64, "native sampler skipped the observed BF16 node");
-                            let step = histories[index].len();
-                            if replay_history && step == 2 {
-                                let consumed = record.consumed_tokens as usize;
-                                let request = worker.scheduler.request(lane.request).unwrap();
-                                let pages = request.pages().map(|page| page.0).collect::<Vec<_>>();
-                                let geometry = executor.manifest().cache.as_ref().unwrap();
-                                let (table, columns) = page_table_view.as_ref().unwrap();
-                                let actual_table = i32s(&sampling::download(&owner, 0, table).unwrap());
-                                let needed = consumed.div_ceil(fixture.config.contract.cache.page_tokens);
-                                assert_eq!(&actual_table[slot * columns..slot * columns + needed],
-                                    pages[..needed].iter().map(|page| *page as i32).collect::<Vec<_>>());
-                                let compared_with_baseline = baseline_kv.contains_key(&case);
-                                let mut values = Vec::new();
-                                for view in &kv_views {
-                                    assert!(sampling::download_kv_prefix(&owner, 0, view, geometry,
-                                        &[], consumed).is_err());
-                                    assert!(sampling::download_kv_prefix(&owner, 0, view, geometry,
-                                        &pages, 0).is_err());
-                                    let mut bad_pages = pages.clone();
-                                    bad_pages[0] = u32::try_from(geometry.page_capacity).unwrap();
-                                    assert!(sampling::download_kv_prefix(&owner, 0, view, geometry,
-                                        &bad_pages, consumed).is_err());
-                                    let value = sampling::download_kv_prefix(&owner, 0, view, geometry,
-                                        &pages, consumed).unwrap();
-                                    std::fs::write(output.join(format!("cohort{cohort}-fence{}-{}.kv",
-                                        completion.fence.0, view.buffer)), &value).unwrap();
-                                    values.push(value);
-                                }
-                                if let Some(expected) = baseline_kv.get(&case) {
-                                    assert!(kv_prefix_matches(&values, expected), "KV changed after real history replay");
-                                } else { baseline_kv.insert(case, values); }
-                                report["kv_frames"].as_array_mut().unwrap().push(serde_json::json!({
-                                    "cohort":cohort,"case":cases[case].id,"consumed":consumed,
-                                    "lane_start":lane.start_position,"lane_tokens":lane.tokens,
-                                    "request_slot":slot,"generation":lane.request.generation,"pages":pages,
-                                    "graph":graph.name,"original_prompt_tokens":cases[case].prompt_ids.len(),
-                                    "history_step":step,"planes":56,"actual_page_table_matches":true,
-                                    "compared_with_baseline":compared_with_baseline,
-                                    "exact_if_compared":compared_with_baseline.then_some(true)}));
-                                save(&output, &report);
-                            }
                             if step < cases[case].teacher_history.len() {
                                 assert_eq!(record.token_id as u32, cases[case].teacher_history[step],
                                     "actual natural history differs from the frozen teacher history");
@@ -486,7 +592,7 @@ fn exercise_native_logits(replay_history: bool) {
                             && histories.iter().all(|history| history.len() == 1);
                         if ready {
                             assert!(finished.iter().all(|finished| !*finished));
-                            let batch = order.len().next_power_of_two();
+                            let batch = expected_capacity.unwrap();
                             let plan = worker.scheduler.try_phase_plan(GraphKind::Decode, None, Some(batch))
                                 .expect("all real requests must fit their declared decode capacity");
                             assert_eq!((plan.batch_capacity, plan.lanes.len()), (batch, order.len()));
@@ -509,7 +615,9 @@ fn exercise_native_logits(replay_history: bool) {
                             let actual = i64s(&sampling::download(&owner, 0, &pending).unwrap());
                             for lane in &plan.lanes {
                                 let slot = lane.request.slot as usize;
-                                let index = (worker.active[slot].as_ref().unwrap().incoming.prefix_scope.unwrap()[0] as usize - 1) % 8;
+                                let active = worker.active[slot].as_ref().unwrap();
+                                assert_eq!(active.request, lane.request);
+                                let index = request_indices[&active.incoming.prefix_scope.unwrap()];
                                 assert_eq!(actual[slot], i64::from(*histories[index].last().unwrap()),
                                     "packed pending input differs from actual history");
                             }
@@ -572,12 +680,26 @@ fn exercise_native_logits(replay_history: bool) {
                     && poisoned_prefill_submissions > 0,
                     "no actual generated-history PREFILL completed");
             }
-            report["cohorts"].as_array_mut().unwrap().push(serde_json::json!({"cohort":cohort,"order":order,
+            report["cohorts"].as_array_mut().unwrap().push(serde_json::json!({"cohort":cohort,"order":order,"expected_decode_capacity":expected_capacity,
+                "scopes":(0..order.len()).map(|row| observation_scope(cohort, row)).collect::<Vec<_>>(),
                 "actual_tokens":histories,"natural_stop":finished,"checkpoint_evicted":eviction,
                 "real_snapshot_parking":snapshot_completed && parked_once,"readmitted":readmitted_once,
                 "actual_history_prefill":history_prefill,"pressure_reservations":pressure_reservations,
                 "poisoned_prefill_submissions":poisoned_prefill_submissions}));
             save(&output, &report);
+        }
+        report["per_case_decode_witnesses"] = serde_json::json!(cases.iter().enumerate().map(|(case, input)|
+            serde_json::json!({"case":input.id,"witnesses":seen_by_case[case]})).collect::<Vec<_>>());
+        if !replay_history && cases.len() == 20 {
+            for seen in &seen_by_case {
+                for capacity in [1usize, 2, 4, 8] {
+                    assert!(seen.iter().any(|&(b, live, _, _, _)| b == capacity && live == capacity),
+                        "one input lacks an actual full-batch decode completion");
+                }
+                assert!(seen.iter().any(|&(b, live, _, _, _)| b == 8 && live == 7));
+                assert!(seen.iter().any(|&(_, _, row, _, _)| row > 0));
+                assert!(seen.iter().any(|&(_, _, _, slot, _)| slot > 0));
+            }
         }
         report["actual_decode_capacity_and_live_rows"] = serde_json::json!(seen_decode);
         if !replay_history {
@@ -611,5 +733,6 @@ fn exercise_native_logits(replay_history: bool) {
         std::panic::resume_unwind(error);
     }
     assert!(shutdown.error.is_none(), "{shutdown:?}");
-    report["status"] = "complete_native_four_input_diagnostic".into(); save(&output, &report);
+    report["status"] = if cases.len() == 4 { "complete_native_four_input_diagnostic" }
+        else { "complete_native_twenty_input_diagnostic" }.into(); save(&output, &report);
 }

@@ -479,6 +479,26 @@ identity and authenticated envelope digest are distinct report fields. The
 reader recognizes the measured ordinary ABI6 sampler only; this diagnostic
 restriction does not change engine loading or historical package compatibility.
 
+The observer also accepts the complete twenty-input frozen set. Its separate
+schedule repeats each input at full B1/2/4/8, reversed rows and seven live rows
+in B8, using explicit test-only readiness barriers. Complete 24-byte request
+scopes survive slot changes and readmission. The CPU reader reconstructs every
+request trace from physical completed logit rows and requires per-input batch,
+row and slot/generation witnesses. The four-input pilot retains its original
+schedule and status; its earlier results do not qualify the twenty-input path.
+
+The complete path records all 56 authenticated KV planes for every Prefill
+fragment, including fragments that emit no token, and every frozen teacher
+row. The reader requires continuous consumed ranges from cold admission or the
+actual G2 restore endpoint, finite complete planes and exact B1 prefix bytes.
+Snapshot completion records, residency before/after eviction, readmitted
+generations and every device poison file are reconciled with actual completed
+Prefill fences. Poison must leave the committed prefix unchanged and contain
+the declared BF16 NaN pattern before the submitted graph rewrites it. These
+are diagnostic state checks; there is no new cross-engine `cache.*` budget.
+CPU corruption controls and successful compilation do not establish that the
+twenty inputs have passed native GPU, complete operator, API or performance gates.
+
 The explicit `FP32_FMA` CPU frontend has a separate finite qualification:
 [40 native process measurements](../benchmarks/qwen3_asr/results/native-frontend-fma.json)
 cover the same twenty frozen inputs, in forward and reverse order. Every call
