@@ -450,3 +450,56 @@ not waive this long-child failure. Complete intermediate/operator, strict
 storage release, lifecycle/cache and old-package serving gates, formal
 sustained comparisons and final whole-task reviews remain open. Formal
 comparative cells remain zero.
+
+
+[An audio-only complete-forward capture](results/captured-encoder-component.json.gz)
+reproduces all 381 actual package features exactly across the four windows.
+Each observed window also preserves all declared persistent views of its
+unobserved graph. Only after these bridges pass are the nodes interpreted.
+[All 1,692 scalar node comparisons](results/captured-encoder-SDK-node-comparisons.json.gz)
+retain the first difference at conv2d2 output: 275/260/269/199 BF16 elements
+in the four windows. Conv1 input/output and conv2 input are entirely exact.
+At equal BF16 preactivation elements, GELU2 independently differs in
+686/746/746/499 outputs; encoder layer0 GELU differs in 29/29/22/17 outputs.
+The last window retains six padded CNN chunks but only 69 valid encoder
+features. Neither those differences nor later propagation establish the
+complete long-loop root cause. This is one captured encoder component,
+not the full frozen numerical matrix, a re-exported package or a qualified fix.
+
+
+[A single complete prefill capture](results/captured-prefill-component.json.gz)
+first reproduces all 56 actual native KV planes and last-position BF16 logits.
+Its observed graph preserves every compared state view and the same KV/head bytes,
+then records 31 nodes. [The 29 common node comparisons](results/captured-prefill-SDK-node-comparisons.json.gz)
+against the original SDK with the same features find the layer0 input norm,
+Q/K/V projections, Q/K norms and rotary cos/sin entirely exact. The first
+observed difference is attended, before o_proj: 51/806,912 BF16 elements,
+maxabs 0.0009765625, relative L2 3.7019087652413166e-5. This does not yet
+separate post-RoPE Q, attention library, paging and physical query geometry.
+
+The same-operand [original SDK](results/encoder-same-operands-SDK.json.gz) and
+[project](results/encoder-same-operands-project.json.gz) eager controls preserve
+all mandatory original SDK/R301 operator bytes. In each environment, N8 and
+N30 are byte-identical for convolution pre/postbias and GELU. Project eager N8
+matches the actual captured component exactly; the earlier 275 convolution
+and 941 GELU2 output differences remain across environments. At the same
+SDK BF16 preactivation, GELU alone differs at 686 elements. The actual builds
+are Torch2.13.0+cu130/cf30153c with cuDNN92000 and Torch2.14.1+cu132/5c488690
+with cuDNN92400. This excludes N8/N30 and compilation for these controls,
+not every shape or a specific library component. No shared driver or project
+lock was changed. These are numerical diagnostics without timing claims;
+bounded task CPU acquisition could share UMA during this operator run.
+
+
+[Actual SDK GPU RoPE and attention controls](results/attention-same-operands-SDK.json.gz)
+subsequently bridge post-Q/K to the candidate, K/V to the actual SDK cache,
+and dense output to the observed SDK attended bytes. SDK varlen is identical
+to its dense output. [Project same-QKV controls](results/attention-same-operands-project.json.gz)
+bridge the actual request family to the captured native attended bytes.
+Nonpaged Q394, paged Q394 with maxK394 or8192, and the original right-aligned
+physical-Q8192 family are all identical to each other and the native output;
+all retain the same 51-element difference from SDK. The original family is
+not a Q512 call merely because its input buffer has512 rows. These controls
+exclude paging and query padding as the source of this particular difference;
+they do not identify a specific build instruction or explain the whole loop.
+No model, quality, allocation or service-performance gate follows from them.
