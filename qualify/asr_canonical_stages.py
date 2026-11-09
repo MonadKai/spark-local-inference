@@ -16,6 +16,28 @@ from pathlib import Path
 import traceback
 
 
+def snapshot_cached_state(cache, consumed):
+    """Copy the actual full, post-RoPE canonical KV before the next update.
+
+    The fixed checkpoint has28 full-attention layers. Newly projected operands
+    alone cannot represent the consumed past used by a cached attention call.
+    """
+    import torch
+
+    if type(consumed) is not int or consumed <= 0 or len(cache.layers) != 28 \
+            or cache.get_seq_length() != consumed:
+        raise ValueError("complete canonical28-layer consumed KV required")
+    result = {}
+    for index, layer in enumerate(cache.layers):
+        for name in ("keys", "values"):
+            value = getattr(layer, name)
+            if not isinstance(value, torch.Tensor) or value.shape != (1, 8, consumed, 128) \
+                    or value.dtype != torch.bfloat16 or not torch.isfinite(value).all():
+                raise ValueError("canonical cached KV shape, dtype or finite values differ")
+            result[f"thinker.model.cache.{index}.{name}"] = value.detach().to("cpu", copy=True).contiguous()
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", type=Path, required=True)
@@ -24,9 +46,15 @@ def main():
     parser.add_argument("--layout", choices=("canonical", "original"), default="canonical")
     parser.add_argument("--short-control", action="store_true",
                         help="run only the F<100 unmodified canonical padding controls")
+    parser.add_argument("--cached-stages", action="store_true",
+                        help="also record actual cached teacher decoder operands; diagnostic only")
+    parser.add_argument("--frozen-canonical", type=Path,
+                        help="require cached teacher logits to remain byte-identical to this independent reference")
     args = parser.parse_args()
     if args.short_control and args.layout != "canonical":
         parser.error("short-control requires the unmodified canonical layout")
+    if args.cached_stages != (args.frozen_canonical is not None):
+        parser.error("cached-stages and frozen-canonical must be supplied together")
     import torch
     from safetensors import safe_open
     from safetensors.torch import save_file
@@ -78,6 +106,7 @@ def main():
         unused_sdk_audio_position_rows=1487,
         layout=args.layout,
         short_control=args.short_control,
+        cached_stages=args.cached_stages,
         short_width_adapter="conv2d1 pre-hook slices padded input to true F; no arithmetic replacement"
             if args.layout == "original" else None,
         cudnn_benchmark=torch.backends.cudnn.benchmark, cudnn_deterministic=torch.backends.cudnn.deterministic,
@@ -141,7 +170,7 @@ def main():
                 return target + name[len(source):]
         return name
 
-    def observe(inputs):
+    def observe(inputs, *, use_cache=False, return_output=False):
         values, handles = {}, []
 
         def store(name, value):
@@ -169,11 +198,26 @@ def main():
                 handles.append(module.register_forward_hook(
                     lambda module, positional, output, name=name: store(name + ".output", output)))
         try:
-            output = reference(**inputs, use_cache=False)
+            past = inputs.get("past_key_values")
+            consumed = inputs["input_ids"].shape[-1] + (past.get_seq_length() if past is not None else 0)
+            output = reference(**inputs, use_cache=use_cache)
+            if args.cached_stages and use_cache:
+                snapshot = snapshot_cached_state(output.past_key_values, consumed)
+                if values.keys() & snapshot.keys():
+                    raise ValueError("cached KV observation collides with a module stage")
+                values.update(snapshot)
             assert same(cpu(output.logits), values["thinker.lm_head.output"])
         finally:
             for handle in handles: handle.remove()
-        return values
+        return (values, output) if return_output else values
+
+    if args.cached_stages:
+        frozen = json.loads((args.frozen_canonical / "result.json").read_bytes())
+        if frozen["errors"] or frozen["candidate_executed"] \
+                or frozen["transformers_revision"] != loading.REVISION \
+                or frozen["layout"] != args.layout \
+                or {case["id"] for case in frozen["cases"]} != {case["id"] for case in sdk["cases"]}:
+            raise ValueError("complete matching independent canonical observations required")
 
     publish()
     with torch.inference_mode():
@@ -227,18 +271,44 @@ def main():
                     target = original.get_tensor("target_ids")
                     teacher = target.to("cuda")
                     baseline = None
+                    cached_observations = {}
+                    def cached_forward(step, arguments):
+                        if not args.cached_stages:
+                            return reference(**arguments, use_cache=True)
+                        values, output = observe(arguments, use_cache=True, return_output=True)
+                        # These are real cached-forward operands, not a slice
+                        # of prefill presented as decode observations.
+                        if step in cached_observations:
+                            previous = cached_observations[step]
+                            assert values.keys() == previous.keys()
+                            for name, value in values.items():
+                                assert same(value, previous[name]), (step, name)
+                        else:
+                            cached_observations[step] = values
+                            save_file(values, args.output / (case["id"] + f"-teacher-step-{step}.safetensors"))
+                        return output
+
                     for _ in range(2):
-                        output = reference(**inputs, use_cache=True)
+                        output = cached_forward(0, inputs)
                         rows = [cpu(output.logits[:, -1])]
                         for i in range(1, teacher.shape[1]):
-                            output = reference(input_ids=teacher[:, i-1:i], past_key_values=output.past_key_values,
-                                use_cache=True)
+                            output = cached_forward(i, dict(input_ids=teacher[:, i-1:i],
+                                past_key_values=output.past_key_values))
                             assert output.past_key_values.get_seq_length() == len(case["prompt_ids"]) + i
                             rows.append(cpu(output.logits[:, -1]))
                         actual = torch.cat(rows)
                         if baseline is not None: assert same(actual, baseline)
                         else: baseline = actual
                         del output
+                    if args.cached_stages:
+                        with safe_open(args.frozen_canonical / (case["id"] + "-cached-teacher.safetensors"),
+                                framework="pt") as previous:
+                            assert same(target, previous.get_tensor("target_ids"))
+                            assert same(baseline, previous.get_tensor("logits_bf16"))
+                        row["cached_stage_steps"] = sorted(cached_observations)
+                        row["cached_stage_repeated_exact"] = True
+                        row["cached_logits_exact_frozen_canonical"] = True
+                    del cached_observations
                     row["teacher_metrics"] = metrics(baseline, original.get_tensor("logits_bf16"))
                     row["teacher_top1_differences"] = (baseline.argmax(-1) != original.get_tensor("logits_bf16").argmax(-1)).sum().item()
                     row["teacher_top1_details"] = top1_differences(baseline, original.get_tensor("logits_bf16"))
