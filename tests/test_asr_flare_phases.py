@@ -299,3 +299,55 @@ def test_real_http_phases_keep_complete_multipart_and_failure_attempts(monkeypat
         server.shutdown()
         server.server_close()
         thread.join(timeout=5)
+
+
+def test_actual_native_idle_metrics_allow_empty_speculative_depth_without_fabricating_series():
+    from pathlib import Path
+
+    # Captured before the first request from an actual exported ASR package.
+    # No speculative depths exist, so the declared labelled family has no rows.
+    raw = (Path(__file__).parent / "frontend/asr-native-idle.prom").read_text()
+    actual = phases.prometheus(raw)
+    assert actual["types"]["flare_speculative_drafts_total"] == "counter"
+    assert not any(key.startswith("flare_speculative_drafts_total") for key in actual["observable_counters"])
+    assert not actual["batches"]
+    assert actual["histogram_series"]
+
+
+@pytest.mark.parametrize("defect", ["missing-required", "empty-unknown-counter", "counter-disappears", "counter-regresses",
+    "zero-counter-disappears", "one-zero-label-disappears"])
+def test_dynamic_label_families_do_not_hide_missing_or_regressed_counters(defect):
+    _, raw = metrics()
+    if defect == "missing-required":
+        raw = raw.replace("flare_requests_admitted_total 0", "")
+    if defect == "empty-unknown-counter":
+        raw += "\n# TYPE flare_unknown_counter_total counter"
+    if defect in ("missing-required", "empty-unknown-counter"):
+        with pytest.raises(ValueError): phases.prometheus(raw)
+        return
+    before = observation()
+    key = 'flare_speculative_drafts_total[["depth","1"],["outcome","offered"],["source","copy"]]'
+    before["prometheus"]["observable_counters"][key] = 0 if "zero" in defect else 2
+    after = observation()
+    if defect == "one-zero-label-disappears":
+        kept = key.replace('"1"', '"2"')
+        before["prometheus"]["observable_counters"][kept] = 0
+        after["prometheus"]["observable_counters"][kept] = 0
+    if defect == "counter-regresses": after["prometheus"]["observable_counters"][key] = 1
+    with pytest.raises(ValueError): phases.deltas(before, after)
+
+
+@pytest.mark.parametrize("before_depths,after_depths", [(0, 1), (1, 0), (1, 2), (2, 1)])
+def test_fixed_speculative_label_geometry_cannot_change_at_zero(before_depths, after_depths):
+    from pathlib import Path
+
+    raw = (Path(__file__).parent / "frontend/asr-native-idle.prom").read_text()
+    boundaries = []
+    for depths in (before_depths, after_depths):
+        rows = [f'flare_speculative_drafts_total{{depth="{depth}",source="{source}",outcome="{outcome}"}} 0'
+            for depth in range(1, depths + 1) for source in ("mtp", "copy") for outcome in ("offered", "accepted")]
+        value = observation()
+        value["prometheus"] = phases.prometheus(raw + "\n" + "\n".join(rows))
+        boundaries.append(value)
+    with pytest.raises(ValueError, match="speculative.*labels changed"):
+        phases.deltas(*boundaries)

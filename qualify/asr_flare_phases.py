@@ -108,9 +108,14 @@ def observable_counters(text):
         observed.add(owner)
         if types[owner] == "histogram":
             histograms.setdefault(owner, {})[(name.removeprefix(owner), tuple(sorted(labels)))] = result[key]
-    expected = {name for name, kind in types.items() if kind == "counter" and name != "flare_graph_batch_submissions_total"}
+    # Native graph batches omit zero-count rows; speculative depths have no
+    # label combinations when the prepared model declares no draft depths.
+    # Preserve every observed series and its continuity, without inventing a
+    # scalar zero for an empty label family. Other declared counters need rows.
+    empty_label_families = {"flare_graph_batch_submissions_total", "flare_speculative_drafts_total"}
+    expected = {name for name, kind in types.items() if kind == "counter" and name not in empty_label_families}
     if not expected.issubset(observed):
-        raise ValueError("declared native counter has no observed series")
+        raise ValueError("declared native counter has no observed series: " + ", ".join(sorted(expected - observed)))
     histogram_series = []
     for name, kind in types.items():
         if kind != "histogram":
@@ -211,6 +216,12 @@ def deltas(before, after):
     launches = {key: after["prometheus"]["launches"][key] - before["prometheus"]["launches"][key] for key in KINDS}
     if any(value < 0 for value in launches.values()):
         raise ValueError("native launch counter decreased or reset")
+    speculative_keys = [{key for key in boundary["prometheus"]["observable_counters"]
+        if key.startswith("flare_speculative_drafts_total[")} for boundary in (before, after)]
+    if speculative_keys[0] != speculative_keys[1]:
+        raise ValueError("native speculative depth/source/outcome labels changed")
+    if not before["prometheus"]["observable_counters"].keys() <= after["prometheus"]["observable_counters"].keys():
+        raise ValueError("previously observed native counter series disappeared")
     batches = counter_delta(before["prometheus"]["batches"], after["prometheus"]["batches"])
     return dict(counters=values, launches=launches,
         observable_counters=counter_delta(before["prometheus"]["observable_counters"], after["prometheus"]["observable_counters"]),
