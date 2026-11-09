@@ -410,7 +410,9 @@ def main():
                 # alternate serving path. The graph catalog already retains them.
                 catalog, = (value for value in prepared.resources if isinstance(value, dict)
                     and isinstance(value.get("audio100"), PreparedAudioGeneration))
-                exemplar = catalog["prefill128"]
+                # All variants share request/cache owners; execution resolves C below.
+                exemplar = next(catalog[name] for name, signature in prepared.signatures.items()
+                    if signature.kind == "prefill")
                 requests, uploads, pool = exemplar.batch.requests, exemplar.batch.inputs, exemplar.decoder.pool
                 features = exemplar.decoder.feature_state
                 baseline, state_baseline = {}, {}
@@ -418,11 +420,12 @@ def main():
                 observed_prefill = set()
                 observed_attention = set()
 
-                def prefill_graph(prompt_tokens):
-                    choose = min if args.prefill_capacity == "smallest" else max
-                    return choose((name for name, signature in prepared.signatures.items()
-                        if signature.kind == "prefill" and signature.token_capacity >= prompt_tokens),
-                        key=lambda name: prepared.signatures[name].token_capacity)
+                def prefill_graph(prompt_tokens, initial_tokens=None):
+                    from ignition.preparation.execution import select_prefill_graph
+
+                    return select_prefill_graph(prepared.signatures, tokens=prompt_tokens,
+                        initial_tokens=prompt_tokens if initial_tokens is None else initial_tokens,
+                        largest=args.prefill_capacity != "smallest")
                 observed_nodes = set()
                 record["prefill_network_nodes"], record["head_network_nodes"] = [], []
                 record["encoder_network_nodes"], record["encoder_observation_bridges"] = [], []
@@ -751,8 +754,9 @@ def main():
                         features.indices.fill_(-1)
                         positions = [i for i, token in enumerate(prompt) if token == 151676]
                         features.indices[torch.tensor(positions, device="cuda")] = torch.arange(len(positions), device="cuda", dtype=torch.int32)
-                        name = prefill_graph(len(prompt))
-                        choice = dict(graph=name, token_capacity=prepared.signatures[name].token_capacity)
+                        name = prefill_graph(len(prompt), len(case["prompt_ids"]))
+                        choice = dict(graph=name, token_capacity=prepared.signatures[name].token_capacity,
+                            initial_prompt_capacity=prepared.signatures[name].initial_prompt_capacity)
                         previous = record["prefill_graphs"].setdefault(case["id"], choice)
                         if previous != choice:
                             raise ValueError("prefill graph selection changed within the fixed diagnostic")

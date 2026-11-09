@@ -136,12 +136,14 @@ def _prepare(snapshot, config, *, progress, package_storage, transient, failed_o
         for path in sorted(Path(__file__).parent.glob("*.py"))}
     sources.update({"components/" + path.name: hashlib.sha256(path.read_bytes()).hexdigest()
         for path in sorted((Path(__file__).parents[2] / "components").glob("*.py"))})
+    initial_capacities = tuple(sorted({min(config.context, value) for value in (256, 512, 8192)}))
     identity = hashlib.sha256(json.dumps(dict(
         payloads=payloads, sources=sources,
         headers=[shard.header_sha256 for shard in checkpoint.index.shards],
         config=json.loads((snapshot / "config.json").read_bytes()),
         contract="qwen3-asr.bf16.graph-inputs.v1", numerical_policy=POLICY,
         original_prompt_capacity=config.context,
+        initial_prompt_capacities=initial_capacities,
         bf16_reduction_split_k=torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction_split_k),
         sort_keys=True).encode()).hexdigest()
     with phase(progress, "Allocate ASR state"):
@@ -184,9 +186,10 @@ def _prepare(snapshot, config, *, progress, package_storage, transient, failed_o
     prefills = (64, *prefill_capacities(config.prefill_chunk_size))
     batches = batch_capacities(config.max_active)
 
-    def add(name, forward, kind, batch, tokens, fields):
+    def add(name, forward, kind, batch, tokens, fields, *, initial_prompt_capacity=0):
         forwards[name] = forward
-        signatures[name] = GraphSignature(kind, batch, tokens, tuple(fields))
+        signatures[name] = GraphSignature(kind, batch, tokens, tuple(fields),
+            initial_prompt_capacity=initial_prompt_capacity)
 
     with phase(progress, "Construct ASR graph catalog"):
         for capacity in reversed(FRAME_CAPACITIES):
@@ -202,27 +205,29 @@ def _prepare(snapshot, config, *, progress, package_storage, transient, failed_o
             add(name, forward, "audio_encode", 1, capacity, (*raw.buffers(prefix), "audio_feature_slot"))
         for mode, capacities in (("prefill", prefills), ("decode", reversed(batches))):
             for capacity in capacities:
-                name = f"{mode}{capacity}"
-                rows = 1 if mode == "prefill" else capacity
-                private = private_buffers.cursor()
-                current = metadata[name] = Metadata.allocate(capacity, rows, blocks, device, buffers=private)
-                scratch = Scratch.allocate(capacity if mode == "prefill" else 8,
-                    rows, device, buffers=graph_buffers.cursor())
-                decoder = PreparedDecoder(weights, weights.capacity_tree().model.language_model,
-                    scratch, current, pool, mode=mode, session=session, name=name,
-                    workspace=arena, buffers=private, feature_state=feature_state,
-                    original_prompt_tokens=original_prompt_tokens[:1] if mode == "prefill" else None,
-                    original_capacity=config.context)
-                batch = PreparedBatch(inputs, requests, current, mode=mode, shard=weights.shard, pool=pool,
-                    validate_prefill=feature_state.validate_prefill if mode == "prefill" else None,
-                    page_tokens=PAGE_TOKENS, buffers=private)
-                forward = PreparedGeneration(decoder, batch, completion, frame, sequence, runtime=None,
-                    coordinator=None, session=session, name=name + ".generation", workspace=arena, buffers=private,
-                    sampling_selection=SamplingSelection.FIRST_MAXIMUM,
-                    execution_errors=decoder.execution_errors)
-                fields = (*inputs.buffers(), "sampling_grammar_mask",
-                    *(() if mode == "decode" else (*prefill_audio.buffers(), "original_prompt_tokens")))
-                add(name, forward, mode, rows, capacity if mode == "prefill" else 1, fields)
+                for initial in (initial_capacities if mode == "prefill" else (0,)):
+                    name = f"{mode}{capacity}" + (f"_initial{initial}" if mode == "prefill" else "")
+                    rows = 1 if mode == "prefill" else capacity
+                    private = private_buffers.cursor()
+                    current = metadata[name] = Metadata.allocate(capacity, rows, blocks, device, buffers=private)
+                    scratch = Scratch.allocate(capacity if mode == "prefill" else 8,
+                        rows, device, buffers=graph_buffers.cursor())
+                    decoder = PreparedDecoder(weights, weights.capacity_tree().model.language_model,
+                        scratch, current, pool, mode=mode, session=session, name=name,
+                        workspace=arena, buffers=private, feature_state=feature_state,
+                        original_prompt_tokens=original_prompt_tokens[:1] if mode == "prefill" else None,
+                        original_capacity=initial if mode == "prefill" else config.context)
+                    batch = PreparedBatch(inputs, requests, current, mode=mode, shard=weights.shard, pool=pool,
+                        validate_prefill=feature_state.validate_prefill if mode == "prefill" else None,
+                        page_tokens=PAGE_TOKENS, buffers=private)
+                    forward = PreparedGeneration(decoder, batch, completion, frame, sequence, runtime=None,
+                        coordinator=None, session=session, name=name + ".generation", workspace=arena, buffers=private,
+                        sampling_selection=SamplingSelection.FIRST_MAXIMUM,
+                        execution_errors=decoder.execution_errors)
+                    fields = (*inputs.buffers(), "sampling_grammar_mask",
+                        *(() if mode == "decode" else (*prefill_audio.buffers(), "original_prompt_tokens")))
+                    add(name, forward, mode, rows, capacity if mode == "prefill" else 1, fields,
+                        initial_prompt_capacity=initial)
         row_inputs = ("request_state_rows", "row_slot_ids", "row_generations", "live_rows")
         for capacity in reversed(batches):
             name = f"resume{capacity}"
@@ -273,6 +278,7 @@ def _prepare(snapshot, config, *, progress, package_storage, transient, failed_o
         decoder_projection_physical_rows=8,
         decoder_compute_physical_rows=8,
         prefill_original_prompt_physical_rows=config.context,
+        prefill_initial_prompt_capacities=initial_capacities,
         bf16_reduction_split_k=torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction_split_k)
     roots = dict(audio=weights.tree.model.audio_tower, projector=weights.tree.model.multi_modal_projector,
                  decoder=weights.tree.model.language_model, head=weights.head)

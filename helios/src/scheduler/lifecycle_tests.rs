@@ -18,17 +18,24 @@ struct Fixture {
     fence_origin: u64,
     last_plan: Option<ScheduledPlan>,
     kind: FixtureKind,
+    initial_extents: bool,
     rejected_admission: Option<Projection>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum FixtureKind { Text, AudioStart, AudioDecode }
 
-fn fixture_spec(kind: FixtureKind, slot: usize, generation: u64) -> RequestSpec {
+fn fixture_spec(kind: FixtureKind, slot: usize, generation: u64, initial_extents: bool) -> RequestSpec {
     let mut spec = request_spec(slot, generation);
     if kind != FixtureKind::Text {
         spec.prompt.resize(120, 7);
         spec.conditioning.push(ConditioningEvent { position: 1, identity: [generation as u8; 32] });
+    }
+    if initial_extents {
+        assert_eq!(kind, FixtureKind::Text);
+        let length = if (slot + generation as usize) % 2 == 0 { 65 } else { 63 };
+        spec.prompt.resize(length, 7);
+        spec.initial_prompt_tokens = length;
     }
     spec
 }
@@ -79,9 +86,31 @@ impl Fixture {
         Self::new_kind(FixtureKind::Text)
     }
 
+    fn new_initial_extents() -> Self {
+        Self::new_kind_at_extent(FixtureKind::Text, true)
+    }
+
     fn new_kind(kind: FixtureKind) -> Self {
+        Self::new_kind_at_extent(kind, false)
+    }
+
+    fn new_kind_at_extent(kind: FixtureKind, initial_extents: bool) -> Self {
         let mut scheduler = if kind == FixtureKind::Text { tests::scheduler(2, 64, 16) }
                             else { audio_tests::scheduler(1) };
+        if initial_extents {
+            let mut graphs = tests::duration_graphs(2);
+            let prefills = graphs.iter().filter(|g| g.kind == GraphKind::Prefill).cloned().collect::<Vec<_>>();
+            graphs.retain(|g| g.kind != GraphKind::Prefill);
+            for extent in [64, 128, 2048] {
+                for mut graph in prefills.clone() {
+                    graph.initial_prompt_capacity = extent;
+                    graph.name.push_str(&format!("-initial{extent}"));
+                    graphs.push(graph);
+                }
+            }
+            scheduler.capabilities.immutable_request_values = vec![crate::model::contract::ValueSource::InitialPromptTokens];
+            scheduler.measured_graph_durations(&graphs).unwrap();
+        }
         if kind == FixtureKind::AudioDecode {
             // Seed a valid ownership state with the public policy API. Uniform
             // synthetic microsecond costs do not model serving fairness.
@@ -89,7 +118,7 @@ impl Fixture {
                 delivery_fairness: 0., decode_age_price: 0., ..Default::default() }).unwrap();
         }
         for slot in 0..2 {
-            let handle = scheduler.admit(fixture_spec(kind, slot, 1)).unwrap();
+            let handle = scheduler.admit(fixture_spec(kind, slot, 1, initial_extents)).unwrap();
             assert_eq!(handle.slot as usize, slot);
             if kind != FixtureKind::Text && slot == 0 {
                 scheduler.set_conditioned_inputs(handle, &[audio_tests::input()]).unwrap();
@@ -97,7 +126,7 @@ impl Fixture {
             }
         }
         if kind == FixtureKind::AudioStart {
-            return Self { scheduler, fence_origin: 0, last_plan: None, kind, rejected_admission: None };
+            return Self { scheduler, fence_origin: 0, last_plan: None, kind, initial_extents, rejected_admission: None };
         }
         for _ in 0..16 {
             if scheduler
@@ -111,7 +140,7 @@ impl Fixture {
                     scheduler,
                     fence_origin,
                     last_plan: None,
-                    kind, rejected_admission: None,
+                    kind, initial_extents, rejected_admission: None,
                 };
             }
             let plan = scheduler
@@ -194,6 +223,7 @@ impl Fixture {
                         request.epoch,
                         request.consumed_tokens,
                         request.generated_tokens,
+                        (request.initial_prompt_tokens, request.initial_prompt_capacity),
                         request.scheduled_consumed,
                         request.pending,
                         (request.audio_slot, &request.encoder_jobs, request.conditioned_inputs_ready,
@@ -243,12 +273,37 @@ impl Fixture {
 
     fn assert_ownership(&self) {
         Self::assert_scheduler_ownership(&self.scheduler);
+        for submission in self.scheduler.submissions.values() {
+            for (row, lane) in submission.lanes.iter().enumerate() {
+                let spec = fixture_spec(self.kind, lane.request.slot as usize,
+                    lane.request.generation, self.initial_extents);
+                let expected = if submission.lane_kind(row).is_prefill() {
+                    self.scheduler.resolve_initial_prompt_capacity(spec.initial_prompt_tokens).unwrap()
+                } else { 0 };
+                assert_eq!(submission.initial_prompt_capacity, expected,
+                    "queued graph changed initial geometry after admission or cancellation");
+            }
+        }
+        for request in self.scheduler.slots.iter().filter_map(|slot| slot.request.as_ref()) {
+            let expected = fixture_spec(self.kind, request.handle.slot as usize,
+                request.handle.generation, self.initial_extents);
+            assert_eq!(request.initial_prompt_tokens, expected.initial_prompt_tokens,
+                "initial prompt length changed after admission");
+            assert_eq!(request.initial_prompt_capacity,
+                self.scheduler.resolve_initial_prompt_capacity(expected.initial_prompt_tokens).unwrap(),
+                "admitted initial extent changed across its lifecycle");
+        }
     }
 
     fn assert_scheduler_ownership(s: &RequestScheduler) {
         for (fence, submission) in &s.submissions {
-            for lane in &submission.lanes {
+            for (row, lane) in submission.lanes.iter().enumerate() {
                 let slot = &s.slots[lane.request.slot as usize];
+                if let Some(request) = &slot.request {
+                    let expected = if submission.lane_kind(row).is_prefill() { request.initial_prompt_capacity } else { 0 };
+                    assert_eq!(submission.step.initial_prompt_capacity, expected,
+                        "queued graph does not retain its request's initial geometry");
+                }
                 assert_eq!(
                     slot.generation, lane.request.generation,
                     "queued request generation was reused before completion"
@@ -387,7 +442,7 @@ impl Fixture {
             1 => {
                 let slot = action[1] as usize;
                 let handle = s
-                    .admit(fixture_spec(self.kind, slot, s.slots[slot].generation + 1))
+                    .admit(fixture_spec(self.kind, slot, s.slots[slot].generation + 1, self.initial_extents))
                     .unwrap();
                 assert_eq!(handle.slot as usize, slot);
                 if self.kind != FixtureKind::Text {
@@ -748,11 +803,23 @@ fn check_rejections(fixture: &mut Fixture, coverage: &mut Coverage) {
 
 #[test]
 fn scheduler_matches_lifecycle_model() {
+    check_text_lifecycle(Fixture::new);
+}
+
+#[test]
+fn scheduler_initial_prompt_extents_match_lifecycle_model() {
+    check_text_lifecycle(Fixture::new_initial_extents);
+}
+
+fn check_text_lifecycle(new_fixture: fn() -> Fixture) {
     let mut pending = VecDeque::from([Vec::<Action>::new()]);
     let mut visited = HashSet::new();
     let mut edges = BTreeSet::new();
     let mut coverage = Coverage::default();
-    let mut reused = Fixture::new();
+    let mut reused = new_fixture();
+    let bounded = reused.initial_extents;
+    let (mut extent_prefill, mut extent_complete, mut extent_cancel, mut extent_failed_drain, mut extent_confirmed_drain,
+        mut extent_reuse) = (false, false, false, false, false, false);
     let stale_plan = reused.scheduler.plan().unwrap();
     let handle = stale_plan.lanes[0].request;
     reused.apply([4, u64::from(handle.slot), 0]);
@@ -778,7 +845,7 @@ fn scheduler_matches_lifecycle_model() {
     );
     coverage.reused_generation_plan = true;
     while let Some(path) = pending.pop_front() {
-        let mut fixture = Fixture::new();
+        let mut fixture = new_fixture();
         for action in &path {
             fixture.apply(*action);
         }
@@ -792,7 +859,7 @@ fn scheduler_matches_lifecycle_model() {
         }
         let before = fixture.projection();
         for action in fixture.actions() {
-            let mut candidate = Fixture::new();
+            let mut candidate = new_fixture();
             for previous in &path {
                 candidate.apply(*previous);
             }
@@ -806,6 +873,21 @@ fn scheduler_matches_lifecycle_model() {
                 });
             if action[0] == 4 && candidate.scheduler.submissions.len() == 2 {
                 coverage.cancel_two_pending = true;
+            }
+            if bounded {
+                let pending_initial = candidate.scheduler.submissions.values().any(|submission|
+                    submission.kind.is_prefill() && submission.initial_prompt_capacity != 0);
+                extent_prefill |= action[0] == 2 && candidate.scheduler.plan().is_some_and(|plan|
+                    plan.kind.is_prefill() && plan.initial_prompt_capacity != 0);
+                extent_cancel |= action[0] == 4 && candidate.scheduler.submissions.values().any(|submission|
+                    submission.kind.is_prefill() && submission.initial_prompt_capacity != 0
+                    && submission.lanes.iter().any(|lane| u64::from(lane.request.slot) == action[1]));
+                extent_complete |= action[0] == 3 && candidate.scheduler.submissions.first_key_value()
+                    .is_some_and(|(_, submission)| submission.kind.is_prefill() && submission.initial_prompt_capacity != 0);
+                extent_failed_drain |= action[0] == 5 && pending_initial;
+                extent_confirmed_drain |= action[0] == 6 && pending_initial;
+                extent_reuse |= action[0] == 1
+                    && candidate.scheduler.slots[action[1] as usize].generation == 1;
             }
             candidate.apply(action);
             let after = candidate.projection();
@@ -853,6 +935,11 @@ fn scheduler_matches_lifecycle_model() {
             && coverage.feedback_rejection,
         "missing drain or barrier coverage: {coverage:?}"
     );
+    if bounded {
+        assert!(extent_prefill && extent_complete && extent_cancel && extent_failed_drain && extent_confirmed_drain && extent_reuse,
+            "missing positive-C lifecycle witnesses: prefill={extent_prefill} complete={extent_complete} cancel={extent_cancel} failed_drain={extent_failed_drain} confirmed_drain={extent_confirmed_drain} reuse={extent_reuse}");
+        println!("INITIAL_EXTENT_LIFECYCLE_COVERAGE prefill={extent_prefill} complete={extent_complete} cancel={extent_cancel} failed_drain={extent_failed_drain} confirmed_drain={extent_confirmed_drain} reuse={extent_reuse}");
+    }
     for (before, action, after) in &edges {
         println!("LIFECYCLE_EDGE [{before:?}, {action:?}, {after:?}]");
     }

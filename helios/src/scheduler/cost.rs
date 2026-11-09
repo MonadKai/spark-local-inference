@@ -24,6 +24,7 @@ pub(crate) fn observed_duration_ns(timing: ExecutionTiming) -> Option<u64> {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(super) struct Key {
+    pub initial_prompt_capacity: usize,
     pub drafts: usize,
     pub kind: GraphKind,
     pub batch: usize,
@@ -34,7 +35,8 @@ pub(super) struct Key {
 
 impl Key {
     pub fn from_step(step: &ScheduledStep) -> Self {
-        Self { drafts: step.draft_tokens, kind: step.kind, batch: step.batch_capacity, tokens: step.token_capacity,
+        Self { initial_prompt_capacity: step.initial_prompt_capacity,
+            drafts: step.draft_tokens, kind: step.kind, batch: step.batch_capacity, tokens: step.token_capacity,
             prefill: step.prefill_capacity(), packed: step.packed_token_capacity }
     }
 }
@@ -103,6 +105,7 @@ impl ActionCosts {
     #[cfg(test)]
     pub fn set_measured(&mut self, step: &ScheduledStep, nanos: u64) {
         let key = Key {
+            initial_prompt_capacity: step.initial_prompt_capacity,
             drafts: step.draft_tokens,
             kind: step.kind,
             batch: step.batch_capacity,
@@ -122,6 +125,7 @@ impl ActionCosts {
         let mut index = std::collections::HashMap::with_capacity(graphs.len());
         for graph in graphs {
             let key = Key {
+                initial_prompt_capacity: graph.initial_prompt_capacity,
                 drafts: graph.draft_tokens,
                 kind: graph.kind,
                 batch: graph.batch_capacity,
@@ -157,6 +161,11 @@ impl ActionCosts {
 
     pub fn duration(&self, kind: GraphKind, batch: usize, tokens: usize) -> Option<u64> {
         self.shape_duration(kind, batch, tokens, 0)
+    }
+
+    pub fn prefill_duration(&self, kind: GraphKind, tokens: usize, initial_prompt_capacity: usize) -> Option<u64> {
+        self.duration_key(Key { kind, batch: 1, tokens, initial_prompt_capacity,
+            drafts: 0, prefill: 0, packed: 0 })
     }
 
     fn refresh_packed_durations(&mut self) {
@@ -196,6 +205,7 @@ impl ActionCosts {
 
     fn exact_duration(&self, kind: GraphKind, batch: usize, tokens: usize, prefill: usize, packed: usize) -> Option<u64> {
         self.entry(Key {
+            initial_prompt_capacity: 0,
             drafts: if kind == GraphKind::Speculative { tokens - 1 } else { 0 },
             kind,
             batch,
@@ -254,6 +264,7 @@ impl ActionCosts {
         }
         let key = Key {
             drafts: step.draft_tokens,
+            initial_prompt_capacity: step.initial_prompt_capacity,
             kind: step.kind,
             batch: step.batch_capacity,
             tokens: step.token_capacity,

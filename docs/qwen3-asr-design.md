@@ -123,6 +123,22 @@ and ordinary decode are unchanged. Component capture, poison, inactive-row,
 invalid-count and allocation checks pass; whole-model, newly exported native
 replay and performance qualification of this change remain pending.
 
+The initial-prompt capacity candidate prepares C256/C512 and the configured
+context extent, omitting duplicate or oversized buckets. Each C covers the
+whole M catalog. C is selected from the immutable original N, so a larger
+fragment or generated replay history cannot change projection arithmetic.
+Prompt staging has C rows; history and published results retain M rows.
+Original small-row groups19/27/32/64 remain where smaller than C. The producer
+identity includes the actual bucket set. Existing packages retain C0 and their
+original identities, inputs and captured graphs.
+
+This candidate is under qualification. Captured-component observations use
+actual frozen operands; their timings do not establish a complete-model or
+native-serving benefit. Complete model numerics, new package replay, lifecycle,
+old-package serving and performance gates are still required. Direct diagnostic
+scheduling rejects a positive C catalog explicitly; numerical qualification
+selects C before M from typed signatures rather than relying on graph names.
+
 One-query GQA batches independent requests within each original FA2 catalog
 family. Each request still selects its original split, partition and key bound;
 all families execute and device metadata selects represented output bits.
@@ -615,20 +631,27 @@ the resolved capacity. A missing combination rejects explicitly instead of
 falling back to a larger capacity or legacy graph. Runtime configuration must
 not filter this dimension. Descriptor validation, startup binding, cost keys,
 completion dependencies, threaded agreement and wire fingerprints must preserve
-it. The dimension belongs to the sole prefill lane in Prefill, ScoredPrefill or
-Mixed; independent decode lanes can have different original lengths. Decode,
+it. The implementation confines the dimension to single-lane Prefill and
+ScoredPrefill. A catalog combining positive capacities with Mixed operations
+rejects at validation; existing zero-capacity Mixed catalogs retain their
+semantics. Decode,
 Resume and input-encoding graphs do not acquire a meaningless prefill dimension.
 Existing Prefill remains B=1 and Mixed contains at most one prefill lane; this
 proposal does not claim batched prefill for several original lengths. Package
 validation must require a closed catalog for every advertised capacity and all
-prefill/mixed shapes reachable in that package and configuration before admission.
+prefill shapes reachable in that package and configuration before admission.
 Another request joining or finishing cannot cause a missing-variant failure. Native scheduling
 must not split queues by original capacity to compensate for an incomplete
-catalog. The first implementation should use one fixed physical extent throughout
-the package and bind the immutable input without a new native graph dimension.
-That extent must cover all advertised original lengths and belong to the existing
-captured-program producer identity; it cannot vary with runtime configuration.
-Only measured need for distinct physical extents would justify the extra axis.
+catalog. The preceding single-extent implementation used one physical extent
+throughout the package, covered every advertised original length, and bound it
+through the captured-program producer identity. The
+[same-operand capacity measurements](../benchmarks/qwen3_asr/results/prompt-capacity-components-run.json)
+demonstrate the cost of that extent for short prompts. Newly prepared ASR
+catalogs therefore declare sorted distinct capacities `min(context, 256)`,
+`min(context, 512)` and `context`, with the complete token-shape catalog in each.
+The physical fragment can exceed the original-prompt extent; prompt staging and
+generated-history staging retain their separate bounds. These component results
+do not establish full-model or native serving qualification for the new catalog.
 
 The captured program must never read future KV to reproduce a reference launch
 geometry. Its first 128 queries use only 128 consumed keys even when its original

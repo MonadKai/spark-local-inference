@@ -644,17 +644,12 @@ impl ModelRuntime {
                         )
                     })
                     .and_then(|()| {
-                        scheduler.scored_prefill_graphs(&executor.manifest().graphs.iter()
-                            .filter(|g| g.kind == GraphKind::ScoredPrefill).map(|g| g.token_capacity).collect::<Vec<_>>())?;
-                        scheduler.prefill_graphs(
-                            &executor
-                                .manifest()
-                                .graphs
-                                .iter()
-                                .filter(|graph| graph.kind == crate::execution::GraphKind::Prefill)
-                                .map(|graph| graph.token_capacity)
-                                .collect::<Vec<_>>(),
-                        )
+                        let scored = crate::model::catalog::prefill_fragment_capacities(&worker_config,
+                            executor.manifest(), GraphKind::ScoredPrefill)?;
+                        let prefill = crate::model::catalog::prefill_fragment_capacities(&worker_config,
+                            executor.manifest(), GraphKind::Prefill)?;
+                        scheduler.scored_prefill_graphs(&scored)?;
+                        scheduler.prefill_graphs(&prefill)
                     })
                     .and_then(|()| {
                         scheduler.speculative_graphs(
@@ -2282,7 +2277,7 @@ impl<'a> Worker<'a> {
             return Ok(false);
         }
         validate_sampling_admissions(step, &self.admissions)?;
-        let graph = crate::model::catalog::select_shape_with_drafts(
+        let graph = crate::model::catalog::select_shape_at_initial_prompt_capacity(
             self.config,
             executor.manifest(),
             step.kind,
@@ -2291,6 +2286,7 @@ impl<'a> Worker<'a> {
             step.prefill_capacity(),
             step.packed_token_capacity,
             step.draft_tokens,
+            step.initial_prompt_capacity,
             SamplingMode::General,
         )?;
         let fence = executor.next_fence()?;
@@ -2928,7 +2924,7 @@ mod tests {
             GraphKind::Resume,
             GraphKind::Speculative,
         ] {
-            let mut step = ScheduledStep { draft_tokens: 0, packed_token_capacity: 0,
+            let mut step = ScheduledStep { initial_prompt_capacity: 0, draft_tokens: 0, packed_token_capacity: 0,
                 kind,
                 batch_capacity: 4,
                 token_capacity: 1,
@@ -2950,7 +2946,7 @@ mod tests {
                 Error::Execution(ExecutionError::State(_))
             ));
         }
-        let mut step = ScheduledStep { draft_tokens: 0, packed_token_capacity: 0,
+        let mut step = ScheduledStep { initial_prompt_capacity: 0, draft_tokens: 0, packed_token_capacity: 0,
             kind: GraphKind::Decode,
             batch_capacity: 1,
             token_capacity: 1,

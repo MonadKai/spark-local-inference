@@ -135,9 +135,10 @@ pub struct SchedulerCapabilities {
     pub audio: Option<crate::model::contract::AudioCapacity>,
     pub immutable_request_values: Vec<crate::model::contract::ValueSource>,
     pub draft_pages_per_request: usize,
-    /// Host completion inputs keyed by kind, batch, draft depth, width, packed rows and prefill rows.
+    /// Host completion inputs keyed by kind, batch, draft depth, width, packed rows,
+    /// prefill rows and initial prompt extent.
     /// Graphs requiring these values drain before another generation round.
-    pub completion_inputs: Vec<((GraphKind, usize, usize, usize, usize, usize), Vec<String>)>,
+    pub completion_inputs: Vec<((GraphKind, usize, usize, usize, usize, usize, usize), Vec<String>)>,
     pub speculative_allocations: Vec<(usize, usize, usize, usize, crate::execution::PrefixAllocation)>,
     /// Execution state rows each active request holds; None, the widest speculative graph's width.
     pub state_rows_per_request: Option<usize>,
@@ -305,6 +306,7 @@ pub struct LiveRequest {
     pub generated_tokens: u32,
     pub prompt_tokens: usize,
     initial_prompt_tokens: usize,
+    initial_prompt_capacity: usize,
     pub grammar_constrained: bool,
     pub error_code: Option<i64>,
     host_stops: bool,
@@ -342,6 +344,10 @@ pub struct LiveRequest {
 impl LiveRequest {
     pub fn initial_prompt_tokens(&self) -> usize {
         self.initial_prompt_tokens
+    }
+
+    pub fn initial_prompt_capacity(&self) -> usize {
+        self.initial_prompt_capacity
     }
 
     pub(crate) fn encoder_job(&self) -> Option<EncoderJob> {
@@ -481,6 +487,7 @@ pub struct MixedStep {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ScheduledStep {
+    pub initial_prompt_capacity: usize,
     pub draft_tokens: usize,
     pub kind: GraphKind,
     pub batch_capacity: usize,
@@ -502,6 +509,11 @@ impl ScheduledStep {
     }
 
     pub fn validate_mixed(&self) -> Result<()> {
+        if self.initial_prompt_capacity != 0
+            && (!matches!(self.kind, GraphKind::Prefill | GraphKind::ScoredPrefill)
+                || self.initial_prompt_capacity > i32::MAX as usize) {
+            return Err("initial prompt extent belongs only to bounded prefill steps".into());
+        }
         if self.kind == GraphKind::Speculative {
             if self.draft_tokens == usize::MAX || self.token_capacity == 0
                 || (self.token_capacity == 1 && self.draft_tokens != 0)
@@ -678,6 +690,7 @@ pub struct AdmissionPlan {
     history: PrefixHistory,
     lookup: Lookup,
     initial_prompt_tokens: usize,
+    initial_prompt_capacity: usize,
 }
 
 impl AdmissionPlan {
@@ -743,6 +756,7 @@ pub struct RequestScheduler {
     speculative_fixed_width: Option<usize>,
     speculative_catalog: [Vec<usize>; 7],
     prefill_catalog: Vec<usize>,
+    initial_prompt_capacities: Vec<usize>,
     scored_prefill_catalog: Vec<usize>,
     mixed_catalog: Vec<(usize, usize, usize)>,
     proposal_source: speculation::ProposalSource,
@@ -846,6 +860,7 @@ impl RequestScheduler {
             speculative_fixed_width: None,
             speculative_catalog: Default::default(),
             prefill_catalog: prefill_capacities(limits.prefill_chunk_size).collect(),
+            initial_prompt_capacities: vec![0],
             scored_prefill_catalog: Vec::new(),
             mixed_catalog: Vec::new(),
             proposal_source: speculation::ProposalSource::Mtp,
@@ -1111,7 +1126,16 @@ impl RequestScheduler {
         if self.submitted != Fence(0) || self.slots.iter().any(|s| s.request.is_some()) {
             return Err("graph durations must be configured before admission".into());
         }
+        let mut initial: Vec<_> = graphs.iter().filter(|graph| graph.kind == GraphKind::Prefill)
+            .map(|graph| graph.initial_prompt_capacity).collect::<BTreeSet<_>>().into_iter().collect();
+        if initial.is_empty() { initial.push(0); }
+        if (initial.contains(&0) && initial.len() != 1)
+            || (initial[0] != 0 && (initial.last().copied().unwrap() < self.limits.max_sequence_tokens
+                || graphs.iter().any(|graph| graph.kind == GraphKind::Mixed))) {
+            return Err("initial prompt graph geometry does not cover the serving limits".into());
+        }
         self.costs = cost::ActionCosts::prepared(graphs, self.capabilities.completion_token_capacity)?;
+        self.initial_prompt_capacities = initial;
         self.costs
             .advance_to(self.now_ns, self.policy.estimate_ttl_ns);
         // Each graph contributes at most one candidate per request slot.
@@ -1154,7 +1178,7 @@ impl RequestScheduler {
 
     pub fn plan_requires_feedback(&self, plan: &ScheduledPlan) -> bool {
         let geometry = (plan.kind, plan.batch_capacity, plan.draft_tokens, plan.token_capacity,
-            plan.packed_token_capacity, plan.prefill_capacity());
+            plan.packed_token_capacity, plan.prefill_capacity(), plan.initial_prompt_capacity);
         plan.requires_feedback || !matches!(plan.kind, GraphKind::Decode | GraphKind::Speculative)
             || self.capabilities.completion_inputs.iter().any(|(key, inputs)| *key == geometry && !inputs.is_empty())
             || plan.lanes.iter().any(|lane| self.request(lane.request).is_ok_and(|request|
@@ -1486,6 +1510,12 @@ impl RequestScheduler {
         Ok(self.admit_planned(spec, plan, None)?.handle)
     }
 
+    fn resolve_initial_prompt_capacity(&self, tokens: usize) -> Result<usize> {
+        self.initial_prompt_capacities.iter().copied().find(|&capacity| capacity == 0 || capacity >= tokens)
+            .ok_or_else(|| crate::Error::admission(crate::AdmissionError::Invalid,
+                "initial prompt exceeds its prepared arithmetic extent"))
+    }
+
     /// Validates the request, builds its prefix history, and looks up the GPU
     /// cache without reserving anything.
     pub fn plan_admission(&mut self, spec: &RequestSpec) -> Result<AdmissionPlan> {
@@ -1509,6 +1539,7 @@ impl RequestScheduler {
                 "request requires a nonempty prompt, positive output limit, and bounded total tokens",
             ));
         }
+        let initial_prompt_capacity = self.resolve_initial_prompt_capacity(spec.initial_prompt_tokens)?;
         self.free_slot()?;
         let mut history = PrefixHistory::new_scoped(self.identity, spec.prefix_scope);
         if self.capabilities.immutable_request_values.is_empty() {
@@ -1521,7 +1552,8 @@ impl RequestScheduler {
                     crate::model::contract::ValueSource::InitialPromptTokens => spec.initial_prompt_tokens as u64,
                     _ => return Err("unsupported immutable cache request value".into()),
                 };
-                events.push(ConditioningEvent::request_value(*source as i32, value));
+                events.push(ConditioningEvent::request_value_with_extent(*source as i32, value,
+                    initial_prompt_capacity as u64));
             }
             events.extend_from_slice(&spec.conditioning);
             history.append(&spec.prompt, &events)?;
@@ -1533,7 +1565,8 @@ impl RequestScheduler {
         let lookup = if spec.prompt_logprobs {
             Lookup { checkpoint: None, consumed_tokens: 0, pages: Vec::new(), snapshot: None }
         } else { self.cache.lookup(&history)? };
-        Ok(AdmissionPlan { history, lookup, initial_prompt_tokens: spec.initial_prompt_tokens })
+        Ok(AdmissionPlan { history, lookup, initial_prompt_tokens: spec.initial_prompt_tokens,
+            initial_prompt_capacity })
     }
 
     /// Recheck GPU residency while retaining a queued request's validated history.
@@ -1543,6 +1576,7 @@ impl RequestScheduler {
             history: plan.history.clone(),
             lookup: self.cache.lookup(&plan.history)?,
             initial_prompt_tokens: plan.initial_prompt_tokens,
+            initial_prompt_capacity: plan.initial_prompt_capacity,
         })
     }
 
@@ -1576,12 +1610,13 @@ impl RequestScheduler {
         plan: AdmissionPlan,
         inbound: Option<InboundRequest>,
     ) -> Result<Admitted> {
-        let AdmissionPlan { history, lookup, initial_prompt_tokens } = plan;
+        let AdmissionPlan { history, lookup, initial_prompt_tokens, initial_prompt_capacity } = plan;
         if spec.initial_prompt_tokens != initial_prompt_tokens
             || initial_prompt_tokens > spec.prompt.len()
+            || self.resolve_initial_prompt_capacity(initial_prompt_tokens)? != initial_prompt_capacity
         {
             return Err(crate::Error::admission(crate::AdmissionError::Invalid,
-                "initial prompt length differs from its validated admission plan"));
+                "initial prompt length or extent differs from its validated admission plan"));
         }
         // Lookups count once per admitted request, not per attempt of a waiting one.
         let (hit, reused) = (lookup.checkpoint.is_some(), lookup.consumed_tokens);
@@ -1738,6 +1773,7 @@ impl RequestScheduler {
             generated_tokens: 0,
             prompt_tokens: spec.prompt.len(),
             initial_prompt_tokens,
+            initial_prompt_capacity,
             grammar_constrained: spec.grammar_constrained,
             host_stops: spec.host_stops,
             prompt_logprobs: spec.prompt_logprobs,
@@ -2355,8 +2391,11 @@ impl RequestScheduler {
             }
         }
         let mut needed = Vec::new();
-        for lane in &step.lanes {
+        for (row, lane) in step.lanes.iter().enumerate() {
             let request = self.request(lane.request)?;
+            if step.lane_kind(row).is_prefill() && step.initial_prompt_capacity != request.initial_prompt_capacity {
+                return Err("scheduled initial prompt extent differs from its admitted geometry".into());
+            }
             let through = lane
                 .start_position
                 .checked_add(lane.tokens as u64)

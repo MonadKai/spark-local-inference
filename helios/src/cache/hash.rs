@@ -51,6 +51,18 @@ impl ConditioningEvent {
         hash.update(value.to_le_bytes());
         Self { position: 0, identity: hash.finalize().into() }
     }
+
+    /// A resolved physical extent is part of the same immutable request input.
+    /// Unpartitioned packages retain their original event and all prefix bytes.
+    pub(crate) fn request_value_with_extent(source: i32, value: u64, extent: u64) -> Self {
+        if extent == 0 { return Self::request_value(source, value); }
+        let mut hash = Blake2b::<blake2::digest::consts::U32>::new();
+        hash.update(b"flare-prefix-request-value-extent-v1\0");
+        hash.update(source.to_le_bytes());
+        hash.update(value.to_le_bytes());
+        hash.update(extent.to_le_bytes());
+        Self { position: 0, identity: hash.finalize().into() }
+    }
 }
 
 /// Incremental token and conditioning identity for a single model/recipe.

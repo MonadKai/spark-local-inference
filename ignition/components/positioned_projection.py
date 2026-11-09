@@ -22,7 +22,7 @@ class PreparedPositionedProjection:
         if (source.ndim != 2 or output.ndim != 2 or weight.ndim != 2 or source.shape[0] < 1
                 or output.shape != (source.shape[0], weight.shape[0])
                 or staging.ndim != 2 or staging.shape[1] != source.shape[1]
-                or staging.shape[0] < source.shape[0]
+                or staging.shape[0] < 1
                 or projected.shape != (staging.shape[0], weight.shape[0])
                 or staging.device != source.device or projected.device != source.device
                 or any(t.dtype != torch.bfloat16 or t.device != source.device

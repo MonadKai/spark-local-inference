@@ -249,6 +249,13 @@ pub(super) fn layout(manifest: &ExecutionManifest) -> Vec<u8> {
             number(&mut bytes, range.end as usize);
         }
     }
+    // Keep the historical zero-capacity layout bytes unchanged.
+    if manifest.graphs.iter().any(|graph| graph.initial_prompt_capacity != 0) {
+        string(&mut bytes, "initial_prompt_capacities/v1");
+        for graph in &manifest.graphs {
+            number(&mut bytes, graph.initial_prompt_capacity);
+        }
+    }
     bytes
 }
 

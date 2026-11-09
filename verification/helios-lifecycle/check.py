@@ -12,6 +12,7 @@ import tempfile
 MODEL = Path(__file__).resolve().parent
 ROOT = MODEL.parent.parent
 TEST = "scheduler::lifecycle_tests::scheduler_matches_lifecycle_model"
+INITIAL_TEST = "scheduler::lifecycle_tests::scheduler_initial_prompt_extents_match_lifecycle_model"
 AUDIO_TEST = "scheduler::lifecycle_tests::scheduler_audio_matches_lifecycle_model"
 RANK_TEST = "execution::threaded::protocol_tests::rank_coordinator_matches_model"
 CHECKS = [("Lifecycle", TEST, "LIFECYCLE_EDGE ", 14),
@@ -26,7 +27,8 @@ CHECKS = [("Lifecycle", TEST, "LIFECYCLE_EDGE ", 14),
            "RESPONSE_EDGE ", 28),
           ("AdmissionWaiters", "server::runtime::phase_tests::admission_waiter_tests::admission_waiters_match_credit_model",
            "ADMISSION_WAITER_EDGE ", 13),
-          ("Lifecycle", AUDIO_TEST, "LIFECYCLE_EDGE ", 14)]
+          ("Lifecycle", AUDIO_TEST, "LIFECYCLE_EDGE ", 14),
+          ("Lifecycle", INITIAL_TEST, "LIFECYCLE_EDGE ", 14)]
 MODELS = list(dict.fromkeys(check[0] for check in CHECKS)) + ["RankDispatch"]
 
 
@@ -95,7 +97,7 @@ def check_mutations(cargo, source, test, mutations):
                 raise RuntimeError(f"update the {name} mutation for {source}")
             source.write_text(original.replace(needle, replacement, 1))
             try:
-                run(cargo + [test, "--"] + (["--exact"] if test in (TEST, AUDIO_TEST) else []))
+                run(cargo + [test, "--"] + (["--exact"] if test in (TEST, AUDIO_TEST, INITIAL_TEST) else []))
             except subprocess.CalledProcessError as failure:
                 if expected not in failure.output:
                     raise RuntimeError(f"{name} failed for an unexpected reason") from failure
@@ -153,7 +155,7 @@ def main():
         if args.target_dir:
             cargo.extend(["--target-dir", str(args.target_dir.resolve())])
         for module, test, prefix, width in CHECKS:
-            exact = ["--exact"] if test in (TEST, AUDIO_TEST) else []
+            exact = ["--exact"] if test in (TEST, AUDIO_TEST, INITIAL_TEST) else []
             output = run(cargo + [test, "--"] + exact + ["--nocapture"])
             check_observations(output, directory, args.java, jar, module, prefix, width)
         for test in ["cache::lifecycle_tests::reclaimable_projection_matches_eviction_with_pins",
@@ -218,6 +220,23 @@ def main():
                 ("unconfirmed drain", "if !shutdown.drained {", "if false {",
                  "unconfirmed drain accepted resource release"),
             ])
+            check_mutations(cargo, ROOT / "helios/src/scheduler.rs",
+                "scheduler::tests::initial_prompt_extents_isolate_real_host_and_reopened_disk_records", [
+                ("lost initial extent cache dependency",
+                 "events.push(ConditioningEvent::request_value_with_extent(*source as i32, value,\n                    initial_prompt_capacity as u64));",
+                 "events.push(ConditioningEvent::request_value(*source as i32, value));",
+                 "same-N different-C histories must not alias"),
+            ])
+            check_mutations(cargo, ROOT / "helios/src/scheduler.rs",
+                "scheduler::tests::lifecycle_batches_mix_initial_extents_but_prefill_commit_keeps_each_admitted_extent", [
+                ("wrong admitted initial extent", "if step.lane_kind(row).is_prefill() && step.initial_prompt_capacity != request.initial_prompt_capacity {",
+                 "if false {", "called `Result::unwrap_err()` on an `Ok` value"),
+            ])
+            check_mutations(cargo, ROOT / "helios/src/scheduler.rs", INITIAL_TEST, [
+                ("lost queued initial extent", "step: ScheduledStep { requires_feedback: feedback, ..step.clone() },",
+                 "step: ScheduledStep { initial_prompt_capacity: 0, requires_feedback: feedback, ..step.clone() },",
+                 "queued graph does not retain its request's initial geometry"),
+            ])
             check_mutations(cargo, ROOT / "helios/src/scheduler.rs", AUDIO_TEST, [
                 ("lost audio arena", "audio_slot: request.audio_slot,", "audio_slot: None,",
                  "audio arena ownership was lost"),
@@ -272,7 +291,7 @@ def main():
                  "queued lane must retain full target and draft page reservation"),
             ])
             for module, test, prefix, width in CHECKS:
-                exact = ["--exact"] if test in (TEST, AUDIO_TEST) else []
+                exact = ["--exact"] if test in (TEST, AUDIO_TEST, INITIAL_TEST) else []
                 output = run(cargo + [test, "--"] + exact + ["--nocapture"])
                 check_observations(output, directory, args.java, jar, module, prefix, width)
 

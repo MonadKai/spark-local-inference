@@ -363,6 +363,7 @@ fn rank_json(rank: usize, bundle: &wire::BundleIndex, options: InspectionOptions
             "token_capacity": g.token_capacity,
             "packed_tokens": g.packed_tokens(),
             "prefill_capacity": g.prefill_capacity,
+            "initial_prompt_capacity": g.initial_prompt_capacity,
             "draft_tokens": g.draft_tokens,
             "verify_tokens": g.verify_tokens,
             "draft_source": wire::DraftSource::try_from(g.draft_source).map_or("UNKNOWN", |d| d.as_str_name()),
@@ -624,6 +625,7 @@ mod tests {
                 input_frame_bytes: 0,
                 buffers: vec![],
                 graphs: vec![wire::ExecutionGraph {
+                    initial_prompt_capacity: 0,
                     tuned_bindings: vec![],
                     confidence_width: 0,
                     name: "decode_b32".into(),

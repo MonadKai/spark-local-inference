@@ -275,3 +275,102 @@ def test_captured_feature_injection_stops_at_the_original_prompt_boundary():
             embedding.fill_(1); graph.replay(); torch.cuda.synchronize()
             assert valid and embedding.eq(1).all()
         graph.reset()
+
+
+@torch.no_grad()
+def test_prompt_extent_smaller_than_fragment_keeps_prompt_and_history_bytes(tmp_path):
+    from ignition.components.reduction_projection import PreparedReductionProjection
+    from ignition.recipes.qwen3_asr.numerics import fp32_reductions
+    from ignition.recipes.qwen3_asr.replay import (
+        PreparedReplayProjection, ReplayScratch, history_projection_count)
+    from tests.components.test_reduction_projection_cuda import _session
+
+    owners, graphs = [], []
+    with retain_on_failed_drain(0, owners, graphs), ModuleImages() as images, fp32_reductions():
+        pool = GraphBufferPool("cuda")
+        buffers = pool.cursor()
+        owners.extend((images, pool))
+        rows = torch.arange(4096, device="cuda")
+        count, original, prompt, history = [buffers.zeros((1,), torch.int32) for _ in range(4)]
+        positions = buffers.zeros((4096,), torch.int64)
+        scratch = ReplayScratch.allocate(4096, 128, buffers)
+        source = buffers.zeros((4096, 2048), torch.bfloat16)
+        guard = buffers.full((4096 * 256 + 16,), 37, torch.bfloat16)
+        output = guard[8:-8].view(4096, 256)
+        generator = torch.Generator(device="cuda").manual_seed(20261106)
+        full = torch.randn((8192, 2048), generator=generator, device="cuda", dtype=torch.bfloat16)
+        module = torch.nn.Linear(2048, 256, bias=False, device="cuda", dtype=torch.bfloat16)
+        module.weight.normal_(std=.02, generator=generator)
+        rs, ro = buffers.zeros((8, 2048), torch.bfloat16), buffers.zeros((8, 256), torch.bfloat16)
+        rc = buffers.zeros((1,), torch.int32)
+        with _session(tmp_path, owners, graphs) as session:
+            operation = PreparedReplayProjection(source, module, output, count, prompt_count=prompt,
+                positions=positions, original=original, history_count=history, scratch=scratch,
+                session=session, name="wide_fragment", buffers=buffers, workspace=None)
+            reference = PreparedReductionProjection(rs, module.weight, ro, rc,
+                session=session, name="ordinary_eight_rows")
+            owners.extend((operation, reference, scratch, source, guard, full, module, rs, ro, rc))
+            session.tune()
+            def forward():
+                prompt.copy_(torch.minimum(count, (original.long() - positions[:1]).clamp(min=0)).int())
+                history.copy_(history_projection_count(rows, count, positions, original))
+                operation(source)
+            compiled = compile_forward(forward)
+            owners.append(compiled)
+            compiled()
+            graph = torch.cuda.CUDAGraph(); graphs.append(graph)
+            with session.capture(), torch.cuda.graph(graph):
+                compiled()
+            distinguished = False
+            for n, start, live in ((19, 0, 0), (19, 0, 19), (19, 0, 130), (123, 64, 130),
+                    (123, 256, 4096), (19, 8175, 17), (19, 0, 0)):
+                original.fill_(n); count.fill_(live)
+                positions.copy_(torch.arange(start, start + 4096, device="cuda"))
+                source.fill_(float("nan")); source[:live].copy_(full[start:start + live])
+                target = torch.zeros_like(output, device="cpu")
+                for begin in range(0, live, 8):
+                    active = min(8, live - begin)
+                    rs.fill_(float("nan")); rs[:active].copy_(source[begin:begin + active]); rc.fill_(active)
+                    reference(rs)
+                    target[begin:begin + active].copy_(ro[:active].cpu())
+                p = min(live, max(n - start, 0))
+                if p:
+                    extent = next((c for c in (19, 27, 32, 64) if n <= c), scratch.context)
+                    padded = torch.zeros((extent, 2048), device="cuda", dtype=torch.bfloat16)
+                    padded[:n].copy_(full[:n])
+                    canonical = torch.nn.functional.linear(padded, module.weight)[start:start + p].cpu()
+                    distinguished |= not torch.equal(canonical.view(torch.uint8), target[:p].view(torch.uint8))
+                    target[:p].copy_(canonical)
+                for repeat in range(5):
+                    source[live:].fill_(float("inf") if repeat % 2 else float("nan"))
+                    scratch.full_input.fill_(float("nan")); scratch.full_output.fill_(float("nan"))
+                    scratch.history_output.fill_(float("nan")); guard.fill_(37)
+                    torch.cuda.synchronize(); before = torch.cuda.memory_stats()
+                    graph.replay(); torch.cuda.synchronize(); after = torch.cuda.memory_stats()
+                    for field in ("allocation.all.allocated", "allocation.all.freed", "segment.all.allocated", "segment.all.freed"):
+                        assert before[field] == after[field], field
+                    assert prompt.item() == p
+                    assert history.item() == (live if start + live > n and live else 0)
+                    assert torch.equal(output.cpu().view(torch.uint8), target.view(torch.uint8)), (n, start, live)
+                    assert guard[:8].eq(37).all() and guard[-8:].eq(37).all()
+                if live:
+                    for row in sorted({0, live - 1}):
+                        source[row, 0] = float("nan")
+                        graph.replay(); torch.cuda.synchronize()
+                        assert not torch.isfinite(output[row]).all()
+                        source[row].copy_(full[start + row])
+                        graph.replay(); torch.cuda.synchronize()
+                        assert torch.equal(output.cpu().view(torch.uint8), target.view(torch.uint8))
+            assert distinguished, "control operands must distinguish the two arithmetic paths"
+            for invalid in (-1, 4097):
+                count.fill_(invalid); graph.replay(); torch.cuda.synchronize()
+                assert history.item() == invalid and operation.history_output.isnan().all()
+            count.zero_(); graph.replay(); torch.cuda.synchronize()
+            assert output.eq(0).all()
+            original.fill_(19); count.fill_(19)
+            positions.copy_(torch.arange(4096, device="cuda")); source[:19].copy_(full[:19])
+            graph.replay(); torch.cuda.synchronize()
+            recovered = torch.nn.functional.linear(full[:19], module.weight).cpu()
+            assert torch.equal(output[:19].cpu().view(torch.uint8), recovered.view(torch.uint8))
+            assert output[19:].eq(0).all() and guard[:8].eq(37).all() and guard[-8:].eq(37).all()
+            graph.reset()

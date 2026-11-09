@@ -100,6 +100,8 @@ class Layout:
                           for signature in model.signatures.values())
         graphs = {}
         for name, signature in model.signatures.items():
+            if signature.initial_prompt_capacity:
+                raise ValueError("direct execution does not support initial-prompt capacity variants; use native package replay")
             if (signature.kind in ("init", "restore", "snapshot", "prefill", "decode", "resume", "speculative")
                     and signature.speculation_enabled in (None, speculative)):
                 key = (signature.kind, signature.batch_capacity, signature.token_capacity)

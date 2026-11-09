@@ -219,6 +219,11 @@ pub(crate) fn execution_manifest(value: &Bound<'_, PyAny>) -> PyResult<Execution
             });
         }
         graphs.push(GraphDescriptor {
+            initial_prompt_capacity: match graph.get_item("initial_prompt_capacity") {
+                Ok(value) => value.extract::<usize>()?,
+                Err(error) if error.is_instance_of::<pyo3::exceptions::PyKeyError>(graph.py()) => 0,
+                Err(error) => return Err(error),
+            },
             confidence_width: field!(graph, "confidence_width", usize),
             draft_tokens: if field!(graph, "kind", String) == "speculative" { field!(graph, "draft_tokens", usize) } else { 0 },
             name: field!(graph, "name", String),

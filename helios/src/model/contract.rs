@@ -602,6 +602,10 @@ impl PreparedContract {
         }
         for descriptor in &manifest.graphs {
             let graph = self.graph(&descriptor.name)?;
+            if descriptor.initial_prompt_capacity != 0
+                && !graph.inputs.iter().any(|input| input.source == ValueSource::InitialPromptTokens) {
+                return Err("bounded initial prompt geometry requires its immutable input".into());
+            }
             if graph.kind != descriptor.kind.try_into()? {
                 return Err("semantic graph operation differs from its execution catalog".into());
             }

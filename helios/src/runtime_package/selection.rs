@@ -221,6 +221,9 @@ impl LoadOptions {
                 };
                 if !valid || graph.batch_capacity > prepared.next_power_of_two() as u64
                     || (kind != GraphKind::Mixed && graph.prefill_capacity != 0)
+                    || (graph.initial_prompt_capacity != 0
+                        && (!matches!(kind, GraphKind::Prefill | GraphKind::ScoredPrefill)
+                            || graph.initial_prompt_capacity > i32::MAX as u64))
                     || (kind == GraphKind::Speculative && (graph.packed_token_capacity < graph.batch_capacity
                         || graph.packed_token_capacity > graph.batch_capacity.saturating_mul(graph.token_capacity)))
                     || (kind != GraphKind::Speculative && graph.packed_token_capacity != 0)
@@ -240,7 +243,8 @@ impl LoadOptions {
                     || (kind == GraphKind::Speculative && graph.token_capacity > 1 && graph.packed_token_capacity > token_capacity)
                     || !names.insert(graph.name.clone())
                     || !variants.insert((graph.kind.clone(), graph.sampling_mode.clone(), graph.batch_capacity,
-                        graph.token_capacity, graph.prefill_capacity, graph.packed_token_capacity, graph.draft_tokens, graph.draft_source, graph.speculation_enabled)) {
+                        graph.token_capacity, graph.prefill_capacity, graph.initial_prompt_capacity,
+                        graph.packed_token_capacity, graph.draft_tokens, graph.draft_source, graph.speculation_enabled)) {
                     return Err(invalid("invalid or duplicate serving graph variant"));
                 }
             }
@@ -332,7 +336,7 @@ impl LoadOptions {
             rank_tuning_catalog = Some(tuning_catalog);
             let catalog: BTreeSet<_> = execution.graphs.iter().map(|g|
                 (g.name.clone(), g.kind.clone(), g.sampling_mode.clone(), g.batch_capacity,
-                    g.token_capacity, g.prefill_capacity, g.packed_token_capacity, g.draft_tokens,
+                    (g.token_capacity, g.initial_prompt_capacity), g.prefill_capacity, g.packed_token_capacity, g.draft_tokens,
                     g.verify_tokens, g.draft_source, g.confidence_width,
                     g.tuned_bindings.iter().map(|binding| (binding.buffer.clone(), binding.tuning_graph.clone())).collect::<Vec<_>>())).collect();
             if rank_catalog.as_ref().is_some_and(|expected| *expected != catalog) {

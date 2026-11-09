@@ -550,6 +550,7 @@ fn same_layout(a: &ExecutionManifest, b: &ExecutionManifest) -> bool {
                 && a.confidence_width == b.confidence_width
                 && a.packed_token_capacity == b.packed_token_capacity
                 && a.prefill_capacity == b.prefill_capacity
+                && a.initial_prompt_capacity == b.initial_prompt_capacity
                 && a.tuned_bindings == b.tuned_bindings
                 && a.input_bindings.len() == b.input_bindings.len()
                 && a.input_bindings

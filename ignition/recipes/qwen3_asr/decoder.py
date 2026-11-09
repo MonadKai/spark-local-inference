@@ -180,7 +180,7 @@ class PreparedDecoder:
                 or original_prompt_tokens.shape != (1,) or original_prompt_tokens.dtype != torch.int32
                 or original_prompt_tokens.device != metadata.token_ids.device
                 or not original_prompt_tokens.is_contiguous() or type(original_capacity) is not int
-                or not scratch.activations.shape[0] <= original_capacity <= 8192):
+                or not 1 <= original_capacity <= 8192):
             raise ValueError("ASR prefill requires its immutable original prompt count and context extent")
         if mode == "decode" and original_prompt_tokens is not None:
             raise ValueError("ordinary ASR decode does not select original-prompt arithmetic")

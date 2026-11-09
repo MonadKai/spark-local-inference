@@ -592,7 +592,7 @@ fn host_feedback_is_derived_from_inputs_without_model_identity() {
         scheduler_capabilities_with_manifest(&config, &manifest(&config)).unwrap().completion_inputs,
         config.contract.graphs.iter().filter(|graph| graph.kind == GraphOperation::Decode).map(|graph| {
             let descriptor = manifest(&config).graphs.into_iter().find(|descriptor| descriptor.name == graph.graph).unwrap();
-            ((GraphKind::Decode, descriptor.batch_capacity, 0, 1, 0, 0), vec!["sampled_ids".to_owned()])
+            ((GraphKind::Decode, descriptor.batch_capacity, 0, 1, 0, 0, 0), vec!["sampled_ids".to_owned()])
         }).collect::<Vec<_>>()
     );
     config.model_id = "unregistered-family".into();
@@ -600,7 +600,7 @@ fn host_feedback_is_derived_from_inputs_without_model_identity() {
         scheduler_capabilities_with_manifest(&config, &manifest(&config)).unwrap().completion_inputs,
         config.contract.graphs.iter().filter(|graph| graph.kind == GraphOperation::Decode).map(|graph| {
             let descriptor = manifest(&config).graphs.into_iter().find(|descriptor| descriptor.name == graph.graph).unwrap();
-            ((GraphKind::Decode, descriptor.batch_capacity, 0, 1, 0, 0), vec!["sampled_ids".to_owned()])
+            ((GraphKind::Decode, descriptor.batch_capacity, 0, 1, 0, 0, 0), vec!["sampled_ids".to_owned()])
         }).collect::<Vec<_>>()
     );
 }
@@ -1171,7 +1171,7 @@ fn mixed_manifest(config: &mut ModelConfig, width: usize) -> crate::execution::E
             -1,
         ));
         config.contract.graphs.push(semantics);
-        manifest.graphs.push(GraphDescriptor { tuned_bindings: vec![], confidence_width: 0, draft_tokens: 0,
+        manifest.graphs.push(GraphDescriptor { initial_prompt_capacity: 0, tuned_bindings: vec![], confidence_width: 0, draft_tokens: 0,
             packed_token_capacity: 0,
             name,
             kind: GraphKind::Mixed,
@@ -1447,7 +1447,7 @@ fn grammar_packing_fixture() -> (
             tokens: 3,
         });
     }
-    let step = crate::scheduler::ScheduledStep { draft_tokens: 0,
+    let step = crate::scheduler::ScheduledStep { initial_prompt_capacity: 0, draft_tokens: 0,
         kind: GraphKind::Decode,
         batch_capacity: 8,
         token_capacity: 1,
@@ -1761,7 +1761,7 @@ fn committed_generation_cursors_require_feedback_while_unused_prompt_positions_d
             let capabilities = scheduler_capabilities_with_manifest(&config, &manifest).unwrap();
             if source.is_some() {
                 assert_eq!(capabilities.completion_inputs,
-                    vec![((kind, 1, if speculative { 7 } else { 0 }, width, if speculative { 8 } else { 0 }, 0),
+                    vec![((kind, 1, if speculative { 7 } else { 0 }, width, if speculative { 8 } else { 0 }, 0, 0),
                         vec!["generation_cursor".to_owned()])]);
             } else { assert!(capabilities.completion_inputs.is_empty()); }
             let mut scheduler = RequestScheduler::new(config.identity, config.limits, capabilities).unwrap();
@@ -1835,4 +1835,142 @@ fn committed_generation_cursors_require_feedback_while_unused_prompt_positions_d
             }
         }
     }
+}
+
+
+fn initial_extent_fixture() -> (ModelConfig, crate::execution::ExecutionManifest) {
+    let mut config = config();
+    config.contract.graphs.retain(|graph| graph.kind != GraphOperation::Speculative
+        && (graph.kind != GraphOperation::Prefill || graph.graph.starts_with("Prefill-1-")));
+    config.contract.cache.immutable_request_values = vec![ValueSource::InitialPromptTokens];
+    let source = config.contract.graphs.iter_mut().find(|graph| graph.kind == GraphOperation::Prefill).unwrap();
+    source.inputs.push(super::testing::binding("original_length", ValueSource::InitialPromptTokens,
+        InputIndexing::SubmissionRow, 0, 0));
+    let source = source.clone();
+    let mut manifest = manifest(&config);
+    let physical = manifest.graphs.iter().find(|graph| graph.kind == GraphKind::Prefill).unwrap().clone();
+    config.contract.graphs.retain(|graph| graph.kind != GraphOperation::Prefill);
+    manifest.graphs.retain(|graph| graph.kind != GraphKind::Prefill);
+    for initial in [128, 512, 2048] {
+        for fragment in [64, 128, 256, 512] {
+            let name = format!("prefill-c{initial}-m{fragment}");
+            let mut semantic = source.clone(); semantic.graph = name.clone();
+            config.contract.graphs.push(semantic);
+            let mut graph = physical.clone(); graph.name = name;
+            graph.initial_prompt_capacity = initial; graph.token_capacity = fragment;
+            manifest.graphs.push(graph);
+        }
+    }
+    for (index, graph) in manifest.graphs.iter_mut().enumerate() {
+        graph.handle = index + 1;
+    }
+    (config, manifest)
+}
+
+#[test]
+fn initial_prompt_catalog_is_closed_order_independent_and_keeps_fragment_geometry_separate() {
+    let (config, mut manifest) = initial_extent_fixture();
+    catalog::validate(&config, &manifest).unwrap();
+    for reverse in [false, true] {
+        if reverse { manifest.graphs.reverse(); }
+        assert_eq!(catalog::prefill_fragment_capacities(&config, &manifest, GraphKind::Prefill).unwrap(),
+            [64, 128, 256, 512]);
+        for (n, expected) in [(1, 128), (128, 128), (129, 512), (512, 512), (513, 2048), (2048, 2048)] {
+            let initial = catalog::initial_prompt_capacity(&manifest, n).unwrap();
+            assert_eq!(initial, expected);
+            for fragment in [64, 128, 256, 512] {
+                let index = catalog::select_shape_at_initial_prompt_capacity(&config, &manifest,
+                    GraphKind::Prefill, 1, fragment, 0, 0, 0, initial,
+                    crate::execution::SamplingMode::General).unwrap();
+                assert_eq!(manifest.graphs[index].initial_prompt_capacity, expected);
+                assert_eq!(manifest.graphs[index].token_capacity, fragment);
+            }
+        }
+    }
+    assert!(catalog::initial_prompt_capacity(&manifest, 2049).is_err());
+    assert!(catalog::select(&config, &manifest, GraphKind::Prefill, 1, 64, 0,
+        crate::execution::SamplingMode::General).is_err(), "zero must not choose a positive extent implicitly");
+}
+
+#[test]
+fn incomplete_initial_extent_catalogs_and_missing_immutable_dependencies_reject() {
+    for defect in ["missing-pair", "mixed-zero", "missing-largest", "missing-input", "missing-dependency"] {
+        let (mut config, mut manifest) = initial_extent_fixture();
+        catalog::validate(&config, &manifest).unwrap();
+        match defect {
+            "missing-pair" => {
+                manifest.graphs.retain(|g| !(g.initial_prompt_capacity == 128 && g.token_capacity == 256));
+                config.contract.graphs.retain(|g| g.graph != "prefill-c128-m256");
+            },
+            "mixed-zero" => for g in &mut manifest.graphs {
+                if g.initial_prompt_capacity == 128 { g.initial_prompt_capacity = 0; }
+            },
+            "missing-largest" => {
+                manifest.graphs.retain(|g| g.initial_prompt_capacity != 2048);
+                config.contract.graphs.retain(|g| !g.graph.starts_with("prefill-c2048-"));
+            },
+            "missing-input" => for g in &mut config.contract.graphs {
+                g.inputs.retain(|i| i.source != ValueSource::InitialPromptTokens);
+            },
+            "missing-dependency" => config.contract.cache.immutable_request_values.clear(),
+            _ => unreachable!(),
+        }
+        assert!(catalog::validate(&config, &manifest).is_err(), "accepted {defect}");
+        if matches!(defect, "missing-pair" | "mixed-zero" | "missing-largest") {
+            assert!(catalog::prefill_fragment_capacities(&config, &manifest, GraphKind::Prefill).is_err());
+        }
+    }
+}
+
+#[test]
+fn initial_extent_packing_and_completion_resolve_the_exact_captured_contract() {
+    let (config, manifest) = initial_extent_fixture();
+    let mut inputs = Inputs::new(&config, &manifest).unwrap();
+    let mut step = crate::scheduler::ScheduledStep { initial_prompt_capacity: 128,
+        draft_tokens: 0, kind: GraphKind::Prefill, batch_capacity: 1, token_capacity: 512,
+        packed_token_capacity: 0, mixed: None, lanes: vec![], requires_feedback: true };
+    assert_eq!(inputs.completion_contract(&step).unwrap().graph, "prefill-c128-m512");
+    step.initial_prompt_capacity = 2048;
+    assert_eq!(inputs.completion_contract(&step).unwrap().graph, "prefill-c2048-m512");
+    step.initial_prompt_capacity = 0;
+    assert!(inputs.completion_contract(&step).is_err());
+    step.initial_prompt_capacity = 256;
+    assert!(inputs.completion_contract(&step).is_err());
+    // Binding rejection precedes any staging or GPU upload.
+    let mut scheduler = RequestScheduler::new(config.identity, config.limits, scheduler_capabilities(&config)).unwrap();
+    let frame = super::inputs::InputStep { config: &config, scheduler: &scheduler, step: &step,
+        admissions: &[], slots: [-1; crate::execution::REQUEST_LANES],
+        generations: [0; crate::execution::REQUEST_LANES], lengths: [0; crate::execution::REQUEST_LANES],
+        samples: [0; crate::execution::REQUEST_LANES] };
+    assert!(inputs.pack(&frame).is_err());
+    scheduler.measured_graph_durations(&manifest.graphs).unwrap();
+    let prompt = vec![7; 165];
+    let handle = scheduler.admit(RequestSpec { prefix_scope: None, initial_prompt_tokens: 65,
+        prompt: prompt.clone(), conditioning: vec![], message_boundaries: vec![], max_new_tokens: 16,
+        grammar_constrained: false, host_stops: false, prompt_logprobs: false, growable_output: false }).unwrap();
+    let init = scheduler.plan().unwrap();
+    assert_eq!(init.kind, GraphKind::Init);
+    scheduler.commit(&init, Fence(1)).unwrap();
+    let mut records = vec![CompletionRecord::default(); config.limits.request_slots];
+    records[0] = CompletionRecord { generation: handle.generation as i64,
+        submission_sequence: 1, status: 1, token_id: -1, ..Default::default() };
+    scheduler.complete(Fence(1), &records, Default::default()).unwrap();
+    let prefill = scheduler.plan().unwrap();
+    assert_eq!(prefill.initial_prompt_capacity, 128);
+    assert!(prefill.token_capacity > prefill.initial_prompt_capacity);
+    scheduler.commit(&prefill, Fence(2)).unwrap();
+    let mut admissions: [Option<Admission>; 4] = std::array::from_fn(|_| None);
+    admissions[handle.slot as usize] = Some(Admission { handle, sampling: SamplingParameters::default(),
+        max_new_tokens: 16, prompt: prompt.clone(), grammar_mask: None, ignore_eos: false, prompt_logprobs: false,
+        data: PromptData { positions: (0..165).map(|p| [p; 3]).collect(), vision_token_indices: vec![-1; 165],
+            ..Default::default() } });
+    pack_inputs(&mut inputs, &config, &scheduler, &prefill, &admissions).unwrap();
+    let values = inputs.uploads().iter().find(|u| u.buffer == "original_length").unwrap().bytes
+        .chunks_exact(4).map(|bytes| i32::from_le_bytes(bytes.try_into().unwrap())).collect::<Vec<_>>();
+    assert_eq!(values[0], 65);
+    assert!(values[1..].iter().all(|value| *value == 0));
+    assert_eq!(inputs.completion_contract(&prefill).unwrap().graph, "prefill-c128-m256");
+    let mut wrong = (*prefill).clone(); wrong.initial_prompt_capacity = 512;
+    assert!(pack_inputs(&mut inputs, &config, &scheduler, &wrong, &admissions).is_err(),
+        "a larger fitting C must not replace the admitted arithmetic");
 }

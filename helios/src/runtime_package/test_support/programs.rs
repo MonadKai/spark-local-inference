@@ -77,6 +77,7 @@ fn program(package: &Package, graph: &super::super::format::Graph,
     dependencies.finish()?;
     Ok(serde_json::json!({"name":graph.name,"role":role,"kind":serving.map(|g| &g.kind),
         "batch_capacity":serving.map(|g| g.batch_capacity),"token_capacity":serving.map(|g| g.token_capacity),
+        "initial_prompt_capacity":serving.map(|g| g.initial_prompt_capacity),
         "node_count":graph.node_count,"edge_count":graph.edge_count,"nodes":nodes,"edges":edges}))
 }
 

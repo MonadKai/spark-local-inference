@@ -4635,6 +4635,36 @@ mod payload_export_tests {
     }
 
     #[test]
+    fn staged_sources_default_absent_initial_prompt_capacity() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("rank-0.json");
+        let mut rank = empty_rank(Some("gb10"));
+        rank.index.ranks[0].execution = Some(wire::Execution {
+            graphs: vec![wire::ExecutionGraph {
+                name: "prefill".into(),
+                kind: "prefill".into(),
+                batch_capacity: 1,
+                token_capacity: 64,
+                ..Default::default()
+            }],
+            ..Default::default()
+        });
+        write_sources(&path, &rank).unwrap();
+        let mut json: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        json["index"]["ranks"][0]["execution"]["graphs"][0]
+            .as_object_mut().unwrap().remove("initial_prompt_capacity").unwrap();
+        std::fs::write(&path, serde_json::to_vec(&json).unwrap()).unwrap();
+        let restored = read_sources(&path).unwrap();
+        assert_eq!(restored.index, rank.index);
+        assert!(source_payload_ids(&path).unwrap().is_empty());
+        json["index"]["ranks"][0]["execution"]["graphs"][0]["initial_prompt_capacity"] = 128.into();
+        std::fs::write(&path, serde_json::to_vec(&json).unwrap()).unwrap();
+        assert_eq!(read_sources(&path).unwrap().index.ranks[0].execution.as_ref()
+            .unwrap().graphs[0].initial_prompt_capacity, 128);
+    }
+
+    #[test]
     fn staged_sources_preserve_hardware_and_reject_inconsistent_ranks() {
         let directory =
             std::env::temp_dir().join(format!("flare-sources-hardware-{}", std::process::id()));

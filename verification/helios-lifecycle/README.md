@@ -122,6 +122,26 @@ These checks do not establish the external CUDA copy or its fence. The single
 worker retains arena ownership throughout its synchronous upload; a concurrent
 client may set a cancellation flag but cannot retire scheduler storage itself.
 
+`scheduler_initial_prompt_extents_match_lifecycle_model` repeats the text
+exploration with the same bounds and unchanged fourteen-field TLA projection.
+Its closed C×M catalog has initial extents64/128/2048. The two slots use63/65-token
+prompts and exchange those lengths on the second generation. Additional Rust
+assertions retain original N and its admitted C through every explored state,
+include them in the visited-state key, and check every queued graph's exact C.
+This covers positive-C cancellation, completion, stale plans, slot reuse and
+drains, with required witnesses for positive-C prefill submission/completion,
+queued cancellation, both drain outcomes and reuse with a changed initial extent.
+The deterministic cross-generation stale-plan control holds a decode(C0) plan;
+it does not prove rejection of a positive-C prefill plan after slot reuse.
+The mutation runner omits the real admitted-C commit guard and requires the
+wrong-extent admission/commit test to fail; it also drops C while enqueuing an
+actual submission and requires the positive-C lifecycle assertion to fail.
+These checks do not prove physical CUDA binding or audio-arena behavior with C.
+The mutation runner also removes C from the actual admission history and
+requires the same-N/different-C host-store regression to reject the collision.
+That regression exercises MemoryStore and reopened DiskStore records with the
+production scheduler histories; its byte copier remains a CPU simulation.
+
 ## Response ownership
 
 `ResponseLifecycle.tla` checks three reusable response cells, two host admission

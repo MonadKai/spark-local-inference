@@ -70,6 +70,9 @@ pub fn pack_inputs(
             .filter(|admission| admission.handle == lane.request)
             .ok_or("missing or stale native request admission")?;
         let live = scheduler.request(lane.request)?;
+        if step.lane_kind(row).is_prefill() && step.initial_prompt_capacity != live.initial_prompt_capacity() {
+            return Err("prefill packing differs from the request's fixed initial prompt geometry".into());
+        }
         if step.kind == GraphKind::Mixed
             && live.phase
                 != if step.lane_kind(row).is_prefill() {
