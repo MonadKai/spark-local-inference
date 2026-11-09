@@ -582,3 +582,17 @@ Long and finite concurrency clients were not repeated in this retry. The
 394-token transcription long-child regression remains open; this HTTP coverage
 does not establish its repair, complete lifecycle/model qualification or a
 sustained performance comparison. Formal sustained comparative cells remain0.
+
+
+`scratch-retirement-implementation-fixtures.json.gz` retains all48 fresh-process
+endpoint observations from12 rotated blocks: two installed implementations
+against the unchanged original seven-assert and current nine-assert fixtures.
+Actual loaded native library hashes and mappings were checked per process.
+The old installed DSO is not claimed to be a rebuilt original-checkout binary.
+All12 old/seven, old/nine and new/seven attempts pass their complete fixtures;
+new/nine passes9/12. Its two retire-free and one release_backing failures remain
+failures at the unchanged physical-free thresholds. All48 attempts have confirmed
+identities and no probe failures; no samples are removed. Other host CPU work
+and shared DRAM activity remain declared. This diagnoses the implementation/
+fixture interaction without proving a cause, waiving earlier failures, granting
+a complete storage gate or making a performance claim.
