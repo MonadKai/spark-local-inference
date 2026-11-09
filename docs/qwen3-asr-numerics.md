@@ -163,10 +163,23 @@ This does not change previous packages' captured graphs.
 For the actual failing operand, padding to 64 rows reproduced the observed
 prefill mean, FP32 normalized values, BF16 normalized values and affine output
 exactly. The small operator fixture preserves that operand and its unchanged
-gain. This local attribution does not qualify the new model: fresh compiled
-capture, ordinary CLI export, Rust full-input replay, numerical, determinism and
+gain. [Component CUDA controls](../benchmarks/qwen3_asr/results/canonical-rmsnorm-cuda.json)
+pass original-implementation negative control, eager and complete-forward
+compiled capture over 17 physical row capacities, poisoned neighboring rows,
+guards and repeated replay without allocator counter changes. Coupled prepared
+attention/projection controls also pass. This does not qualify the new model:
+fresh whole-model capture, ordinary CLI export, Rust full-input replay, numerical, determinism and
 recognition gates remain required with their existing bounds. No reference or
 budget changes are authorized by this normalization change.
+
+Other registered recipes retain canonical or ATen-mean normalization in some
+decoder, draft or vision paths: Gemma4, Muse Spark, MiMo V2, Qwen3.8 and dense,
+DeepSeek V4.1 heads, MiniMax M3 draft, Nemotron draft/vision, Kimi DSpark and
+GLM vision. These paths are untested for this particular row-geometry effect;
+the ASR result does not establish their failure or authorize replacing their
+different rounding contracts. Their existing prepared norms and other pooling
+reductions are separate mechanisms. Investigate equal actual operands and each
+model's existing cross-capacity contract before deciding a local composition.
 
 ### Frozen network comparisons
 

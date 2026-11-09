@@ -1,0 +1,71 @@
+{
+  "scope": "Actual GPU component controls only, not a complete model, package, cross-engine comparison or sustained performance measurement",
+  "source_head": "b5754581fe44ff54b85a0845e122ca5b3382769a",
+  "hardware": {
+    "architecture": "aarch64",
+    "GPU": "NVIDIA GB10",
+    "SM": 121
+  },
+  "original_component_attempt": {
+    "status": "passed_component_controls_only",
+    "finished_at": "2026-11-09T11:35:03.508700+00:00",
+    "pytest_summary": "3 passed in 11.98s"
+  },
+  "coupled_preparation_attempt": {
+    "status": "passed_coupled_components_only",
+    "pytest_summary": "6 passed in 7.83s",
+    "tests": [
+      "original canonical mean negative control",
+      "eager captured canonical norm",
+      "complete-forward compiled captured canonical norm",
+      "partial/empty prepared audio attention:13 rows",
+      "partial/empty prepared audio attention:104 rows",
+      "prepared reduction projection production/trial owner separation"
+    ]
+  },
+  "physical_rows": [
+    1,
+    2,
+    4,
+    8,
+    31,
+    63,
+    64,
+    128,
+    256,
+    512,
+    1024,
+    1536,
+    2048,
+    2560,
+    3072,
+    3584,
+    4096
+  ],
+  "norm_width": 2048,
+  "comparison": "exact BF16 bytes against the original canonical module at physical64, preserving checkpoint gain and pre-affine rounding",
+  "poison": [
+    "NaN",
+    "positive infinity"
+  ],
+  "row_positions": "first, middle and final physical row; single-row cases deduplicated",
+  "captured_repetitions_per_poison_and_position": 3,
+  "allocation_counters_unchanged": [
+    "allocation.all.allocated",
+    "allocation.all.freed",
+    "segment.all.allocated",
+    "segment.all.freed"
+  ],
+  "strict_retirement_control": {
+    "status": "passed_one_unchanged_original_control_only",
+    "pytest_summary": "1 passed in 5.04s",
+    "threshold_bytes": 268435456,
+    "complete_file_qualified": false,
+    "earlier_failed_attempts_retained": true
+  },
+  "timing_scope": "pytest diagnostics; different test groups/cache states must not be ranked by these durations",
+  "complete_native_replay_qualified": false,
+  "complete_model_numerics_qualified": false,
+  "quality_requalified": false,
+  "formal_performance_cells": 0
+}

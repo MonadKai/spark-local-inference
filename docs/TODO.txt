@@ -196,3 +196,7 @@
 [ ] Resolve generated image-marker replay across index-driven and token-driven
     captured image consumers before relaxing native image admission. Preserve old
     package behavior; see qwen3-asr-design.md's native continuation boundary.
+
+[ ] Investigate remaining canonical/ATen-mean norm row geometry with equal actual
+    operands and each recipe's original rounding/cross-capacity bounds. Only ASR
+    is confirmed; see qwen3-asr-numerics.md#small-batch-normalization-and-history-replay.
