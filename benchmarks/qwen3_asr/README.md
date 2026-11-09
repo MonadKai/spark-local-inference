@@ -341,3 +341,16 @@ separate; the default backend is not presented as a qualified global optimum.
 The run configuration links all four raw terminal ledgers, including actual
 token IDs and encoder media identities: each configuration naturally emits
 1,358 tokens across74 requests. Counts come from engine terminal output.
+
+[The positive prompt-capacity package observation](results/native-prompt-capacity-run.json)
+uses clean committed model source, ordinary CLI preparation, 43 compiled forwards
+and 55 captured graphs. After the preparer exited, Rust independently loaded the
+package: 12 G2 and 39 batch/slot pilot requests passed the unchanged teacher
+budgets; actual graph rows were constrained by test-only barriers. The fixed 256
+recognition requests stopped naturally, with headers reporting 5,147 tokens in
+total and no raw recognition token IDs. Text matches canonical on all 256 inputs; all frozen
+quality point/bootstrap gates pass against canonical and the actual rebuilt
+vLLM reference. This is four numerical inputs and one finite recognition set.
+All 20 native inputs, complete operator/state/API/lifecycle and strict allocation
+gates, historical VISION service, observer calibration and sustained performance
+comparisons remain separate. No throughput win follows from this observation.

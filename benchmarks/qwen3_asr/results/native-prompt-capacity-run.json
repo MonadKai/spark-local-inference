@@ -1,0 +1,61 @@
+{
+  "scope": "Clean committed model source ordinary CLI export, Rust-only four-input diagnostic and fixed256 recognition qualification; not complete numerical/lifecycle/API or performance qualification",
+  "model_source_commit": "69ab162e71616d8fae7aae8ae6c991f06ea6ef0b",
+  "model": {
+    "repository": "Qwen/Qwen3-ASR-1.7B",
+    "revision": "7278e1e70fe206f11671096ffdd38061171dd6e5",
+    "numerical_policy": "qwen3-asr.bf16-fp32.v1"
+  },
+  "package": {
+    "primary_sha256": "7b6e09b0f4f7b0c1826efda7f4e3a9461ff678a853c883107a4a7e4ac8b6a1ff",
+    "prepared_identity": "89fb4370aae9ff7e1c2ccec99aa1554ff2224899bb940b0b4f5eeb0d91108a1d",
+    "signatures_verified": true,
+    "context": 8192,
+    "prefill_chunk": 4096,
+    "max_active": 8,
+    "initial_prompt_capacities": [
+      256,
+      512,
+      8192
+    ],
+    "compiled_forwards": 43,
+    "captured_graphs": 55,
+    "ordinary_cli_ambient_inference_mode": false,
+    "preparer_exited_before_native_load": true
+  },
+  "native": {
+    "cli_sha256": "1c177cda5f5640888e54842af9ffaaf2ca15b261c19b4f06c69a25bdb75bd687",
+    "observer_sha256": "529277f0b19104ce58bec51667ad1b5c70385cb3f3323e63a3cd4a011e5d7b66",
+    "python_and_torch_mappings_absent": true,
+    "normal_server_exit": true,
+    "listener_released": true,
+    "pilot_distinct_inputs": 4,
+    "generated_history_requests": 12,
+    "batch_slot_requests": 39,
+    "batch_shapes": "B1/2/4/8 and partial7 via explicit test-only cohort/decode barriers; not automatic HTTP batching or performance evidence",
+    "recognition_requests": 256,
+    "raw_generated_ids_observed_for_recognition": false,
+    "canonical_text_differences": 0,
+    "generated_tokens_summed_from_headers": 5147
+  },
+  "vllm_reference": {
+    "image_id": "sha256:5531937957eb47e4062d9c45b784f9339705262f2d69f735aa99322e901e06a5",
+    "manifest_digest": "sha256:fb9789ff5462f32d727a8958f060c5bf1a5bd010a626d9648e8e4c305cff3abb",
+    "source_revision": "98dff2a81d747d1dba01a47f939f48c3526d4206"
+  },
+  "results": {
+    "recognition": "native-prompt-capacity-recognition.json",
+    "quality": "native-prompt-capacity-quality.json",
+    "generated_history": "native-prompt-capacity-generated-history-scalar.json.gz",
+    "batch_slot": "native-prompt-capacity-batch-slot-scalar.json.gz"
+  },
+  "full_model_numerical_qualification": false,
+  "performance_qualified": false,
+  "formal_sustained_cells": 0,
+  "limitations": [
+    "All20 native GPU cases, complete state/operator numerical gates and strict allocation gate remain separate; the pilot cannot establish them.",
+    "Complete API, long speech, cancellation, layered caches and historical VISION package service remain open for the combined source/package.",
+    "Observer overhead, deployment tuning and all sustained bracketed comparisons/ablations remain unqualified.",
+    "Resource recovery is separately registered on the host; startup OOM/recovery retries are not erased by this model result."
+  ]
+}
