@@ -5,7 +5,10 @@
 
 import pytest
 
-from ignition.components.reduction_projection import Query
+from b12x.preparation.session import _coalesce_requests
+
+from ignition.components.native_operator import native_plan
+from ignition.components.reduction_projection import CONTRACT, Query
 
 
 @pytest.mark.parametrize("columns,reduction", [(4096, 2048), (2048, 2048),
@@ -38,3 +41,26 @@ def test_projection_rows_reject_grid_y_overflow_before_compilation():
     assert Query(1, 16, 8 * 65535).rows == 8 * 65535
     with pytest.raises(ValueError, match="CUDA row-group bounds"):
         Query(1, 16, 8 * 65536)
+
+
+def test_logical_benchmark_workloads_do_not_coalesce_at_equal_physical_geometry():
+    def request(name, invocation=None):
+        plan = native_plan(contract=CONTRACT, query=Query(4096, 2048), device="cpu",
+            scratch_bytes=lambda tactic: 0, materialize=lambda tactic: None,
+            invocation=invocation)
+        return plan.request(name=name, prepare_call=lambda state: None)
+
+    # Names alone did not distinguish the former full-eight-row trials.
+    legacy = tuple(request(f"decode-{rows}") for rows in (1, 2, 4, 8))
+    assert len(_coalesce_requests(legacy)) == 1
+    assert all(not item.plan.invocation for item in legacy)
+
+    current = tuple(request(f"layer-{layer}.decode-{rows}", {"benchmark_rows": rows})
+        for rows in (1, 2, 4, 8) for layer in (0, 1))
+    groups = _coalesce_requests(current)
+    assert len(groups) == 4
+    assert [len(group) for group in groups] == [2] * 4
+    assert [group[0].plan.invocation.to_dict() for group in groups] == [
+        {"benchmark_rows": rows} for rows in (1, 2, 4, 8)]
+    assert all(item.plan.query == legacy[0].plan.query for item in current)
+    assert all(not item.plan.same_declaration_except_override(legacy[0].plan) for item in current)

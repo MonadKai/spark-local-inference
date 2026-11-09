@@ -55,6 +55,72 @@ def _session(path, owners, graphs):
 
 
 @torch.no_grad()
+def test_logical_benchmark_counts_and_reopened_selection_cache(tmp_path):
+    owners, graphs = [], []
+    with retain_on_failed_drain(0, owners, graphs), ModuleImages() as images:
+        source = torch.full((8, 64), float("nan"), device="cuda", dtype=torch.bfloat16)
+        weight = torch.ones((17, 64), device="cuda", dtype=torch.bfloat16)
+        count = torch.full((1,), 2**30, device="cuda", dtype=torch.int32)
+        owners.extend((images, source, weight, count))
+        for reopened in (False, True):
+            with _session(tmp_path, owners, graphs) as session:
+                operations = []
+                for rows in (1, 2, 4, 8):
+                    output = torch.empty((8, 17), device="cuda", dtype=torch.bfloat16)
+                    operation = PreparedReductionProjection(source, weight, output, count,
+                        session=session, name=f"b{rows}", benchmark_rows=rows)
+                    operations.append(operation)
+                    owners.extend((output, operation))
+                for invalid in (True, 0, -1, 9, 1.5):
+                    with pytest.raises(ValueError, match="benchmark rows"):
+                        PreparedReductionProjection(source, weight, operations[0].output, count,
+                            session=session, name="invalid", benchmark_rows=invalid)
+                requests = dict(session._recorded_requests)
+                report = session.tune()
+                assert not session._recorded_requests, "tuning must release its production declaration owners"
+                if reopened:
+                    assert report["cache_hits"] >= 4
+                    assert report["benchmarked_candidates"] == 0
+                else:
+                    assert report["benchmarked_candidates"] >= 24
+                for rows, operation in zip((1, 2, 4, 8), operations, strict=True):
+                    request = requests[f"b{rows}"]
+                    call = request.benchmark_call(operation.plan.prepared.state)
+                    owners.append(call)
+                    trial_count = call.owners[-1]
+                    assert trial_count.tolist() == [rows]
+                    assert trial_count.data_ptr() != count.data_ptr()
+                    assert call.output.shape == (8, 17)
+                    call.produce()
+                    call.invoke()
+                    torch.cuda.synchronize()
+                    assert torch.isfinite(call.output[:rows]).all()
+                    assert call.output[rows:].eq(0).all()
+                    assert count.tolist() == [2**30]
+                    assert torch.isnan(source).all()
+                source.fill_(1)
+                count.fill_(8)
+                for operation in operations:
+                    forward = compile_forward(Forward(operation, source))
+                    owners.append(forward)
+                    forward()
+                    graph = torch.cuda.CUDAGraph()
+                    graphs.append(graph)
+                    with session.capture(), torch.cuda.graph(graph):
+                        forward()
+                    for live in (0, 1, 2, 4, 8):
+                        count.fill_(live)
+                        graph.replay()
+                        torch.cuda.synchronize()
+                        assert operation.output[:live].eq(64).all()
+                        assert operation.output[live:].eq(0).all()
+                    graph.reset()
+                    graphs.remove(graph)
+                source.fill_(float("nan"))
+                count.fill_(2**30)
+
+
+@torch.no_grad()
 @pytest.mark.parametrize("width,columns", [(64, 1), (64, 3), (64, 17),
     (2048, 4096), (2048, 2048), (2048, 12288), (6144, 2048), (2048, 151936)])
 def test_tuned_compiled_rows_rounding_guards_nonfinite_and_recovery(tmp_path, width, columns):

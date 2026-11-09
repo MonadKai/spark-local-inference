@@ -106,6 +106,13 @@ to the original request rows. Text prefill retains its canonical projection
 groups. The vocabulary projection, including the first token after prefill,
 retains the separate fixed-eight-row canonical BF16 result before sampling.
 
+Decode projection trials use the graph's logical request capacity within the
+same eight-row physical buffers. The existing b12x invocation identity separates
+B1/2/4/8 selection-cache entries while preserving the shared kernel query and
+legal arithmetic candidates. The runtime count remains device data; a partial
+batch uses its graph's prepared choice. This preparation distinction alone does
+not establish a component or service speedup.
+
 One-query GQA batches independent requests within each original FA2 catalog
 family. Each request still selects its original split, partition and key bound;
 all families execute and device metadata selects represented output bits.

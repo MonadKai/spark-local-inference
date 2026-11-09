@@ -131,9 +131,13 @@ class PreparedReductionProjection:
     Inputs, output and count require 16-byte base alignment, matching the
     prepared program's pointer specializations. Element extents fit int32 and
     the row-group launch fits CUDA's 65535-entry grid Y bound.
+
+    ``benchmark_rows`` describes the preparation trial's live prefix within
+    that physical storage. Its invocation identity separates tuning choices
+    without changing kernel geometry or the caller-owned runtime count.
     """
 
-    def __init__(self, source, weight, output, count, *, session, name):
+    def __init__(self, source, weight, output, count, *, session, name, benchmark_rows=None):
         if (source.ndim != 2 or source.shape[0] < 8 or source.shape[0] % 8 or source.shape[1] <= 0
                 or source.shape[1] % 16 or output.ndim != 2 or output.shape[0] != source.shape[0]
                 or output.shape[1] <= 0 or weight.shape != (output.shape[1], source.shape[1])
@@ -150,6 +154,10 @@ class PreparedReductionProjection:
         self.shape = source.shape
         record_numeric_tensor(weight)
         query = Query(output.shape[1], source.shape[1], source.shape[0])
+        if benchmark_rows is not None and (type(benchmark_rows) is not int
+                or not 1 <= benchmark_rows <= query.rows):
+            raise ValueError("benchmark rows must fit the prepared physical row capacity")
+        trial_rows = query.rows if benchmark_rows is None else benchmark_rows
         payload = CONTRACT.encode_query(query)
 
         def materialize(tactic):
@@ -159,13 +167,14 @@ class PreparedReductionProjection:
 
         self.plan = native_plan(contract=CONTRACT, query=query, device=source.device,
             scratch_bytes=lambda t: 0, materialize=materialize,
+            invocation={} if benchmark_rows is None else {"benchmark_rows": benchmark_rows},
             compile_jobs=lambda t, d: (CompileJob.create(
                 "ignition.components.reduction_projection:compile_projection", payload, t, d.ordinal),))
         inputs = input_factory(source, output, storage=getattr(session, "benchmark_storage", None))
 
         def benchmark(state):
             operands = inputs()
-            trial_count = torch.full((1,), query.rows, dtype=torch.int32, device=source.device)
+            trial_count = torch.full((1,), trial_rows, dtype=torch.int32, device=source.device)
             return PreparedCall(run=lambda: state.run(operands.source, weight, operands.output, trial_count),
                 output=operands.output, produce=operands.produce, owners=(operands, weight, trial_count))
 

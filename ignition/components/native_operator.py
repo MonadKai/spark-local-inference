@@ -86,6 +86,7 @@ def native_contract(*, component_id: str, query_type: type,
 
 def native_plan(*, contract: TuningContract, query, device, scratch_bytes: Callable[[object], int],
                 materialize: Callable[[object], object],
+                invocation=None,
                 compile_jobs: Callable[[object, object], tuple] = lambda tactic, detected: ()) -> Plan:
     """Declare one native operator over a single caller-owned byte buffer.
 
@@ -94,6 +95,8 @@ def native_plan(*, contract: TuningContract, query, device, scratch_bytes: Calla
     state is materialized, never at declaration. Any Triton programs the
     state launches must come from ``compile_jobs(tactic, detected_device)``,
     since b12x forbids Triton compilation after its compile phase.
+    ``invocation`` identifies distinct benchmark workloads sharing a kernel
+    query; b12x includes it in declaration coalescing and selection-cache keys.
     """
     device = torch.device(device)
 
@@ -102,7 +105,7 @@ def native_plan(*, contract: TuningContract, query, device, scratch_bytes: Calla
             contract.component_id, nbytes=scratch_bytes(config.tactic),
             device=torch.device("cuda", detected.ordinal)),))
 
-    return Plan(contract=contract, query=query,
+    return Plan(contract=contract, query=query, invocation={} if invocation is None else invocation,
                 _compile_jobs=lambda config, detected: tuple(compile_jobs(config.tactic, detected)),
                 _memory_requirements=memory,
                 _materialize=lambda selection, detected: materialize(selection.config.tactic),

@@ -44,12 +44,13 @@ class _Projection(torch.nn.Module):
 
 
 class _DecodeProjection(_Projection):
-    def __init__(self, source, module, output, count, *, session, name, buffers, workspace):
+    def __init__(self, source, module, output, count, *, session, name, buffers, workspace,
+                 benchmark_rows):
         torch.nn.Module.__init__(self)
         if module.bias is not None:
             raise ValueError("decode reduction requires the checkpoint's bias-free projection")
         self.operation = PreparedReductionProjection(source, module.weight, output, count,
-            session=session, name=name)
+            session=session, name=name, benchmark_rows=benchmark_rows)
 
 
 @dataclass(frozen=True)
@@ -201,7 +202,7 @@ class PreparedDecoder:
         # until the corresponding canonical residual addition consumes them.
         layer_scratch = _LayerScratch.allocate(scratch.activations.shape[0], buffers)
         self.prompt_count = None
-        projection = _DecodeProjection
+        projection = partial(_DecodeProjection, benchmark_rows=self.metadata.lengths.numel())
         if mode == "prefill":
             self.prompt_count = buffers.zeros((1,), torch.int32)
             replay = ReplayScratch.allocate(scratch.activations.shape[0], original_capacity, buffers)

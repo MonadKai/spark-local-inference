@@ -1,0 +1,52 @@
+{
+  "scope": "Run configuration for selected-plan projection component diagnosis; no complete ASR numerical/serving-performance qualification",
+  "source": {
+    "base_commit": "cc63c635",
+    "candidate_files": [
+      "ignition/components/native_operator.py",
+      "ignition/components/reduction_projection.py",
+      "ignition/recipes/qwen3_asr/decoder.py"
+    ],
+    "qualifier": "qualify/asr_projection_tuning.py",
+    "private_installed_python_files_match_frozen_source": 428,
+    "native_extension_unchanged_from_gpu_tested_allocator_fix": true
+  },
+  "hardware": "NVIDIA GB10 / sm_121 / Linux AArch64",
+  "checkpoint": {
+    "repository": "Qwen/Qwen3-ASR-1.7B",
+    "revision": "7278e1e70fe206f11671096ffdd38061171dd6e5",
+    "format": "original"
+  },
+  "reference": {
+    "transformers_revision": "1d9654e78a23fb167ef539cbd699dfbd3e4830cf",
+    "case": "en-422-122949-0013-first-2f",
+    "layout": "original",
+    "source": "Unchanged frozen minimum canonical observations; all ten required input nodes checked on CPU before rerun, BF16/finite with19 represented rows"
+  },
+  "control": "Legacy tuning count8 versus distinct B1/2/4/8 benchmark invocations, same physical8 storage and six legal arithmetic tactics. All28 layer weights rotate, sharing layer0 represented activation rows; each actual captured per-layer output has its own guards.",
+  "timing": "All catalog tuning/compilation/capture and all-layer direct+captured controls finish before nine randomized paired timing blocks,10 graph replays per sample; no other task compiler, downloads or GPU work overlaps sampling.",
+  "statistics": "Descriptive within-session paired block log ratios, Decimal80, df8/tcritical2.306004135204166, outward95% endpoints. Independence is not established by these nine blocks; formal sustained service statistics are separate.",
+  "gates": {
+    "complete_component_cuda_native": {
+      "passed": 27,
+      "failed": 0
+    },
+    "prior_failed_cuda_file": {
+      "passed": 26,
+      "failed": 1,
+      "reason": "Test read a declaration map after tuner correctly released it; repaired test retains diagnostic factories before tune and asserts production owners clear"
+    },
+    "cpu_component_file": 29,
+    "cpu_component_statistics": 12
+  },
+  "retained_failed_attempt": {
+    "stage": "reference-open",
+    "candidate_cells": 0,
+    "timing_cells": 0,
+    "reason": "Launcher supplied boundaries root for unchanged first-2f case which belongs to the existing minimum root. Correcting the directory did not change the case, reference, budgets or qualifier. Raw failed attempt retained on site."
+  },
+  "conclusions": "No overall performance benefit established. Down improves about2.4-2.9% in these component cells; most intervals include1 and some gate/gate-up cells regress. Packed projections and reduction head remain diagnostic; production BF16 head is unchanged. No tactic is promoted outside the existing legal set.",
+  "production_selection_qualified": false,
+  "full_model_numerical_qualification": false,
+  "service_performance_qualified": false
+}
