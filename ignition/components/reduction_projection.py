@@ -179,7 +179,9 @@ class PreparedReductionProjection:
                 output=operands.output, produce=operands.produce, owners=(operands, weight, trial_count))
 
         declare(session, (self.plan.request(name=name,
-            prepare_call=benchmark, benchmark_call=benchmark),))
+            prepare_call=lambda state: PreparedCall(run=lambda: state.run(source, weight, output, count),
+                output=output, owners=(source, weight, output, count)),
+            benchmark_call=benchmark),))
 
     def __call__(self, source):
         if (source.shape != self.shape or source.dtype != torch.bfloat16

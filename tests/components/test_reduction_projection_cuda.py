@@ -17,6 +17,7 @@ from ignition.components.reduction_projection import CONTRACT, Query, State, Pre
 from ignition.preparation.compilation import compile_forward
 from ignition.preparation.failure import resources_retained, retain_on_failed_drain, retain_undrained
 from ignition.preparation.module_images import ModuleImages
+from ignition.preparation.fixtures.projection import Inputs
 from ignition.preparation.tuning import RecordedPreparationSession
 from qualify.asr_linear_bounds import envelope, result_ratio
 from tests.components.test_canonical_projection_cuda import Forward
@@ -118,6 +119,32 @@ def test_logical_benchmark_counts_and_reopened_selection_cache(tmp_path):
                     graphs.remove(graph)
                 source.fill_(float("nan"))
                 count.fill_(2**30)
+
+
+@torch.no_grad()
+def test_tuning_publishes_production_owners_without_retaining_trial_inputs(tmp_path):
+    owners, graphs = [], []
+    with retain_on_failed_drain(0, owners, graphs), ModuleImages() as images:
+        source = torch.full((64, 2048), float("nan"), device="cuda", dtype=torch.bfloat16)
+        weight = torch.ones((4096, 2048), device="cuda", dtype=torch.bfloat16)
+        output = torch.full((64, 4096), 37., device="cuda", dtype=torch.bfloat16)
+        count = torch.full((1,), 2**30, device="cuda", dtype=torch.int32)
+        owners.extend((images, source, weight, output, count))
+        with _session(tmp_path, owners, graphs) as session:
+            operations = [PreparedReductionProjection(source, weight, output, count,
+                session=session, name=f"extent{index}") for index in range(3)]
+            owners.extend(operations)
+            session.tune()
+            retained = [owner for operation in operations for owner in operation.plan.prepared.owners
+                if isinstance(owner, Inputs)]
+            bytes_held = sum(owner.source.nbytes + owner.output.nbytes + owner.seed.nbytes
+                for owner in retained)
+            assert not retained, f"published plans retain {len(retained)} trial fixtures / {bytes_held} bytes"
+            for operation in operations:
+                assert operation.plan.prepared.owners == (source, weight, output, count)
+            assert torch.isnan(source).all()
+            assert output.eq(37).all()
+            assert count.tolist() == [2**30]
 
 
 @torch.no_grad()
