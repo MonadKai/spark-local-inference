@@ -15,11 +15,13 @@ def prepare(root, shard_size=64 << 30, legacy=False, *, capacity=65, allocation_
             weight_delta=0., layer_groups=False):
     import torch
     from ignition.preparation.module_images import ModuleImages
+    from ignition.preparation.package_storage import PackageStorage
 
     torch.cuda.set_device(0)
     with ModuleImages() as images:
-        _prepare(root, images, shard_size, legacy, capacity, allocation_padding,
-                 weight_delta, layer_groups)
+        with PackageStorage():
+            _prepare(root, images, shard_size, legacy, capacity, allocation_padding,
+                     weight_delta, layer_groups)
 
 
 def _prepare(root, images, shard_size, legacy, capacity, allocation_padding,
@@ -109,19 +111,48 @@ def _prepare(root, images, shard_size, legacy, capacity, allocation_padding,
             assert status == cuda.CUresult.CUDA_ERROR_INVALID_VALUE
             break
         sizes.append(size)
-    assert sizes == [128, 4, 16, 16, 8, 8, 128, 8, 128, 4, 16, 128, 8, 128,
-                     4, 16, 16, 16, 8, 16, 16, 4, 12, 12, 4, 12, 12, 8, 8, 8]
-    tensor_maps = {0: "input", 6: "weight", 8: "scale", 11: "scale", 13: "scratch"}
-    pointer_fields = {2: "input", 3: "input", 4: "alpha", 5: "alpha", 7: "weight",
-                      10: "scale", 12: "scale", 15: "scratch", 27: "alpha", 28: "alpha", 29: "alpha"}
+    if sizes == [128, 4, 16, 16, 8, 8, 128, 8, 128, 4, 16, 128, 8, 128,
+                 4, 16, 16, 16, 8, 16, 16, 4, 12, 12, 4, 12, 12, 8, 8, 8]:
+        tensor_maps = {0: "input", 6: "weight", 8: "scale", 11: "scale", 13: "scratch"}
+        pointer_fields = {2: "input", 3: "input", 4: "alpha", 5: "alpha", 7: "weight",
+                          10: "scale", 12: "scale", 15: "scratch", 27: "alpha", 28: "alpha", 29: "alpha"}
+    else:
+        assert sizes == [128, 4, 16, 16, 8, 8, 128, 8, 128, 8, 8, 128, 8, 8, 128,
+                         8, 16, 16, 16, 8, 16, 16, 4, 12, 12, 4, 12, 12, 8, 8, 8], sizes
+        # Plain FP8 aliases the unused scale TMA descriptors to B. Its direct
+        # scale operands remain separate pointers; parameter 15 is the row count.
+        tensor_maps = {0: "input", 6: "weight", 8: "weight", 11: "weight", 14: "scratch"}
+        pointer_fields = {2: "input", 3: "input", 4: "alpha", 5: "alpha", 7: "weight",
+                          9: "scale", 10: "scale", 12: "scale", 13: "scale", 16: "scratch",
+                          28: "alpha", 29: "alpha", 30: "alpha"}
+        assert int.from_bytes(C.string_at(pointers[15], 8), "little") == rows
+        # Quantized output is disabled: these direct-output operands use b12x's
+        # literal sentinel, with the row extent retained in the first two views.
+        for index in (17, 18, 19):
+            assert int.from_bytes(C.string_at(pointers[index], 8), "little") == 16
+        for index in (17, 18):
+            assert int.from_bytes(C.string_at(pointers[index] + 8, 4), "little") == rows
     arguments = []
     def reference(name):
         return Reference(name, {"input": 128, "scratch": 256}.get(name, 0))
+    from ignition.preparation.runtime_package import _Cuda
+    driver = _Cuda()
     for index, size in enumerate(sizes):
         relocations = ()
         if index in tensor_maps:
+            target = reference(tensor_maps[index])
+            original = C.string_at(pointers[index], 128)
+            storage = C.create_string_buffer(128 + 63)
+            aligned = (C.addressof(storage) + 63) & ~63
+            C.memmove(aligned, original, 128)
+            driver.call("cuTensorMapReplaceAddress", C.c_void_p(aligned),
+                        C.c_uint64(tensors[target.allocation].data_ptr() + target.offset))
+            assert C.string_at(aligned, 128) == original, ("tensor map target", index, target)
             relocations = (Relocation(0, reference(tensor_maps[index]), "tensor_map"),)
         elif index in pointer_fields:
+            target = reference(pointer_fields[index])
+            address = int.from_bytes(C.string_at(pointers[index], 8), "little")
+            assert address == tensors[target.allocation].data_ptr() + target.offset, ("pointer target", index, target)
             relocations = (Relocation(0, reference(pointer_fields[index])),)
         arguments.append(Argument(size, relocations))
     descriptor = C.string_at(pointers[0], 128)
