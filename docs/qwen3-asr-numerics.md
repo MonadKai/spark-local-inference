@@ -559,7 +559,23 @@ not a complete causal explanation or a waived model gate.
 The test requires `FLARE_PROMPT_TEST_PACKAGE`, `FLARE_PROMPT_TEST_PUBLISHERS`,
 `FLARE_NATIVE_LOGITS_CASES` and a new `FLARE_NATIVE_LOGITS_OUTPUT` directory.
 Cases contain `id`, WAV `path` and `wav_sha256`, `language`, frozen `prompt_ids`
-and `teacher_history`. The package's signed recipe identity, runtime cache
+and `teacher_history`.
+The optional typed `endpoint` defaults to `original_sdk_chat`, preserving those
+frozen inputs and their whole-prompt submission. `transcription_empty_context`
+uses the shared transcription renderer, forced language and actual expanded
+message boundaries. `transcription_whole_prompt_diagnostic` keeps those same
+transcription bytes/IDs but deliberately submits the whole prompt for attribution.
+Neither diagnostic endpoint can pass the original SDK frozen-contract reader;
+reported endpoint identities must cover the exact requested inputs.
+
+Explicit transcription diagnostics additionally retain authenticated native
+Prefill/Snapshot input buffers and meaningful KV at Snapshot completion. These
+are reads after the sole outstanding fence completes, before the next submission;
+they do not change graph operands or serving behavior. This observes a child
+prompt. HTTP decoding, parent splitting, parameter parsing, cancellation and
+aggregation still require their real endpoint/lifecycle tests. The output limit
+remains1024; these diagnostics do not qualify a changed or incomplete request.
+The package's signed recipe identity, runtime cache
 identity and authenticated envelope digest are distinct report fields. The
 reader recognizes the measured ordinary ABI6 sampler only; this diagnostic
 restriction does not change engine loading or historical package compatibility.

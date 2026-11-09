@@ -60,6 +60,41 @@ def evaluate(inputs, *, history=False, identity="0" * 64):
     return check(source, cases, contract, references, history=history, expected_identity=identity)
 
 
+@pytest.mark.parametrize("endpoint", ["transcription_empty_context", "transcription_whole_prompt_diagnostic"])
+def test_transcription_diagnostic_cannot_pass_the_original_sdk_frozen_contract(tmp_path, endpoint):
+    inputs = evidence(tmp_path)
+    inputs[1][0]["endpoint"] = endpoint
+    result = evaluate(inputs)
+    assert result["status"] == "failed_or_incomplete"
+    assert len(result["cases"]) == 39
+    assert any("original SDK/chat" in row["reason"] for row in result["errors"])
+
+
+@pytest.mark.parametrize("history,requests", [(False, 39), (True, 12)])
+def test_explicit_original_sdk_endpoints_preserve_frozen_validation(tmp_path, history, requests):
+    inputs = evidence(tmp_path, history=history)
+    inputs[4]["case_endpoints"] = [dict(id=case["id"], endpoint="original_sdk_chat")
+        for case in inputs[1]]
+    result = evaluate(inputs, history=history)
+    assert result["status"] == "complete_finite_native_scalar_checks_only"
+    assert not result["errors"] and len(result["cases"]) == requests
+    assert not result["full_model_numerical_qualification"]
+
+
+@pytest.mark.parametrize("defect", ["changed", "missing", "duplicate"])
+def test_reported_endpoint_identity_must_cover_the_exact_requested_inputs(tmp_path, defect):
+    inputs = evidence(tmp_path)
+    cases, raw = inputs[1], inputs[4]
+    entries = [dict(id=case["id"], endpoint="original_sdk_chat") for case in cases]
+    if defect == "changed": entries[0]["endpoint"] = "transcription_empty_context"
+    if defect == "missing": entries.pop()
+    if defect == "duplicate": entries[-1] = entries[0].copy()
+    raw["case_endpoints"] = entries
+    result = evaluate(inputs)
+    assert result["status"] == "failed_or_incomplete" and len(result["cases"]) == 39
+    assert all("endpoints differ" in row["reason"] for row in result["errors"])
+
+
 @pytest.mark.parametrize("history,requests", [(False, 39), (True, 12)])
 def test_fixed_schedules_apply_every_frozen_row(tmp_path, history, requests):
     result = evaluate(evidence(tmp_path, history=history), history=history)

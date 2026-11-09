@@ -19,32 +19,70 @@ struct Case {
     language: String,
     prompt_ids: Vec<u32>,
     teacher_history: Vec<u32>,
+    #[serde(default)]
+    endpoint: PromptEndpoint,
 }
 
-fn reference_prompt(fixture: &Fixture, bytes: &[u8], language: &str) -> Prompt {
+#[derive(Clone, Copy, Default, PartialEq, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+enum PromptEndpoint {
+    #[default]
+    OriginalSdkChat,
+    TranscriptionEmptyContext,
+    TranscriptionWholePromptDiagnostic,
+}
+
+#[test]
+fn native_numerical_endpoint_defaults_preserve_original_sdk_inputs() {
+    let mut value = serde_json::json!({"id":"legacy", "path":"sample.wav",
+        "wav_sha256":"", "language":"zh", "prompt_ids":[], "teacher_history":[]});
+    let case: Case = serde_json::from_value(value.clone()).unwrap();
+    assert!(case.endpoint == PromptEndpoint::OriginalSdkChat);
+    for endpoint in ["original_sdk_chat", "transcription_empty_context", "transcription_whole_prompt_diagnostic"] {
+        value["endpoint"] = endpoint.into();
+        let case: Case = serde_json::from_value(value.clone()).unwrap();
+        assert_eq!(serde_json::to_value(case.endpoint).unwrap(), endpoint);
+    }
+    value["endpoint"] = "unknown_endpoint".into();
+    assert!(serde_json::from_value::<Case>(value).is_err());
+}
+
+fn reference_prompt(fixture: &Fixture, bytes: &[u8], language: &str, endpoint: PromptEndpoint) -> Prompt {
     let config = &fixture.config;
     let cancelled = AtomicBool::new(false);
     let processor = crate::frontend::audio::AudioProcessor::new(
         fixture.frontend.audio_settings().unwrap().clone(), 1).unwrap();
     let pcm = processor.decode(bytes, &cancelled).unwrap();
     let (audio, identity) = processor.prepare_pcm(&pcm, config.contract.audio.as_ref().unwrap(), &cancelled).unwrap();
-    // The frozen numerical reference uses the original SDK/chat template,
-    // whose system turn is present even for empty context. The transcription
-    // endpoint deliberately follows its different pinned vLLM prompt contract.
-    let options = serde_json::json!({"add_generation_prompt":true}).as_object().unwrap().clone();
-    let mut rendered = fixture.frontend.render_chat(&[
-        serde_json::json!({"role":"system","content":""}),
-        serde_json::json!({"role":"user","content":[{"type":"audio","audio":""}]})], &options).unwrap();
     let syntax = config.contract.frontend.transcription.as_ref().unwrap();
-    let label = &syntax.languages.iter().find(|item| item.code == language).unwrap().label;
-    rendered.text.push_str(&syntax.language_prefix);
-    rendered.text.push_str(label);
-    rendered.text.push_str(&syntax.text_delimiter);
-    rendered.token_ids = fixture.frontend.encode(&rendered.text, false).unwrap();
+    let rendered = match endpoint {
+        PromptEndpoint::OriginalSdkChat => {
+            // Frozen SDK numerical inputs retain the empty system turn.
+            let options = serde_json::json!({"add_generation_prompt":true}).as_object().unwrap().clone();
+            let mut rendered = fixture.frontend.render_chat(&[
+                serde_json::json!({"role":"system","content":""}),
+                serde_json::json!({"role":"user","content":[{"type":"audio","audio":""}]})], &options).unwrap();
+            let label = &syntax.languages.iter().find(|item| item.code == language).unwrap().label;
+            rendered.text.push_str(&syntax.language_prefix);
+            rendered.text.push_str(label);
+            rendered.text.push_str(&syntax.text_delimiter);
+            rendered.token_ids = fixture.frontend.encode(&rendered.text, false).unwrap();
+            rendered
+        }
+        PromptEndpoint::TranscriptionEmptyContext | PromptEndpoint::TranscriptionWholePromptDiagnostic => {
+            let renderer = crate::frontend::transcription::Renderer::new(&fixture.frontend, syntax,
+                config.contract.frontend.audio_tokens.as_ref().unwrap()).unwrap();
+            renderer.render(&fixture.frontend, "", Some(language), &cancelled).unwrap()
+        }
+    };
     let (prepared, input) = crate::model::prepare_audio_input(config, &rendered, audio, identity).unwrap();
-    // Submit the complete frozen prompt. Message checkpoint partitioning is a
-    // separate HTTP/lifecycle gate, not an alternate numerical input here.
+    // Preserve the original SDK whole-prompt numerical input. The explicit
+    // transcription diagnostic retains the real endpoint's message partitions.
     let mut result = Fixture::prompt_for(prepared.tokens, 1024, prepared.data);
+    if endpoint == PromptEndpoint::TranscriptionEmptyContext {
+        result.message_boundaries = rendered.message_boundaries;
+        super::super::request::expand_boundaries(&mut result.message_boundaries, &prepared.token_expansions);
+    }
     result.conditioned_audio = Some(input);
     result.conditioning = prepared.conditioning;
     result.sampling = config.sampling_defaults.clone();
@@ -177,9 +215,11 @@ fn exercise_native_logits(replay_history: bool) {
     for name in ["audio_features", "audio_generations", "audio_counts", "audio_feature_slot"] {
         audio_views.insert(name.into(), sampling::named_buffer(&authorized, 0, name).unwrap());
     }
-    let original_count = (replay_history || cases.len() == 20).then(|| sampling::named_buffer(&authorized, 0,
+    let endpoint_diagnostic = cases.iter().any(|case| case.endpoint != PromptEndpoint::OriginalSdkChat);
+    let observe_history = replay_history || cases.len() == 20 || endpoint_diagnostic;
+    let original_count = observe_history.then(|| sampling::named_buffer(&authorized, 0,
         "original_prompt_tokens").unwrap());
-    let history_package = (replay_history || cases.len() == 20).then(|| VerifiedPackage::open(std::path::Path::new(&path),
+    let history_package = observe_history.then(|| VerifiedPackage::open(std::path::Path::new(&path),
         &publishers, None).unwrap().authorize(&namespace, true).unwrap());
     let envelope = authorized.envelope_digest();
     let options = LoadOptions { max_concurrency: Some(8), kv_cache_limit: KvCacheLimit::Concurrency,
@@ -199,6 +239,18 @@ fn exercise_native_logits(replay_history: bool) {
     assert_eq!(bootstrap.model.model_id, "Qwen/Qwen3-ASR-1.7B");
     let fixture = Fixture { config: bootstrap.model, frontend: bootstrap.frontend, stop: AtomicBool::new(false),
         metrics: Arc::new(super::super::super::metrics::Metrics::new(0, 0, 0, 16)) };
+    let mut diagnostic_inputs = HashMap::new();
+    if endpoint_diagnostic {
+        let package = history_package.as_ref().unwrap();
+        for graph in &fixture.config.contract.graphs {
+            if matches!(graph.kind, crate::model::contract::GraphOperation::Prefill
+                | crate::model::contract::GraphOperation::Snapshot) {
+                diagnostic_inputs.insert(graph.graph.clone(), graph.inputs.iter().map(|binding|
+                    (binding.buffer.clone(), sampling::named_buffer(package, 0, &binding.buffer).unwrap()))
+                    .collect::<HashMap<_, _>>());
+            }
+        }
+    }
     let kv_views = history_package.as_ref().map(|package| {
         assert_eq!(package.envelope_digest(), envelope);
         fixture.config.contract.cache.regions.iter().filter(|region|
@@ -237,14 +289,18 @@ fn exercise_native_logits(replay_history: bool) {
         }
     }
     let mut executor = unsafe { RankExecutor::new(manifest, None).unwrap() };
-    let mut report = serde_json::json!({"scope":"Native package BF16 logits and actual natural histories for the supplied frozen inputs; not complete operator, lifecycle or performance qualification",
+    let mut report = serde_json::json!({"scope":"Native package BF16 logits and actual natural histories for the supplied inputs; not complete operator, lifecycle or performance qualification",
         "input_count":cases.len(),
-        "prompt_endpoint":"Original SDK/chat template and forced-language suffix; separate from transcription API semantics",
+        "prompt_endpoint":if cases.iter().all(|case| case.endpoint == PromptEndpoint::OriginalSdkChat) {
+            "Original SDK/chat template and forced-language suffix; separate from transcription API semantics"
+        } else { "Explicit per-case endpoint; transcription uses its actual renderer, with message partitions preserved unless the whole-prompt diagnostic is explicitly selected" },
+        "case_endpoints":cases.iter().map(|case| serde_json::json!({"id":case.id,"endpoint":case.endpoint})).collect::<Vec<_>>(),
         "prepared_identity":owner.server_config()["identity"],
         "runtime_cache_identity":fixture.config.identity.iter().map(|v| format!("{v:02x}")).collect::<String>(),
         "authenticated_envelope_digest":envelope.iter().map(|v| format!("{v:02x}")).collect::<String>(),
         "audio_storage":audio, "status":"running", "single_inflight":true,
         "frames":[], "audio_frames":[], "cohorts":[], "errors":[], "kv_frames":[],
+        "endpoint_input_frames":[], "snapshot_kv_frames":[],
         "generated_history_probe":replay_history, "preemption_policy_qualified":false,
         "capacity_schedule":"Declared batch cohorts defer decode until every real request has naturally sampled its first token. The test selects legal production plans through test-only phase selection; this is not automatic scheduling or performance qualification.",
         "decode_readiness_barriers":[],
@@ -279,7 +335,7 @@ fn exercise_native_logits(replay_history: bool) {
             for (index, &case) in order.iter().enumerate() {
                 let bytes = std::fs::read(&cases[case].path).unwrap();
                 assert_eq!(format!("{:x}", Sha256::digest(&bytes)), cases[case].wav_sha256);
-                let prepared = reference_prompt(&fixture, &bytes, &cases[case].language);
+                let prepared = reference_prompt(&fixture, &bytes, &cases[case].language, cases[case].endpoint);
                 assert_eq!(prepared.tokens, cases[case].prompt_ids, "actual native prompt differs for {}", cases[case].id);
                 let (mut request, generation) = incoming(&fixture, prepared, 0);
                 let scope = observation_scope(cohort, index);
@@ -311,6 +367,62 @@ fn exercise_native_logits(replay_history: bool) {
                     assert_eq!(executor.outstanding(), 0, "a later graph may overwrite observed logits");
                     let plan = submitted.take().unwrap();
                     let graph = &executor.manifest().graphs[completion.graph_index];
+                    if let Some(inputs) = diagnostic_inputs.get(&graph.name) {
+                        let contract = fixture.config.contract.graph(&graph.name).unwrap();
+                        let mut buffers = serde_json::Map::new();
+                        for binding in &contract.inputs {
+                            let view = &inputs[&binding.buffer];
+                            let bytes = sampling::download(&owner, 0, view).unwrap();
+                            let file = format!("cohort{cohort}-fence{}-endpoint-{}.bin", completion.fence.0, binding.buffer);
+                            std::fs::write(output.join(&file), bytes).unwrap();
+                            let layout = executor.manifest().buffer(&binding.buffer).unwrap();
+                            buffers.insert(binding.buffer.clone(), serde_json::json!({"file":file,
+                                "source":binding.source,"indexing":binding.indexing,
+                                "dtype":format!("{:?}",layout.dtype),"shape":layout.shape,
+                                "strides":layout.strides,"nbytes":layout.nbytes}));
+                        }
+                        report["endpoint_input_frames"].as_array_mut().unwrap().push(serde_json::json!({
+                            "cohort":cohort,"graph":graph.name,"fence":completion.fence.0,"buffers":buffers,
+                            "completion_records":completion.records.iter().map(|r| r.fields()).collect::<Vec<_>>()}));
+                        save(&output, &report);
+                    }
+                    if endpoint_diagnostic && graph.kind == GraphKind::Snapshot {
+                        let geometry = executor.manifest().cache.as_ref().unwrap();
+                        let (table, _) = page_table_view.as_ref().unwrap();
+                        let table_bytes = sampling::download(&owner, 0, table).unwrap();
+                        let table_file = format!("cohort{cohort}-fence{}-snapshot-pages.i32", completion.fence.0);
+                        std::fs::write(output.join(&table_file), table_bytes).unwrap();
+                        let pending_tokens = i64s(&sampling::download(&owner, 0, &pending).unwrap());
+                        for lane in &plan.lanes {
+                            let slot = lane.request.slot as usize;
+                            let record = &completion.records[slot];
+                            let consumed = usize::try_from(record.consumed_tokens).unwrap();
+                            let active = worker.active[slot].as_ref().unwrap();
+                            let index = request_indices[&active.incoming.prefix_scope.unwrap()];
+                            let request = worker.scheduler.request(lane.request).unwrap();
+                            let pages = request.pages().map(|page| page.0).collect::<Vec<_>>();
+                            let mut planes = Vec::new();
+                            for view in &kv_views {
+                                let bytes = sampling::download_kv_prefix(&owner, 0, view, geometry, &pages, consumed).unwrap();
+                                let file = format!("cohort{cohort}-request{index}-fence{}-snapshot-{}.kv", completion.fence.0, view.buffer);
+                                std::fs::write(output.join(&file), &bytes).unwrap();
+                                planes.push(serde_json::json!({"buffer":view.buffer,"file":file,"nbytes":bytes.len()}));
+                            }
+                            report["snapshot_kv_frames"].as_array_mut().unwrap().push(serde_json::json!({
+                                "cohort":cohort,"request":index,"case":cases[order[index]].id,
+                                "graph":graph.name,"fence":completion.fence.0,"slot":slot,
+                                "generation":lane.request.generation,"consumed":consumed,
+                                "pending_token":pending_tokens[slot],"page_table":table_file,
+                                "pages":pages,"planes":planes,"completion_record":record.fields()}));
+                            save(&output, &report);
+                            assert_eq!(active.request, lane.request);
+                            assert_eq!(record.generation, lane.request.generation as i64);
+                            assert_eq!(record.submission_sequence, completion.fence.0 as i64);
+                            assert_eq!(record.error_code, 0);
+                            assert_eq!(lane.tokens, 0);
+                            assert_eq!(consumed as u64, lane.start_position);
+                        }
+                    }
                     if graph.kind == GraphKind::Snapshot && park_started {
                         assert_eq!(plan.lanes.len(), 1);
                         let lane = &plan.lanes[0];

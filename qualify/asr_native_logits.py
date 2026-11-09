@@ -144,6 +144,11 @@ def check(source, cases, contract, references, *, history, expected_identity):
             try:
                 if contract_error:
                     raise ValueError(contract_error)
+                if case.get("endpoint", "original_sdk_chat") != "original_sdk_chat":
+                    raise ValueError("the frozen numerical contract requires original SDK/chat inputs")
+                if "case_endpoints" in raw and raw["case_endpoints"] != [dict(id=value["id"],
+                        endpoint=value.get("endpoint", "original_sdk_chat")) for value in cases]:
+                    raise ValueError("observed native input endpoints differ from the requested cases")
                 frozen = frozen_by_id[case["id"]]
                 if case["prompt_ids"] != frozen["prompt_ids"] or case["teacher_history"] != frozen["teacher_history"]:
                     raise ValueError("native input prompt or teacher history differs from the frozen contract")
