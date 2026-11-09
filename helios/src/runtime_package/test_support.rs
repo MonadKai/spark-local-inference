@@ -13,6 +13,7 @@ use crate::Result;
 use ring::signature::{Ed25519KeyPair, KeyPair};
 use std::{io::Read, path::Path};
 
+pub mod programs;
 pub mod sampling;
 
 pub fn publisher() -> Publisher {
