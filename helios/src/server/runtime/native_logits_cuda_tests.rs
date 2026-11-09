@@ -81,7 +81,7 @@ fn reference_prompt(fixture: &Fixture, bytes: &[u8], language: &str, endpoint: P
     let mut result = Fixture::prompt_for(prepared.tokens, 1024, prepared.data);
     if endpoint == PromptEndpoint::TranscriptionEmptyContext {
         result.message_boundaries = rendered.message_boundaries;
-        super::super::request::expand_boundaries(&mut result.message_boundaries, &prepared.token_expansions);
+        crate::server::request::expand_boundaries(&mut result.message_boundaries, &prepared.token_expansions);
     }
     result.conditioned_audio = Some(input);
     result.conditioning = prepared.conditioning;

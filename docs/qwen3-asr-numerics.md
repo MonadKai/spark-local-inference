@@ -575,6 +575,11 @@ they do not change graph operands or serving behavior. This observes a child
 prompt. HTTP decoding, parent splitting, parameter parsing, cancellation and
 aggregation still require their real endpoint/lifecycle tests. The output limit
 remains1024; these diagnostics do not qualify a changed or incomplete request.
+Snapshot KV reads cover the live request's page prefix after GPU completion,
+before CPU checkpoint publication. They do not read the immutable snapshot
+destination or establish that its partial page was copied correctly. Actual
+device position buffers are not exported here; host lane positions and consumed
+counts cannot substitute for their bytes.
 The package's signed recipe identity, runtime cache
 identity and authenticated envelope digest are distinct report fields. The
 reader recognizes the measured ordinary ABI6 sampler only; this diagnostic
