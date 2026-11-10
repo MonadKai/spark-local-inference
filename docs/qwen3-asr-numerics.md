@@ -600,6 +600,52 @@ and in commit `3d079fa2a03d1b833aaadfdcffa9e0b71df245a4`; the positive measureme
 above describe that historical candidate. Existing recipe regressions remain
 unchanged, with no unused legacy class or changed reference to make them pass.
 
+## Observed GELU and attention implementations
+
+The [GELU toolchain control](../benchmarks/qwen3_asr/results/encoder-gelu-toolchain-control.json)
+compiles the same BF16-to-FP32 formula for SM121 with installed NVCC13.0.88 and
+13.2.86, each with FMA enabled and disabled. Both use the same explicitly
+selected CUDA13.0 CCCL headers. On the same 3,072,000 actual SDK preactivation
+values, both 13.0 controls exactly match the independently saved SDK output;
+both 13.2 controls exactly match the saved project output. The two groups differ
+at 686 BF16 values, with maximum absolute difference 0.0000152587890625.
+Within either compiler, changing the FMA flag does not change these outputs.
+The numerical gate rejects changed-value and nonfinite controls. Count 0/1/31,
+tail and full captures each repeat five times with unchanged inputs, guards,
+unwritten tails and four Torch allocation counters; active nonfinite inputs
+preserve the expected IEEE classes. Actual executed cubins use 12 registers,
+no local or shared storage and no stack, as extracted from their SM121 images.
+
+This reproduces the isolated toolchain difference on the tested operands; it
+does not establish the exact compiler or cubin used inside either prebuilt
+Torch wheel. The [fixed Torch formula](https://github.com/pytorch/pytorch/blob/5c4886908584029761b579af026dcfb627c84070/aten/src/ATen/native/cuda/ActivationGeluKernel.cu#L18)
+uses FP32 operation math for BF16. NVIDIA separately documents an `erff`
+implementation change in [CUDA13.2 Math release notes](https://docs.nvidia.com/cuda/archive/13.2.0/cuda-toolkit-release-notes/index.html#cuda-math-release-13-2).
+The earlier same-operand convolution difference remains separate. No production
+GELU, frozen reference, threshold, encoder qualification or long-output result
+is changed by this control.
+
+The [actual Torch CUDA activity observation](../benchmarks/qwen3_asr/results/attention-kernel-observations.json)
+replays the original failing Torch165 operands and the independent SDK394
+operands under project Torch14. Torch165 byte-bridges its unchanged full
+reference and launches `flash_fwd_splitkv_kernel` with M64/N128 plus its
+FP32-combine kernel. The project execution on SDK394 operands launches the
+ordinary M128/N64 kernel and retains the earlier 51-output difference against
+the original SDK. Both profile outputs byte-match five unprofiled repeats.
+The raw activity-name field also contains user-scope markers; its separate
+verified-symbol list identifies the actual FLASH kernel functions.
+
+The [fixed Torch host planner](https://github.com/pytorch/pytorch/blob/5c4886908584029761b579af026dcfb627c84070/aten/src/ATen/native/transformers/cuda/flash_attn/flash_api.cpp#L304)
+and actual 48-SM geometry imply split 2 and split 1 respectively; scalar launch
+parameters were not directly read. In the prior n128 control, all 3,179 BF16
+differences comprise one at row 59 and 3,178 at rows 128 through 164, with rows 64
+through 127 exact. This locates a concrete split/merge boundary to investigate;
+it does not prove a one-instruction fix. Existing b12x varlen is not the
+Torch split-KV FP32-partial contract. The rejected substitution, normal tuning
+requirements and all original byte gates remain unchanged. These observations
+do not establish an original SDK kernel identity, model qualification,
+comparative serving performance or a fix for the long transcription regression.
+
 ## Native logits and frontend boundary diagnosis
 
 The ignored native Worker test authenticates an exported package, verifies its

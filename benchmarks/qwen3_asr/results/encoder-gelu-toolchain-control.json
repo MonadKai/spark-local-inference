@@ -1,0 +1,2180 @@
+{
+  "scope": "Replay identical separately compiled GELU controls on the same actual BF16 inputs.\n\nOperator attribution only. Does not change Flare, its oracle, or any budget;\ntoolchain results do not by themselves identify a prebuilt Torch wheel's cubin.\n",
+  "status": "complete_operator_attribution_only_no_production_change",
+  "rows": [
+    {
+      "name": "system-fmad-true",
+      "cubin_sha256": "57f3f81082ca598ec1b441b4da4586aa44e84242cc4796873bd2cc10fab9d76a",
+      "status": "complete_operator_control_only",
+      "controls": [
+        {
+          "count": 0,
+          "status": "passed",
+          "repeats": [
+            {
+              "repeat": 0,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 1,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 2,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 3,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 4,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              }
+            }
+          ],
+          "exact_captured_repeats": 5,
+          "guards_and_unwritten_tail_unchanged": true,
+          "input_unchanged": true,
+          "four_Torch_allocation_counters_stable": true
+        },
+        {
+          "count": 1,
+          "status": "passed",
+          "repeats": [
+            {
+              "repeat": 0,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 1,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 2,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 3,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 4,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              }
+            }
+          ],
+          "exact_captured_repeats": 5,
+          "guards_and_unwritten_tail_unchanged": true,
+          "input_unchanged": true,
+          "four_Torch_allocation_counters_stable": true
+        },
+        {
+          "count": 31,
+          "status": "passed",
+          "repeats": [
+            {
+              "repeat": 0,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 1,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 2,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 3,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 4,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              }
+            }
+          ],
+          "exact_captured_repeats": 5,
+          "guards_and_unwritten_tail_unchanged": true,
+          "input_unchanged": true,
+          "four_Torch_allocation_counters_stable": true
+        },
+        {
+          "count": 3071999,
+          "status": "passed",
+          "repeats": [
+            {
+              "repeat": 0,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 1,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 2,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 3,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 4,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              }
+            }
+          ],
+          "exact_captured_repeats": 5,
+          "guards_and_unwritten_tail_unchanged": true,
+          "input_unchanged": true,
+          "four_Torch_allocation_counters_stable": true
+        },
+        {
+          "count": 3072000,
+          "status": "passed",
+          "repeats": [
+            {
+              "repeat": 0,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 1,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 2,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 3,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 4,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 4,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 2,
+                "segment.all.freed": 0
+              }
+            }
+          ],
+          "exact_captured_repeats": 5,
+          "guards_and_unwritten_tail_unchanged": true,
+          "input_unchanged": true,
+          "four_Torch_allocation_counters_stable": true
+        }
+      ],
+      "versus_SDK": {
+        "elements": 3072000,
+        "differing_elements": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "nonfinite": 0
+      },
+      "versus_project": {
+        "elements": 3072000,
+        "differing_elements": 686,
+        "max_abs": 1.52587890625e-05,
+        "relative_l2": 1.0893557720060556e-06,
+        "nonfinite": 0
+      },
+      "active_nonfinite_control": {
+        "status": "passed_expected_IEEE_classes_and_guards",
+        "input_classes": [
+          "nan",
+          "posinf",
+          "neginf"
+        ],
+        "output_classes": [
+          "nan",
+          "posinf",
+          "nan"
+        ],
+        "output_BF16_bits": [
+          32767,
+          32640,
+          32767
+        ]
+      }
+    },
+    {
+      "name": "system-fmad-false",
+      "cubin_sha256": "e62dbd54288f873e1ec06fb34c872d37f8c6c2e38ef032bb645f35b7b0a42e72",
+      "status": "complete_operator_control_only",
+      "controls": [
+        {
+          "count": 0,
+          "status": "passed",
+          "repeats": [
+            {
+              "repeat": 0,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 1,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 2,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 3,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 4,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            }
+          ],
+          "exact_captured_repeats": 5,
+          "guards_and_unwritten_tail_unchanged": true,
+          "input_unchanged": true,
+          "four_Torch_allocation_counters_stable": true
+        },
+        {
+          "count": 1,
+          "status": "passed",
+          "repeats": [
+            {
+              "repeat": 0,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 1,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 2,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 3,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 4,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            }
+          ],
+          "exact_captured_repeats": 5,
+          "guards_and_unwritten_tail_unchanged": true,
+          "input_unchanged": true,
+          "four_Torch_allocation_counters_stable": true
+        },
+        {
+          "count": 31,
+          "status": "passed",
+          "repeats": [
+            {
+              "repeat": 0,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 1,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 2,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 3,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 4,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            }
+          ],
+          "exact_captured_repeats": 5,
+          "guards_and_unwritten_tail_unchanged": true,
+          "input_unchanged": true,
+          "four_Torch_allocation_counters_stable": true
+        },
+        {
+          "count": 3071999,
+          "status": "passed",
+          "repeats": [
+            {
+              "repeat": 0,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 1,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 2,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 3,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 4,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            }
+          ],
+          "exact_captured_repeats": 5,
+          "guards_and_unwritten_tail_unchanged": true,
+          "input_unchanged": true,
+          "four_Torch_allocation_counters_stable": true
+        },
+        {
+          "count": 3072000,
+          "status": "passed",
+          "repeats": [
+            {
+              "repeat": 0,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 1,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 2,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 3,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 4,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 5,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            }
+          ],
+          "exact_captured_repeats": 5,
+          "guards_and_unwritten_tail_unchanged": true,
+          "input_unchanged": true,
+          "four_Torch_allocation_counters_stable": true
+        }
+      ],
+      "versus_SDK": {
+        "elements": 3072000,
+        "differing_elements": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "nonfinite": 0
+      },
+      "versus_project": {
+        "elements": 3072000,
+        "differing_elements": 686,
+        "max_abs": 1.52587890625e-05,
+        "relative_l2": 1.0893557720060556e-06,
+        "nonfinite": 0
+      },
+      "active_nonfinite_control": {
+        "status": "passed_expected_IEEE_classes_and_guards",
+        "input_classes": [
+          "nan",
+          "posinf",
+          "neginf"
+        ],
+        "output_classes": [
+          "nan",
+          "posinf",
+          "nan"
+        ],
+        "output_BF16_bits": [
+          32767,
+          32640,
+          32767
+        ]
+      }
+    },
+    {
+      "name": "project-fmad-true",
+      "cubin_sha256": "f31a7e883e8e9c0a2ab3921575555ec44859dbf18f9af06c8a4facb6664f0c93",
+      "status": "complete_operator_control_only",
+      "controls": [
+        {
+          "count": 0,
+          "status": "passed",
+          "repeats": [
+            {
+              "repeat": 0,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 1,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 2,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 3,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 4,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            }
+          ],
+          "exact_captured_repeats": 5,
+          "guards_and_unwritten_tail_unchanged": true,
+          "input_unchanged": true,
+          "four_Torch_allocation_counters_stable": true
+        },
+        {
+          "count": 1,
+          "status": "passed",
+          "repeats": [
+            {
+              "repeat": 0,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 1,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 2,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 3,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 4,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            }
+          ],
+          "exact_captured_repeats": 5,
+          "guards_and_unwritten_tail_unchanged": true,
+          "input_unchanged": true,
+          "four_Torch_allocation_counters_stable": true
+        },
+        {
+          "count": 31,
+          "status": "passed",
+          "repeats": [
+            {
+              "repeat": 0,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 1,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 2,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 3,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 4,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            }
+          ],
+          "exact_captured_repeats": 5,
+          "guards_and_unwritten_tail_unchanged": true,
+          "input_unchanged": true,
+          "four_Torch_allocation_counters_stable": true
+        },
+        {
+          "count": 3071999,
+          "status": "passed",
+          "repeats": [
+            {
+              "repeat": 0,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 1,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 2,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 3,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 4,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            }
+          ],
+          "exact_captured_repeats": 5,
+          "guards_and_unwritten_tail_unchanged": true,
+          "input_unchanged": true,
+          "four_Torch_allocation_counters_stable": true
+        },
+        {
+          "count": 3072000,
+          "status": "passed",
+          "repeats": [
+            {
+              "repeat": 0,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 1,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 2,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 3,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 4,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 6,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            }
+          ],
+          "exact_captured_repeats": 5,
+          "guards_and_unwritten_tail_unchanged": true,
+          "input_unchanged": true,
+          "four_Torch_allocation_counters_stable": true
+        }
+      ],
+      "versus_SDK": {
+        "elements": 3072000,
+        "differing_elements": 686,
+        "max_abs": 1.52587890625e-05,
+        "relative_l2": 1.0893557717820709e-06,
+        "nonfinite": 0
+      },
+      "versus_project": {
+        "elements": 3072000,
+        "differing_elements": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "nonfinite": 0
+      },
+      "active_nonfinite_control": {
+        "status": "passed_expected_IEEE_classes_and_guards",
+        "input_classes": [
+          "nan",
+          "posinf",
+          "neginf"
+        ],
+        "output_classes": [
+          "nan",
+          "posinf",
+          "nan"
+        ],
+        "output_BF16_bits": [
+          32767,
+          32640,
+          32767
+        ]
+      }
+    },
+    {
+      "name": "project-fmad-false",
+      "cubin_sha256": "0f2df5fe0ddc1b85f5008104f4132d1bae3d36e00ee8c92d00b79f0a541ab431",
+      "status": "complete_operator_control_only",
+      "controls": [
+        {
+          "count": 0,
+          "status": "passed",
+          "repeats": [
+            {
+              "repeat": 0,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 1,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 2,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 3,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 4,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            }
+          ],
+          "exact_captured_repeats": 5,
+          "guards_and_unwritten_tail_unchanged": true,
+          "input_unchanged": true,
+          "four_Torch_allocation_counters_stable": true
+        },
+        {
+          "count": 1,
+          "status": "passed",
+          "repeats": [
+            {
+              "repeat": 0,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 1,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 2,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 3,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 4,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            }
+          ],
+          "exact_captured_repeats": 5,
+          "guards_and_unwritten_tail_unchanged": true,
+          "input_unchanged": true,
+          "four_Torch_allocation_counters_stable": true
+        },
+        {
+          "count": 31,
+          "status": "passed",
+          "repeats": [
+            {
+              "repeat": 0,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 1,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 2,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 3,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 4,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            }
+          ],
+          "exact_captured_repeats": 5,
+          "guards_and_unwritten_tail_unchanged": true,
+          "input_unchanged": true,
+          "four_Torch_allocation_counters_stable": true
+        },
+        {
+          "count": 3071999,
+          "status": "passed",
+          "repeats": [
+            {
+              "repeat": 0,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 1,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 2,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 3,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 4,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            }
+          ],
+          "exact_captured_repeats": 5,
+          "guards_and_unwritten_tail_unchanged": true,
+          "input_unchanged": true,
+          "four_Torch_allocation_counters_stable": true
+        },
+        {
+          "count": 3072000,
+          "status": "passed",
+          "repeats": [
+            {
+              "repeat": 0,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 1,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 2,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 3,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            },
+            {
+              "repeat": 4,
+              "status": "passed_exact_repeat_guards_input_and_counters",
+              "CPU_readback_available": true,
+              "allocation_before": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              },
+              "allocation_after": {
+                "allocation.all.allocated": 7,
+                "allocation.all.freed": 1,
+                "segment.all.allocated": 3,
+                "segment.all.freed": 0
+              }
+            }
+          ],
+          "exact_captured_repeats": 5,
+          "guards_and_unwritten_tail_unchanged": true,
+          "input_unchanged": true,
+          "four_Torch_allocation_counters_stable": true
+        }
+      ],
+      "versus_SDK": {
+        "elements": 3072000,
+        "differing_elements": 686,
+        "max_abs": 1.52587890625e-05,
+        "relative_l2": 1.0893557717820709e-06,
+        "nonfinite": 0
+      },
+      "versus_project": {
+        "elements": 3072000,
+        "differing_elements": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "nonfinite": 0
+      },
+      "active_nonfinite_control": {
+        "status": "passed_expected_IEEE_classes_and_guards",
+        "input_classes": [
+          "nan",
+          "posinf",
+          "neginf"
+        ],
+        "output_classes": [
+          "nan",
+          "posinf",
+          "nan"
+        ],
+        "output_BF16_bits": [
+          32767,
+          32640,
+          32767
+        ]
+      }
+    }
+  ],
+  "errors": [],
+  "production_or_frozen_oracle_changed": false,
+  "model_qualified": false,
+  "performance_qualified": false,
+  "started_at": "2026-11-10T01:45:18.623451+00:00",
+  "actual_torch": {
+    "version": "2.14.1+cu132",
+    "git": "5c4886908584029761b579af026dcfb627c84070",
+    "cuda": "13.2"
+  },
+  "difference_gate_changed_value_control_rejected": true,
+  "difference_gate_nonfinite_control_rejected": true,
+  "GPU_drained_and_modules_unloaded": true,
+  "finished_at": "2026-11-10T01:45:24.605371+00:00",
+  "configuration": {
+    "purpose": "Same formula/toolchain attribution, not a production operator replacement or prebuilt Torch wheel cubin identity proof",
+    "architecture": "sm_121",
+    "device_scope": "Single GB10; runtime capability assertion(12,1) passed in the executed control",
+    "source_license": "Apache-2.0",
+    "CUDA_source": "#include <cuda_bf16.h>\n#include <cmath>\n// Same BF16 -> FP32 arithmetic order and constants as the fixed Torch sources.\nextern \"C\" __global__ void gelu_control(const __nv_bfloat16* x, __nv_bfloat16* y,\n                                       float* erf_values, int n) {\n    int i = blockIdx.x * blockDim.x + threadIdx.x;\n    if (i >= n) return;\n    float v = __bfloat162float(x[i]);\n    constexpr float kAlpha = 0.707106781186547524400844362104849039;\n    constexpr float kBeta = 0.5;\n    constexpr float kOne = 1.0;\n    float e = erff(v * kAlpha);\n    erf_values[i] = e;\n    y[i] = __float2bfloat16_rn(v * kBeta * (kOne + e));\n}\n",
+    "source_sha256": "908614e32fe716a1964d3b36c933e532a16624752686252e4f62e9ce3fdb8996",
+    "input": {
+      "logical_id": "L_R003S01C02-540s.chunk10.window0.SDK-conv2d2-output-first8",
+      "checkpoint": "Qwen/Qwen3-ASR-1.7B",
+      "revision": "7278e1e70fe206f11671096ffdd38061171dd6e5",
+      "dtype": "BF16",
+      "shape": [
+        8,
+        480,
+        32,
+        25
+      ],
+      "tensor_sha256": "843d43ace884e2e498ac559f87e506c181755e0ace04a40374d19a07ccebf3b6"
+    },
+    "shared_CCCL_headers": "CUDA13.0 explicitly used for both compilers; initial owned13.2 nvcc attempt lacked nv/target and remains a failed CPU attempt",
+    "compilers": [
+      {
+        "name": "system-fmad-true",
+        "version": "nvcc: NVIDIA (R) Cuda compiler driver\nCopyright (c) 2005-2025 NVIDIA Corporation\nBuilt on Wed_Aug_20_01:57:39_PM_PDT_2025\nCuda compilation tools, release 13.0, V13.0.88\nBuild cuda_13.0.r13.0/compiler.36424714_0\n",
+        "flags": [
+          "-O3",
+          "--cubin",
+          "--gpu-architecture=sm_121",
+          "--std=c++17",
+          "--include-path=CUDA13.0.CCCL",
+          "--fmad=true"
+        ],
+        "cubin_sha256": "57f3f81082ca598ec1b441b4da4586aa44e84242cc4796873bd2cc10fab9d76a"
+      },
+      {
+        "name": "system-fmad-false",
+        "version": "nvcc: NVIDIA (R) Cuda compiler driver\nCopyright (c) 2005-2025 NVIDIA Corporation\nBuilt on Wed_Aug_20_01:57:39_PM_PDT_2025\nCuda compilation tools, release 13.0, V13.0.88\nBuild cuda_13.0.r13.0/compiler.36424714_0\n",
+        "flags": [
+          "-O3",
+          "--cubin",
+          "--gpu-architecture=sm_121",
+          "--std=c++17",
+          "--include-path=CUDA13.0.CCCL",
+          "--fmad=false"
+        ],
+        "cubin_sha256": "e62dbd54288f873e1ec06fb34c872d37f8c6c2e38ef032bb645f35b7b0a42e72"
+      },
+      {
+        "name": "project-fmad-true",
+        "version": "nvcc: NVIDIA (R) Cuda compiler driver\nCopyright (c) 2005-2026 NVIDIA Corporation\nBuilt on Fri_May_08_10:52:52_AM_PDT_2026\nCuda compilation tools, release 13.2, V13.2.86\nBuild cuda_13.2.r13.2/compiler.37953736_0\n",
+        "flags": [
+          "-O3",
+          "--cubin",
+          "--gpu-architecture=sm_121",
+          "--std=c++17",
+          "--include-path=CUDA13.0.CCCL",
+          "--fmad=true"
+        ],
+        "cubin_sha256": "f31a7e883e8e9c0a2ab3921575555ec44859dbf18f9af06c8a4facb6664f0c93"
+      },
+      {
+        "name": "project-fmad-false",
+        "version": "nvcc: NVIDIA (R) Cuda compiler driver\nCopyright (c) 2005-2026 NVIDIA Corporation\nBuilt on Fri_May_08_10:52:52_AM_PDT_2026\nCuda compilation tools, release 13.2, V13.2.86\nBuild cuda_13.2.r13.2/compiler.37953736_0\n",
+        "flags": [
+          "-O3",
+          "--cubin",
+          "--gpu-architecture=sm_121",
+          "--std=c++17",
+          "--include-path=CUDA13.0.CCCL",
+          "--fmad=false"
+        ],
+        "cubin_sha256": "0f2df5fe0ddc1b85f5008104f4132d1bae3d36e00ee8c92d00b79f0a541ab431"
+      }
+    ],
+    "resources": [
+      {
+        "name": "system-fmad-true",
+        "resource_text": "\nResource usage:\n Common:\n  GLOBAL:0\n Function gelu_control:\n  REG:12 STACK:0 SHARED:0 LOCAL:0 CONSTANT[0]:924 TEXTURE:0 SURFACE:0 SAMPLER:0\n"
+      },
+      {
+        "name": "system-fmad-false",
+        "resource_text": "\nResource usage:\n Common:\n  GLOBAL:0\n Function gelu_control:\n  REG:12 STACK:0 SHARED:0 LOCAL:0 CONSTANT[0]:924 TEXTURE:0 SURFACE:0 SAMPLER:0\n"
+      },
+      {
+        "name": "project-fmad-true",
+        "resource_text": "\nResource usage:\n Common:\n  GLOBAL:0\n Function gelu_control:\n  REG:12 STACK:0 SHARED:0 LOCAL:0 CONSTANT[0]:924 TEXTURE:0 SURFACE:0 SAMPLER:0\n"
+      },
+      {
+        "name": "project-fmad-false",
+        "resource_text": "\nResource usage:\n Common:\n  GLOBAL:0\n Function gelu_control:\n  REG:12 STACK:0 SHARED:0 LOCAL:0 CONSTANT[0]:924 TEXTURE:0 SURFACE:0 SAMPLER:0\n"
+      }
+    ]
+  },
+  "interpretation": {
+    "exact_actual_input_control": true,
+    "SDK_matches": "Both CUDA13.0 controls",
+    "project_matches": "Both CUDA13.2 controls",
+    "cross_toolchain_differences": 686,
+    "FMA_flag_changed_these_BF16_outputs": false,
+    "prebuilt_Torch_kernel_compiler_identity_proved": false,
+    "complete_encoder_or_long_output_fix": false,
+    "formal_sustained_comparative_cells": 0
+  }
+}

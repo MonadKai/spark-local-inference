@@ -1,0 +1,80 @@
+{
+  "scope": "Observe actual project Torch FLASH kernels on unchanged saved operands.\n\nDistinct from source-based split inference, and never a replacement oracle.\nCUDA profiler times are attribution data, not serving performance.\n",
+  "status": "complete_actual_project_Torch_kernel_observations_only",
+  "cases": [
+    {
+      "label": "Torch165",
+      "status": "complete_actual_project_kernel_observation_only",
+      "actual_CUDA_kernel_names": {
+        "Torch165": 1,
+        "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+        "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 1, true>(pytorch_flash::Flash_fwd_params)": 1
+      },
+      "shape": [
+        165,
+        16,
+        128
+      ],
+      "finite": true,
+      "reference_differences": 0,
+      "current_repeat": 4,
+      "exact_unprofiled_repeats": 5,
+      "profiled_output_exact_unprofiled": true
+    },
+    {
+      "label": "SDK394_operands_project_execution",
+      "status": "complete_actual_project_kernel_observation_only",
+      "actual_CUDA_kernel_names": {
+        "void pytorch_flash::flash_fwd_kernel<Flash_fwd_kernel_traits<128, 128, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 128, 64, 4, cutlass::bfloat16_t> >, false, true, false, false, false, true, false, false>(pytorch_flash::Flash_fwd_params)": 1,
+        "SDK394_operands_project_execution": 1
+      },
+      "shape": [
+        394,
+        16,
+        128
+      ],
+      "finite": true,
+      "reference_differences": 51,
+      "current_repeat": 4,
+      "exact_unprofiled_repeats": 5,
+      "profiled_output_exact_unprofiled": true
+    }
+  ],
+  "errors": [],
+  "frozen_reference_or_budgets_changed": false,
+  "model_qualified": false,
+  "performance_qualified": false,
+  "started_at": "2026-11-10T01:45:25.069884+00:00",
+  "actual_environment": {
+    "torch": "2.14.1+cu132",
+    "git": "5c4886908584029761b579af026dcfb627c84070",
+    "cuda": "13.2",
+    "sm": [
+      12,
+      1
+    ],
+    "physical_SM_count": 48
+  },
+  "GPU_drain_verified": true,
+  "finished_at": "2026-11-10T01:45:26.969425+00:00",
+  "interpretation": {
+    "scope": "Both executions are actual project Torch14 on saved operands; the SDK394 reference itself was computed separately in original SDK",
+    "CUDA_event_name_field_includes_user_scope_markers": true,
+    "observed_FLASH_symbols": {
+      "Torch165": [
+        "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)",
+        "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 1, true>(pytorch_flash::Flash_fwd_params)"
+      ],
+      "SDK394_operands_project_execution": [
+        "void pytorch_flash::flash_fwd_kernel<Flash_fwd_kernel_traits<128, 128, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 128, 64, 4, cutlass::bfloat16_t> >, false, true, false, false, false, true, false, false>(pytorch_flash::Flash_fwd_params)"
+      ]
+    },
+    "selected_split_count_source_inference": {
+      "Torch165": 2,
+      "SDK394_operands_project_execution": 1
+    },
+    "direct_scalar_num_splits_observed": false,
+    "full_b12x_substitution_qualified": false,
+    "formal_sustained_comparative_cells": 0
+  }
+}
