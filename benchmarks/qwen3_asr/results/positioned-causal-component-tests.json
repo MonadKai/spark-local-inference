@@ -49,5 +49,8 @@
   "tuning_scope": "Default-only component diagnostic; production autotuning remains required.",
   "model_qualified": false,
   "performance_qualified": false,
-  "formal_sustained_comparative_cells": 0
+  "formal_sustained_comparative_cells": 0,
+  "implementation_patch": "positioned-causal-component-implementation.patch.gz",
+  "candidate_commit": "3d079fa2a03d1b833aaadfdcffa9e0b71df245a4",
+  "current_recipe_status": "Candidate rejected and removed from serving preparation; original production arithmetic retained. Implementation and passing component tests preserved verbatim in the ordinary benchmark source patch and Git history."
 }

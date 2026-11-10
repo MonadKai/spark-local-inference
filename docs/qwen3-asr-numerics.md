@@ -531,15 +531,15 @@ controls. Existing full-model, native batch/slot and performance gates remain op
 
 ## Positioned causal attention
 
-`PreparedPositionedCausalAttention` gathers a single request's read-only paged
-KV into caller-owned contiguous storage and places the current query fragment
-at its original absolute positions. Existing b12x causal varlen attention uses
-the immutable original prompt length for both cumulative lengths. Unavailable
-future KV is zeroed; the causal mask prevents it from affecting published
-fragment rows. The prepared capacity and kernel plan stay fixed across fragments.
-Only active operands must be finite. Invalid active metadata produces execution
-errors and nonfinite output; inactive output and errors are zero. The component
-does not write KV or select native scheduling policy.
+The rejected `PreparedPositionedCausalAttention` prototype gathered a single
+request's read-only paged KV into caller-owned contiguous storage and placed the
+current query fragment at its original absolute positions. Existing b12x causal
+varlen attention used the immutable original prompt length for both cumulative
+lengths. Unavailable future KV was zeroed; the causal mask excluded it from
+published fragment rows. Prepared capacity and kernel plan stayed fixed across
+fragments. Only active operands had to be finite. Invalid active metadata
+produced execution errors and nonfinite output; inactive output and errors were
+zero. The component did not write KV or select native scheduling policy.
 
 The [same-operand control](../benchmarks/qwen3_asr/results/positioned-causal-same-operands.json.gz)
 compares the existing b12x default plan with the original SDK on actual layer-0
@@ -593,8 +593,12 @@ first64 rows exactly. The discrepancy therefore also occurs without positioned
 gather or complete-forward transformation; a separate eager/capture byte bridge
 was not recorded.
 These results reject this recipe substitution; the production recipe retains
-its prior attention computation. The component remains diagnostic, and no
-unused legacy class or changed reference is used to make the suite pass.
+its prior attention computation. The unused component and its fixture extension
+are removed from active preparation code. Their exact implementation and seven
+tests are retained in the [component source patch](../benchmarks/qwen3_asr/results/positioned-causal-component-implementation.patch.gz)
+and in commit `3d079fa2a03d1b833aaadfdcffa9e0b71df245a4`; the positive measurements
+above describe that historical candidate. Existing recipe regressions remain
+unchanged, with no unused legacy class or changed reference to make them pass.
 
 ## Native logits and frontend boundary diagnosis
 
