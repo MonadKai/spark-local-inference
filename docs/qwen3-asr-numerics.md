@@ -737,3 +737,44 @@ Reproduce the CPU gate with `python -m qualify.asr_native_frontend`, selecting
 development manifest/PCM root and all three SDK observation directories. The
 default `legacy` retains the prior gate. BF16 differences are reported separately;
 they are not a substitute for model-level thresholds.
+
+## Complete frozen matrix with the current RMSNorm package computation
+
+The [complete twenty-input matrix](../benchmarks/qwen3_asr/results/numerics-rmsnorm-full-matrix.json.gz)
+and [run configuration](../benchmarks/qwen3_asr/results/numerics-rmsnorm-full-matrix-run.json)
+retain all twelve B1/2/4/8, row-order and declared row-retirement cells. All169
+teacher rows per complete cell pass the original logit/top-1 bounds; retirement
+cells retain their explicitly shortened schedules. The run collects1,783 actual
+teacher rows,240 full-prefill comparisons,960 same-path state comparisons and27
+encoder observation bridges. All8,460 encoder,13,000 prefill and40 head scalar
+node comparisons pass the unchanged frozen budgets. It uses the same43 initial
+and43 materialized production forward bindings,55 graphs and original prepared
+identity; production compilation attempts are zero.
+
+The [earlier first-bind failure](../benchmarks/qwen3_asr/results/numerics-observer-context-failure.json.gz)
+remains rejected with zero numerical cells. Its offline launcher entered
+`set_grad_enabled(False)` before `inference_mode(False)`; the latter re-enables
+grad. A real CPU API control observes this ordering difference. The corrected
+compiler follows the owning worker's order, enters inference mode first and sets
+grad last, and records/asserts actual TLS at all ten submissions. Original r1
+nominal fields and artifacts are preserved. The unchanged data-only jobs compile
+after the original producer exits; exact process/starttick and cgroup barriers
+precede full reload. All required guards, tensor aliases and observer-to-production
+state checks remain enabled, with no compile fallback.
+
+This is teacher-forced captured-graph qualification with preparation resources
+retained. `full_model_numerical_qualification` remains false: independent local
+operator, complete CUDA/native/lifecycle/cache and real long-audio gates are
+separate. The long transcription regression, strict physical-release failures,
+old-package failures and formal serving-performance cells remain open. These
+results establish no sustained native throughput or vLLM superiority.
+
+The [old VISION native comparison](../benchmarks/qwen3_asr/results/legacy-vision-native-repeat-run.json)
+retains all24 HTTP controls and [raw failures](../benchmarks/qwen3_asr/results/legacy-vision-native-repeat.json.gz).
+Both the clean-old-source rebuild and current registered binary drain normally,
+and all three VISION capacities execute, but eight strict repeat/cross-engine
+comparisons fail on long text and medium images. General sampling and seed0 are
+unchanged; affected requests restore5 prefix tokens, so they are not uncached
+controls. No sampler, complete checkpoint-state or snapshot-byte cause has yet
+been observed. Finite32-token reasoning controls and normal process exit do not
+satisfy old-package numerical/repeatability qualification.
