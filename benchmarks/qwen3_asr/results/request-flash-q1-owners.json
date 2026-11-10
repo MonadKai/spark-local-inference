@@ -56,7 +56,7 @@
   ],
   "limits": [
     "4096 logical Q1 rows are graph-internal data, not native scheduler requests or separately owned KV",
-    "No generated-history whole-model equivalence or ASR use yet",
+    "No generated-history whole-model equivalence; this component observation alone does not establish ASR recipe qualification",
     "No comparative timing; shared CPU work was present",
     "No full-model numerical, deterministic, recognition-quality, API or performance acceptance"
   ]

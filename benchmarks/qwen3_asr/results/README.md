@@ -1,5 +1,13 @@
 # Canonical recognition reference
 
+Work stopped for Draft PR review on 2026-11-10. These are scoped observations,
+not a completed model-support or performance qualification. The fixed native
+256-request quality comparison and complete frozen numerical matrix have passing
+results; the committed long-speech, strict release, old-package and rejected
+normal-tuning attention results retain failures. No formal sustained vLLM
+comparison cell was completed. Private follow-up prototypes are not substituted
+for the committed implementation or these failed gates.
+
 `native-worker-logits-initial.json.gz` preserves the initial failed native
 Worker observation through an authenticated exported package. Four B1 requests
 naturally stop; the next cohort fails full-row BF16 equality when its long

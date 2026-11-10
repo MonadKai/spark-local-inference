@@ -5,6 +5,29 @@ It does not register a supported recipe. D1 has the downstream decision below;
 D2 follows the greedy-first decision below. All M0–M8 acceptance requirements
 remain open.
 
+## Review checkpoint, 2026-11-10
+
+The fork maintainer stopped further development and experiments and requested a
+Draft PR. This branch preserves the implemented native audio contracts,
+frontend, preparation components and their scoped validation. It does not claim
+complete Qwen3-ASR support, completed M0–M8 acceptance, or a vLLM speedup.
+
+The exported native arithmetic baseline passed the fixed 256-request quality
+comparison, and the complete frozen 20-input/12-cell diagnostic passed its
+declared scalar budgets. Those results do not replace byte determinism,
+complete lifecycle/storage or old-package acceptance. The committed native long
+suite still has one truncated request out of nine. Strict release observations,
+old VISION repeat comparisons and the normal-tuning causal-attention candidate
+also retain failures. Formal sustained comparative performance cells: **zero**.
+
+Later private default-plan diagnostics and corrected attention prototypes are
+retained at the validation site. They are not adopted by this branch or promoted
+to qualified support. In particular, their successful recognition observations
+cannot clear the committed recipe's long-audio failure. Focused independent
+reviews do not constitute the two final whole-task Standards/Spec rounds.
+The [ordinary measurement index](../benchmarks/qwen3_asr/results/README.md)
+keeps passing observations, failed attempts and their limits separate.
+
 ## Fixed references
 
 | Role | Repository | Revision |
