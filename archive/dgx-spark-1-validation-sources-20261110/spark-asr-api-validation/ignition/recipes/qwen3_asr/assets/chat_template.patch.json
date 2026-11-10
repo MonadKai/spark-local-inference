@@ -1,0 +1,14 @@
+{
+  "source": {
+    "repository": "Qwen/Qwen3-ASR-1.7B",
+    "revision": "7278e1e70fe206f11671096ffdd38061171dd6e5",
+    "filename": "chat_template.json",
+    "json_key": "chat_template"
+  },
+  "source_sha256": "a103579066642f0e035873f12de6046a1bbc909a7a2833732fda9fd6bc7c528d",
+  "result_sha256": "77a7f3fa10e6389b8433d259831376417f4b3b252c64aca11482f9369e9bc8ed",
+  "insertions": [
+    954,
+    1019
+  ]
+}
