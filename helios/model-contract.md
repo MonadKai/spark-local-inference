@@ -74,6 +74,7 @@ serving contract and replay path unchanged.
 | `vocabulary` | Valid sampled token range and histogram/mask geometry |
 | `input_vocabulary` | Valid input range, including declared nonsampled image sentinels |
 | `vision` | Feature-slot and per-window feature capacities, patch-to-feature ratio, and captured patch capacities |
+| optional `audio` | BF16 feature-arena geometry, request generation/count views, Mel/chunk/window geometry and the captured frame catalog |
 | `cache` | Logical page tokens, attention-history storage, and page-table views |
 | `graphs` | Per-program operation, value bindings, persistent-state accesses, and resource dependencies |
 | `frontend` | Independent parser and image implementation identifiers plus their syntax and layout data |
@@ -98,6 +99,36 @@ registered transport destination and an enum-selected source:
 | Copied proposals | Candidate IDs, count, generation, consumed endpoint, and per-position grammar masks |
 | Constants | Declared integer values and inactive-row padding |
 | Image tensors | Named outputs of the selected image layout implementation |
+
+`INITIAL_PROMPT_TOKENS` is the token count of the first validated, fully expanded
+prompt. The request queue freezes it before cache lookup and retains it through
+parking and readmission; it does not grow with generated replay history. Original
+prompt usage reads the same retained count. A binding is a contiguous Int32
+submission-row value with width one, zero offset and zero inactive padding. It
+is not a physical request-slot index. The separate image/audio encoding packers
+do not supply this text-request value.
+
+Programs reading this value must declare it in
+`CacheContract.immutable_request_values`. The list currently accepts only
+`INITIAL_PROMPT_TOKENS`, without duplicates. Shared admission places its exact
+source-tagged, versioned value before frontend conditions in the effective cache
+history. Every nonempty prefix boundary, partial checkpoint and extended replay
+history therefore retains that dependency across GPU and offload cache lookup.
+It does not modify the frontend's conditioning events or audio feature identity.
+An absent or empty list preserves the old history and hash bytes. Native packing
+and cache identity do not choose any model arithmetic or graph geometry; captured
+programs own how they consume the immutable value.
+
+An execution descriptor may additionally declare a positive
+`initial_prompt_capacity`: a physical prefill extent independent of its current
+fragment. Its graph must bind this immutable source. The shared catalog fixes
+the fitting extent at admission and carries it as execution geometry; packing
+validates that geometry against the request and binds the same original N.
+The immutable history event includes both exact N and resolved positive C;
+GPU and host/disk histories use that same event, including partial prefixes.
+This adds no executable metadata or model-selected scheduling policy. Zero
+preserves previous selection, transport and cache-history semantics. See the
+[manifest](manifest.md#serving-graph-transport) for complete-catalog validation.
 
 Indexing is explicit: scalar, submission row, active row, physical request row,
 or packed token. Active rows omit inactive tails; submission rows initialize
@@ -187,6 +218,59 @@ be reused until every participating rank retires its consumer.
 maximum among selected graphs to partition execution and snapshot rows. It is
 not a model capability flag. Captured programs perform state updates and accepted
 speculative-state commits; native code manages the declared storage.
+
+## Audio feature publication
+
+An optional `AudioCapacity` declares contiguous BF16 feature rows, one generation
+and published-count element per request slot, and a bounded Mel-frame graph
+catalog. The feature arena has its own slot capacity, bounded by captured request
+storage. Absence preserves the old text/image package behavior; it neither
+changes `VISION` nor requires an engine-version gate, re-export or re-signing.
+
+An `audio_encode` graph receives one bounded FP32 Log-Mel matrix and typed Int32
+valid frames, global convolution width, gather indices, cumulative attention
+lengths, feature count and feature offset. Request slot/generation and the chosen
+feature slot are separate typed inputs. These values are uploaded through the
+shared execution transport; no runtime frontend callback executes model code.
+An optional `TotalInputFrames` Int32 scalar contains the complete encoder-input
+length after service splitting, independently of the current window's valid
+frames. It lets captured computation distinguish a short whole input from a
+short tail. Older graphs retain their seven audio tensor bindings; validation
+and packing do not add this scalar to an existing package.
+The graph owns convolution, attention, projector and feature publication. Its
+state accesses declare the arena writes and generation/count reads and writes;
+text prefill declares the corresponding reads. `AudioFeatureIndex` identifies
+expanded token positions and `AudioFeatureSlot` selects their owned arena row.
+Neither accepts an arithmetic value offset.
+
+Successful encoder completion has status 1, unchanged consumed/generated token
+counters, token ID -1 and no emitted token vector. Error status 3 retains the
+usual request failure and fenced cleanup semantics. Each successful completion
+retires exactly one encoder job before ordinary text prefill. It advances the
+scheduler's plan revision; the request generation remains stable across encoder
+windows. A generation mismatch or noncontiguous feature offset fails graph
+publication. The native worker retains the immutable audio input, and the shared
+scheduler retains its arena, until all submitted uses retire or shutdown confirms
+a drain. Cancellation does not release queued GPU resources.
+
+A single audio input carries its real decoded-PCM/processing identity at the
+first expanded feature token. Prefix histories include that conditioning event,
+so equal placeholder counts alone cannot identify reusable KV. Positions remain
+ordinary causal positions; the captured recipe defines the model arithmetic.
+Convolution chunks, bidirectional encoder windows and transcription service
+chunks are distinct boundaries. The CPU frontend normalizes Log-Mel separately
+for each service input, then slices already-normalized encoder windows.
+
+`AudioSettings.numerics` declares CPU arithmetic, never scheduling or GPU policy.
+Absent/zero preserves the legacy transform and its serialized cache identity.
+`FP32_FMA` uses FP32 Hann nodes, complete-extent PocketFFT before last-frame
+removal, FMA Mel accumulation and SLEEF log10; it currently requires Linux
+AArch64 SVE and rejects unsupported hosts at startup. Different numerical
+variants have distinct processing identities. Old packages retain their
+original arithmetic without re-export or re-signing.
+
+This data contract does not establish model, HTTP or CUDA qualification. Those
+require the native package, numerical and lifecycle execution checks.
 
 ## Attention histories and cache policy
 

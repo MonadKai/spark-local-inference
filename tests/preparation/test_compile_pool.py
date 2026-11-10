@@ -149,6 +149,20 @@ def test_native_lock_methods_are_not_rebound_in_worker():
         restored.lock.acquire
 
 
+def test_cutile_kernel_stays_process_local_without_compiling_or_loading_cuda():
+    import cuda.tile as ct
+    from types import SimpleNamespace
+
+    @ct.kernel
+    def operation():
+        pass
+
+    restored = loads(dumps(SimpleNamespace(kernel=operation, alias=operation)))
+    assert restored.kernel is restored.alias
+    with pytest.raises(RuntimeError, match="process-local resource.*cuda.tile"):
+        restored.kernel()
+
+
 def test_selected_plan_metadata_survives_without_registering_a_worker_plan():
     from b12x.preparation.types import Plan, plan_from_handle, require_prepared
 

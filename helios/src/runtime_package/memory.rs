@@ -95,6 +95,24 @@ fn headroom(config: &serde_json::Value) -> Result<u64> {
         .ok_or_else(|| invalid("memory reserve overflows the device budget"))
 }
 
+fn audio_host_future(config: &serde_json::Value, active: usize) -> Result<u64> {
+    #[cfg(all(feature = "audio", feature = "server"))]
+    {
+        let Some(audio) = config.get("frontend").and_then(|frontend| frontend.get("audio"))
+            .filter(|value| !value.is_null()) else { return Ok(0) };
+        let settings: crate::frontend::AudioSettings = serde_json::from_value(audio.clone())
+            .map_err(|error| invalid(format!("invalid prepared audio settings: {error}")))?;
+        let (queue, workers, body) = crate::server::frontend_capacities(config.as_object()
+            .ok_or_else(|| invalid("server configuration must be a JSON object"))?)?;
+        let ingress = queue.checked_add(active)
+            .ok_or_else(|| invalid("audio ingress capacity overflows host memory"))?;
+        crate::frontend::audio::AudioProcessor::host_working_set_bytes(&settings,
+            ingress as u64, workers as u64, body as u64)
+    }
+    #[cfg(not(all(feature = "audio", feature = "server")))]
+    { let _ = (config, active); Ok(0) }
+}
+
 /// Memory caches may use on one rank: free memory less the headroom, and on an integrated GPU
 /// also the server's later host allocations and a twentieth of memory for the system.
 fn budget(free: u64, total: u64, headroom: u64, integrated: bool) -> u64 {
@@ -555,17 +573,24 @@ impl NativeModel {
             (0, 0)
         };
         #[cfg(feature = "images")]
-        let source_window = if input_window == 0 {
+        let source_window = if input_window == 0 || !contract.graphs.iter().any(|graph|
+            graph.inputs.iter().any(|binding| binding.source == crate::model::contract::ValueSource::ImageTensor)) {
             0
         } else {
             crate::frontend::images::ImageLimits::default().source_retention_bytes()?
         };
         #[cfg(not(feature = "images"))]
         let source_window = 0;
+        let encoded_staging = if options.prepared_input_cache.is_some_and(|mode| mode.encoded()) {
+            crate::offload::encoded_staging_bytes(&contract)?
+        } else { 0 };
+        let audio_future = audio_host_future(&self.server_config, active)?;
         let host_future = offload_host
             .checked_add(input_window)
             .and_then(|bytes| bytes.checked_add(source_window))
-            .ok_or_else(|| invalid("CPU image input windows overflow host memory"))?;
+            .and_then(|bytes| bytes.checked_add(encoded_staging))
+            .and_then(|bytes| bytes.checked_add(audio_future))
+            .ok_or_else(|| invalid("CPU prepared-input windows overflow host memory"))?;
         let mut available = Vec::new();
         let mut loaded_bytes = Vec::new();
         for (index, (rank, package)) in self.ranks.iter().zip(packages.iter()).enumerate() {
@@ -981,6 +1006,57 @@ mod tests {
         protobuf::wire::Sizing,
     };
     use super::*;
+
+    #[cfg(all(feature = "audio", feature = "server"))]
+    fn audio_config() -> serde_json::Value {
+        serde_json::json!({"queue_capacity":32,"frontend_workers":8,"max_body_bytes":32 << 20,
+            "frontend":{"audio":{"sample_rate":16000,"mel_bins":128,"fft_size":400,"hop_samples":160,
+                "max_file_bytes":25 << 20,"max_samples":9_600_000,"decode_timeout_millis":60_000,
+                "service_chunk_samples":480_000,"silence_search_samples":16_000,
+                "silence_window_samples":1600,"sample_padding":2,"numerics":1}}})
+    }
+
+    #[cfg(all(feature = "audio", feature = "server"))]
+    #[test]
+    fn audio_future_uses_authenticated_frontend_and_selected_serving_capacities() {
+        let mut config = audio_config();
+        assert_eq!(audio_host_future(&config, 8).unwrap(), 10_707_729_632);
+        assert_eq!(audio_host_future(&config, 4).unwrap(), 9_888_234_704);
+        let mut legacy = config.clone();
+        legacy["frontend"]["audio"].as_object_mut().unwrap().remove("numerics");
+        assert_eq!(audio_host_future(&legacy, 8).unwrap(), 9_167_863_968);
+        legacy["frontend"]["audio"]["numerics"] = 9.into();
+        assert!(audio_host_future(&legacy, 8).is_err());
+        config.as_object_mut().unwrap().remove("queue_capacity");
+        config.as_object_mut().unwrap().remove("frontend_workers");
+        config.as_object_mut().unwrap().remove("max_body_bytes");
+        let defaults = crate::server::ServerConfig::default();
+        assert_eq!(crate::server::frontend_capacities(config.as_object().unwrap()).unwrap(),
+            (defaults.queue_capacity, defaults.frontend_workers, defaults.max_body_bytes));
+        assert_eq!(audio_host_future(&serde_json::json!({}), 8).unwrap(), 0);
+        assert_eq!(audio_host_future(&serde_json::json!({"frontend":{"audio":null}}), 8).unwrap(), 0);
+        for (name, value) in [("queue_capacity", serde_json::json!(u64::MAX)),
+            ("frontend_workers", serde_json::json!(65)), ("max_body_bytes", serde_json::json!(0)),
+            ("queue_capacity", serde_json::json!("32"))] {
+            let mut invalid = audio_config();
+            invalid[name] = value;
+            assert!(audio_host_future(&invalid, 8).is_err());
+        }
+    }
+
+    #[cfg(all(feature = "audio", feature = "server"))]
+    #[test]
+    fn occupied_memory_cap_includes_audio_parents_after_worker_release() {
+        let gib = 1u64 << 30;
+        let memory = MemorySnapshot { free: 100 * gib, total: 120 * gib };
+        let audio = audio_host_future(&audio_config(), 8).unwrap();
+        // The old single staging-window reserve accepts this limit despite
+        // the larger legal host working set. The fixed planner must reject it.
+        assert!(limited_budget(memory, 3 * gib, Some(MemoryLimit::Bytes(12 * gib)),
+            0, true, 31_948_800).is_ok());
+        assert!(limited_budget(memory, 3 * gib, Some(MemoryLimit::Bytes(12 * gib)),
+            0, true, audio + 31_948_800).is_err());
+    }
 
     #[test]
     fn integrated_memory_includes_reclaimable_ram_but_not_swap() {

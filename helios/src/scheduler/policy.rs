@@ -74,6 +74,7 @@ impl RequestAccounting {
 
 #[derive(Clone, Copy)]
 pub(super) struct Candidate {
+    pub initial_prompt_capacity: usize,
     pub draft_tokens: usize,
     pub kind: GraphKind,
     pub mask: u64,
@@ -92,6 +93,7 @@ pub(super) struct Candidate {
 impl Candidate {
     pub(super) fn cost_key(self) -> cost::Key {
         cost::Key { drafts: self.draft_tokens,
+            initial_prompt_capacity: self.initial_prompt_capacity,
             kind: self.kind,
             batch: self.batch,
             tokens: self.capacity,
@@ -129,6 +131,7 @@ impl RequestScheduler {
         let left = physical(smaller);
         let right = physical(larger);
         if smaller.kind != larger.kind || smaller.mask != larger.mask
+            || smaller.initial_prompt_capacity != larger.initial_prompt_capacity
             || smaller.prefill_slot != larger.prefill_slot
             || left == right || left.iter().zip(right).any(|(a, b)| *a > b) {
             return false;
@@ -171,7 +174,7 @@ impl RequestScheduler {
             let candidates = &*candidates;
             let group = |index: &usize| {
                 let candidate = &candidates[*index];
-                (candidate.kind as u8, candidate.mask, candidate.prefill_slot)
+                (candidate.kind as u8, candidate.mask, candidate.prefill_slot, candidate.initial_prompt_capacity)
             };
             let mut order: Vec<_> = (0..candidates.len()).collect();
             order.sort_unstable_by_key(group);
@@ -282,6 +285,7 @@ impl RequestScheduler {
             RequestPhase::Initialize => GraphKind::Init,
             RequestPhase::Restore => GraphKind::Restore,
             RequestPhase::Vision => GraphKind::Vision,
+            RequestPhase::AudioEncode => GraphKind::AudioEncode,
             RequestPhase::Prefill => request.prefill_kind(),
             RequestPhase::Resume => GraphKind::Resume,
             RequestPhase::Decode if self.speculative_widths.is_empty() => GraphKind::Decode,
@@ -294,7 +298,7 @@ impl RequestScheduler {
     pub(super) fn eligible(&self, request: &LiveRequest) -> bool {
         if request.window_snapshot_ready
             || self.request_kind(request).is_none()
-            || (request.phase == RequestPhase::Vision && !request.conditioned_inputs_ready)
+            || (matches!(request.phase, RequestPhase::Vision | RequestPhase::AudioEncode) && !request.conditioned_inputs_ready)
         {
             return false;
         }
@@ -318,6 +322,14 @@ impl RequestScheduler {
 
     fn prefill_catalog(&self, kind: GraphKind) -> &[usize] {
         if kind == GraphKind::ScoredPrefill { &self.scored_prefill_catalog } else { &self.prefill_catalog }
+    }
+
+    fn encoder_catalog(&self, kind: GraphKind) -> &[usize] {
+        match kind {
+            GraphKind::Vision => &self.capabilities.vision.patch_capacities,
+            GraphKind::AudioEncode => self.capabilities.audio.as_ref().map_or(&[], |audio| audio.frame_capacities.as_slice()),
+            _ => &[],
+        }
     }
 
     pub(super) fn prefill_work(&self, request: &LiveRequest, capacity: usize) -> usize {
@@ -461,7 +473,7 @@ impl RequestScheduler {
                 if work == 0 {
                     continue;
                 }
-                if let Some(ns) = self.costs.duration(kind, 1, capacity) {
+                if let Some(ns) = self.costs.prefill_duration(kind, capacity, r.initial_prompt_capacity) {
                     consider(
                         ns,
                         value.prefill(
@@ -560,16 +572,13 @@ impl RequestScheduler {
             }
             following = following.saturating_add(restore);
         }
-        let patches = next_window.map_or(&r.vision_patches, |window| &window.patches);
-        let skip = usize::from(kind == GraphKind::Vision);
-        for patches in patches.iter().skip(skip) {
-            let cost = self
-                .capabilities
-                .vision
-                .patch_capacities
+        let jobs = next_window.map_or(&r.encoder_jobs, |window| &window.encodings);
+        let skip = usize::from(matches!(kind, GraphKind::Vision | GraphKind::AudioEncode));
+        for job in jobs.iter().skip(skip) {
+            let cost = self.encoder_catalog(job.operation())
                 .iter()
-                .filter(|n| *n >= patches)
-                .filter_map(|n| self.costs.duration(GraphKind::Vision, 1, *n))
+                .filter(|n| **n >= job.units())
+                .filter_map(|n| self.costs.duration(job.operation(), 1, *n))
                 .min()
                 .unwrap_or(0);
             if cost == 0 {
@@ -583,8 +592,8 @@ impl RequestScheduler {
     fn following_kind(&self, r: &LiveRequest, kind: GraphKind) -> Option<GraphKind> {
         let phase = match kind {
             GraphKind::Snapshot => r.boundary_capture?.resume,
-            GraphKind::Init | GraphKind::Restore | GraphKind::Vision => {
-                if r.vision_patches.len() > usize::from(kind == GraphKind::Vision) {
+            GraphKind::Init | GraphKind::Restore | GraphKind::Vision | GraphKind::AudioEncode => {
+                if r.encoder_jobs.len() > usize::from(matches!(kind, GraphKind::Vision | GraphKind::AudioEncode)) {
                     return None;
                 }
                 if r.consumed_tokens == r.prompt_tokens as u64 {
@@ -615,7 +624,7 @@ impl RequestScheduler {
     ) -> Option<(u64, ValueRate)> {
         if !matches!(
             kind,
-            GraphKind::Init | GraphKind::Restore | GraphKind::Snapshot | GraphKind::Vision
+            GraphKind::Init | GraphKind::Restore | GraphKind::Snapshot | GraphKind::Vision | GraphKind::AudioEncode
         ) {
             return None;
         }
@@ -638,9 +647,11 @@ impl RequestScheduler {
             selected | best_cohort::<REQUEST_LANES>(&remaining[..n], capacity - count)
         };
         let mut best: Option<(u64, ValueRate)> = None;
-        let mut consider = |following, batch, width, prefill| {
+        let mut consider = |following: GraphKind, batch, width, prefill, initial| {
             let ns = if following == GraphKind::Speculative {
                 self.costs.duration(GraphKind::Speculative, batch, width).into_iter().chain(self.costs.packed_round_duration(batch, width)).min()
+            } else if following.is_prefill() {
+                self.costs.prefill_duration(following, width, initial)
             } else { self.costs.shape_duration(following, batch, width, prefill) };
             let Some(ns) = ns else {
                 return;
@@ -694,6 +705,7 @@ impl RequestScheduler {
                 } else {
                     continue;
                 };
+                if role.is_prefill() && request.initial_prompt_capacity != initial { continue; }
                 let extent = if mixed && role == GraphKind::Prefill {
                     prefill
                 } else {
@@ -749,26 +761,30 @@ impl RequestScheduler {
             }
         };
         for &width in &self.prefill_catalog {
-            consider(GraphKind::Prefill, 1, width, 0);
+            for &initial in &self.initial_prompt_capacities {
+                consider(GraphKind::Prefill, 1, width, 0, initial);
+            }
         }
         for &width in &self.scored_prefill_catalog {
-            consider(GraphKind::ScoredPrefill, 1, width, 0);
+            for &initial in &self.initial_prompt_capacities {
+                consider(GraphKind::ScoredPrefill, 1, width, 0, initial);
+            }
         }
         for batch in crate::execution::BATCH_CAPACITIES
             .into_iter()
             .take_while(|b| *b <= self.limits.max_active.next_power_of_two())
         {
-            consider(GraphKind::Resume, batch, 1, 0);
+            consider(GraphKind::Resume, batch, 1, 0, 0);
             if self.speculative_widths.is_empty() {
-                consider(GraphKind::Decode, batch, 1, 0);
+                consider(GraphKind::Decode, batch, 1, 0, 0);
             } else {
                 for &width in &self.speculative_catalog[batch.ilog2() as usize] {
-                    consider(GraphKind::Speculative, batch, width, 0);
+                    consider(GraphKind::Speculative, batch, width, 0, 0);
                 }
             }
         }
         for &(batch, width, prefill) in &self.mixed_catalog {
-            consider(GraphKind::Mixed, batch, width, prefill);
+            consider(GraphKind::Mixed, batch, width, prefill, 0);
         }
         let mut terminal = [(0, 0.0); REQUEST_LANES];
         let mut count = 0;
@@ -838,7 +854,27 @@ impl RequestScheduler {
         values: &[LaneValue; REQUEST_LANES],
         age_price: f64,
     ) {
-        let Some(duration_ns) = self.costs.duration(kind, batch, capacity) else {
+        if kind.is_prefill() {
+            for &initial in &self.initial_prompt_capacities {
+                let matching = bits(mask).filter(|&slot|
+                    self.slots[slot].request.as_ref().unwrap().initial_prompt_capacity == initial)
+                    .fold(0, |mask, slot| mask | (1 << slot));
+                self.add_candidate_at_initial_prompt_capacity(output, kind, batch, capacity,
+                    matching, values, age_price, initial);
+            }
+        } else {
+            self.add_candidate_at_initial_prompt_capacity(output, kind, batch, capacity,
+                mask, values, age_price, 0);
+        }
+    }
+
+    fn add_candidate_at_initial_prompt_capacity(
+        &self, output: &mut Vec<Candidate>, kind: GraphKind, batch: usize, capacity: usize,
+        mask: u64, values: &[LaneValue; REQUEST_LANES], age_price: f64, initial: usize,
+    ) {
+        let duration = if kind.is_prefill() { self.costs.prefill_duration(kind, capacity, initial) }
+            else { self.costs.duration(kind, batch, capacity) };
+        let Some(duration_ns) = duration else {
             return;
         };
         let mut offers = [(0usize, 0.0); REQUEST_LANES];
@@ -857,7 +893,7 @@ impl RequestScheduler {
                     continue;
                 }
             }
-            if kind == GraphKind::Vision && capacity < r.vision_patches[0] {
+            if matches!(kind, GraphKind::Vision | GraphKind::AudioEncode) && capacity < r.encoder_jobs[0].units() {
                 continue;
             }
             offers[count] = (
@@ -878,6 +914,7 @@ impl RequestScheduler {
         let drafts = if kind == GraphKind::Speculative { capacity - 1 } else { 0 };
         let packed = if kind == GraphKind::Speculative { batch * capacity } else { 0 };
         let feedback = !self.costs.is_fresh(cost::Key { drafts,
+            initial_prompt_capacity: initial,
             kind, batch, tokens: capacity, prefill: 0, packed,
         })
             || !matches!(kind, GraphKind::Decode | GraphKind::Speculative)
@@ -902,7 +939,8 @@ impl RequestScheduler {
                 age_price,
             )
             .unwrap_or_else(|| (selected, ValueRate::new(duration_ns, expected, age_price)));
-        output.push(Candidate { host_lengths: None, draft_tokens: drafts, packed_token_capacity: packed,
+        output.push(Candidate { initial_prompt_capacity: initial,
+            host_lengths: None, draft_tokens: drafts, packed_token_capacity: packed,
             kind,
             mask: selected,
             batch,
@@ -939,6 +977,7 @@ impl RequestScheduler {
             GraphKind::Prefill,
             GraphKind::ScoredPrefill,
             GraphKind::Vision,
+            GraphKind::AudioEncode,
             GraphKind::Init,
             GraphKind::Restore,
             GraphKind::Snapshot,
@@ -964,8 +1003,8 @@ impl RequestScheduler {
                 for &capacity in self.prefill_catalog(kind) {
                     self.add_candidate(output, kind, 1, capacity, mask, values, age_price);
                 }
-            } else if kind == GraphKind::Vision {
-                for &capacity in &self.capabilities.vision.patch_capacities {
+            } else if matches!(kind, GraphKind::Vision | GraphKind::AudioEncode) {
+                for &capacity in self.encoder_catalog(kind) {
                     self.add_candidate(output, kind, 1, capacity, mask, values, age_price);
                 }
             } else {
@@ -1068,7 +1107,7 @@ impl RequestScheduler {
                 if mask == 0 {
                     continue;
                 }
-                output.push(Candidate { host_lengths: None, draft_tokens: 0, packed_token_capacity: 0,
+                output.push(Candidate { initial_prompt_capacity: 0, host_lengths: None, draft_tokens: 0, packed_token_capacity: 0,
                     kind: GraphKind::Mixed,
                     mask,
                     batch,
@@ -1199,7 +1238,8 @@ impl RequestScheduler {
             estimated_duration_ns: candidate.duration_ns,
             selection_value_rate: candidate.rate.score,
             selection_log_scale: log_scale,
-            step: ScheduledStep { draft_tokens: candidate.draft_tokens, packed_token_capacity: candidate.packed_token_capacity,
+            step: ScheduledStep { initial_prompt_capacity: candidate.initial_prompt_capacity,
+                draft_tokens: candidate.draft_tokens, packed_token_capacity: candidate.packed_token_capacity,
                 kind: candidate.kind,
                 batch_capacity: candidate.batch,
                 token_capacity: candidate.capacity,
@@ -1224,6 +1264,17 @@ impl RequestScheduler {
         kind: GraphKind,
         request: Option<RequestHandle>,
     ) -> ScheduledPlan {
+        self.try_phase_plan(kind, request, None)
+            .expect("requested lifecycle operation must be feasible")
+    }
+
+    #[cfg(test)]
+    pub(crate) fn try_phase_plan(
+        &self,
+        kind: GraphKind,
+        request: Option<RequestHandle>,
+        batch_capacity: Option<usize>,
+    ) -> Option<ScheduledPlan> {
         let (values, age_price, scale) = self.lane_values(0);
         let mask = self
             .slots
@@ -1243,13 +1294,24 @@ impl RequestScheduler {
             .fold(0, |a, b| a | b);
         let mut candidates = Vec::new();
         if kind.is_prefill() {
+            if batch_capacity.is_some_and(|batch| batch != 1) {
+                return None;
+            }
             for &capacity in self.prefill_catalog(kind) {
+                self.add_candidate(&mut candidates, kind, 1, capacity, mask, &values, age_price);
+            }
+        } else if matches!(kind, GraphKind::Vision | GraphKind::AudioEncode) {
+            if batch_capacity.is_some_and(|batch| batch != 1) {
+                return None;
+            }
+            for &capacity in self.encoder_catalog(kind) {
                 self.add_candidate(&mut candidates, kind, 1, capacity, mask, &values, age_price);
             }
         } else {
             for batch in crate::execution::BATCH_CAPACITIES
                 .into_iter()
                 .take_while(|b| *b <= self.limits.max_active.next_power_of_two())
+                .filter(|batch| batch_capacity.is_none_or(|wanted| wanted == *batch))
             {
                 self.add_candidate(&mut candidates, kind, batch, 1, mask, &values, age_price);
             }
@@ -1261,10 +1323,9 @@ impl RequestScheduler {
                     .compare(b.rate)
                     .then(a.mask.count_ones().cmp(&b.mask.count_ones()))
                     .then(b.batch.cmp(&a.batch))
-            })
-            .expect("requested lifecycle operation must be feasible");
+            })?;
         let origin = if candidate.rate.duration_ns == 0 { PlanOrigin::Discovery } else { PlanOrigin::Ordinary };
-        self.materialize(candidate, scale, origin)
+        Some(self.materialize(candidate, scale, origin))
     }
 }
 

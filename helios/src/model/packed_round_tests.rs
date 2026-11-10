@@ -118,10 +118,10 @@ fn packed_combined_packing_preserves_sparse_slot_keys_and_ceiling_padding() {
     let mut handles = Vec::new();
     for _ in 0..4 {
         let prompt = vec![7; 64];
-        let h = scheduler.admit(RequestSpec { prompt_logprobs: false, message_boundaries: vec![], prompt: prompt.clone(), conditioning: vec![],
+        let h = scheduler.admit(RequestSpec { prefix_scope: None, prompt_logprobs: false, message_boundaries: vec![], initial_prompt_tokens: prompt.len(), prompt: prompt.clone(), conditioning: vec![],
             max_new_tokens: 64, grammar_constrained: false, host_stops: false, growable_output: false }).unwrap();
         admissions[h.slot as usize] = Some(Admission { prompt_logprobs: false, handle: h, sampling: SamplingParameters::default(),
-            max_new_tokens: 64, prompt, data: PromptData { positions: (0..64).map(|i| [i; 3]).collect(),
+            max_new_tokens: 64, prompt, data: PromptData { audio_token_indices: Vec::new(), positions: (0..64).map(|i| [i; 3]).collect(),
                 vision_token_indices: vec![-1; 64], ..Default::default() }, grammar_mask: None, ignore_eos: true });
         handles.push(h);
     }
@@ -182,7 +182,7 @@ fn speculative_allocation_and_feedback_follow_each_program_inputs() {
         graph.token_capacity, graph.packed_token_capacity, crate::execution::PrefixAllocation::Host)));
     assert_eq!(capabilities.completion_inputs.len(), 1);
     assert_eq!(capabilities.completion_inputs[0].0,
-        (graph.kind, graph.batch_capacity, graph.draft_tokens, graph.token_capacity, graph.packed_token_capacity, 0));
+        (graph.kind, graph.batch_capacity, graph.draft_tokens, graph.token_capacity, graph.packed_token_capacity, 0, 0));
 }
 
 #[test]

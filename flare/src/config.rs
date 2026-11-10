@@ -33,6 +33,7 @@ pub(crate) struct Configuration {
     models: HashMap<String, Model>,
     memory: Memory,
     prefix_cache: PrefixCache,
+    prepared_input_cache: PreparedInputCache,
     paths: Paths,
 }
 
@@ -60,10 +61,17 @@ struct Memory {
 #[derive(Default, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 struct PrefixCache {
+    reuse: Option<flare_helios::server::PrefixCacheReuse>,
     memory: Option<String>,
     disk_limit: Option<String>,
     drain_on_shutdown: Option<String>,
     max_age: Option<String>,
+}
+
+#[derive(Default, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+struct PreparedInputCache {
+    mode: Option<flare_helios::server::PreparedInputCacheMode>,
 }
 
 #[derive(Default, Deserialize)]
@@ -148,6 +156,12 @@ impl Configuration {
                 if serving.memory_limit.is_none() {
                     serving.memory_limit = size(self.memory.reserve.as_deref(), "memory.reserve")?
                         .map(MemoryLimit::Reserve);
+                }
+                if serving.prefix_cache_reuse.is_none() {
+                    serving.prefix_cache_reuse = self.prefix_cache.reuse;
+                }
+                if serving.prepared_input_cache.is_none() {
+                    serving.prepared_input_cache = self.prepared_input_cache.mode;
                 }
                 if serving.prefix_cache_memory.is_none() {
                     serving.prefix_cache_memory = size(
@@ -295,6 +309,49 @@ mod tests {
         };
         config.apply_model(&mut run.serving, names).unwrap();
         (config, *run)
+    }
+
+    #[test]
+    fn prefix_reuse_defaults_config_precedence_and_rank_forwarding() {
+        use flare_helios::server::PrefixCacheReuse::{Request, Shared};
+        let args = ["flare", "run", "model.safetensors"];
+        let (_, run) = configured("", &args, &[]);
+        assert_eq!(run.prefix_cache_reuse, None);
+        let (_, run) = configured("[prefix_cache]\nreuse='request'", &args, &[]);
+        assert_eq!(run.prefix_cache_reuse, Some(Request));
+        let forwarded = run.serving.rank_options(crate::cluster::Shape::Mesh);
+        let peer_args: Vec<_> = std::iter::once("flare").chain(std::iter::once("run"))
+            .chain(std::iter::once("model.safetensors"))
+            .chain(forwarded.iter().map(String::as_str)).collect();
+        let (_, peer) = configured("", &peer_args, &[]);
+        assert_eq!(peer.prefix_cache_reuse, Some(Request));
+        let (_, run) = configured("[prefix_cache]\nreuse='request'",
+            &["flare", "run", "model.safetensors", "--prefix-cache-reuse", "shared"], &[]);
+        assert_eq!(run.prefix_cache_reuse, Some(Shared));
+        assert!(Configuration::parse("[prefix_cache]\nreuse='off'").is_err());
+    }
+
+    #[test]
+    fn input_tiers_are_explicit_and_independent_of_prefix_reuse() {
+        use flare_helios::server::{PreparedInputCacheMode as Mode, PrefixCacheReuse};
+        let args = ["flare", "run", "model.safetensors"];
+        let (_, run) = configured("", &args, &[]);
+        assert_eq!(run.prepared_input_cache, None);
+        for (name, mode) in [("off", Mode::Off), ("preprocessed", Mode::Preprocessed),
+            ("encoded", Mode::Encoded), ("both", Mode::Both)] {
+            let config = format!("[prepared_input_cache]\nmode='{name}'\n[prefix_cache]\nreuse='request'");
+            let (_, run) = configured(&config, &args, &[]);
+            assert_eq!(run.prepared_input_cache, Some(mode));
+            assert_eq!(run.prefix_cache_reuse, Some(PrefixCacheReuse::Request));
+            assert_eq!(run.serving.load_options(None).prepared_input_cache, Some(mode));
+            let forwarded = run.serving.rank_options(crate::cluster::Shape::Mesh);
+            let peer: Vec<_> = args.into_iter().chain(forwarded.iter().map(String::as_str)).collect();
+            assert_eq!(configured("", &peer, &[]).1.prepared_input_cache, Some(mode));
+            let (_, override_run) = configured(&config,
+                &["flare", "run", "model.safetensors", "--prepared-input-cache", "off"], &[]);
+            assert_eq!(override_run.prepared_input_cache, Some(Mode::Off));
+        }
+        assert!(Configuration::parse("[prepared_input_cache]\nmode='unknown'").is_err());
     }
 
     #[test]

@@ -88,6 +88,60 @@ completions, and duplicate or out-of-order completion rejection. Retained plans
 exercise commit rejection with a full window or pending feedback barrier. Rejected
 operations preserve the test's observed state.
 
+`scheduler_audio_matches_lifecycle_model` adds cold-start and decode-start audio
+fixtures with two request slots and one feature arena. Cold start uses the
+default policy. Decode start is seeded through real scheduler operations under
+a policy configured before admission with equal token prices and zero delivery
+age price; the policy remains fixed throughout that fixture. Uniform synthetic
+microsecond graph costs are for ownership exploration, not serving fairness.
+Both fixtures retain depth 12, four further submissions and two generations.
+The worker's immediate admission/input-binding sequence is one exploration
+turn. A failed arena binding emits separate admission and cancellation edges;
+the intermediate state is asserted but is not a concurrent exploration point.
+
+The audio test retains the 14-field TLA projection and checks each transition
+against the original `Lifecycle` relation. Additional bounded Rust assertions
+check the complete disjoint free/live/retiring audio-arena partition, stable
+request generations and increasing scheduler revisions, exact retirement fences,
+zero-token encoder completion and one-job
+retirement, and arena retention through subsequent text work. The visited key
+includes audio owners, free arenas, encoder queues, readiness and conditioned
+windows. The TLA model does not include arena fields; its pass does not prove
+these new Rust assertions, physical GPU reads or executor drain. The mutation
+runner additionally removes audio ownership transfer/return and encoder-job
+retirement, and shortens the audio retirement fence.
+
+The audio exploration also satisfies complete conditioned-input prerequisites
+through the real scheduler ticket API, assuming the external feature upload has
+finished. This transition is a strict stutter in the 14-field ownership model:
+it creates no graph submission or completion and releases no arena, page or slot.
+Separate Rust assertions require an increased request epoch, retired encoder
+jobs and progression to text prefill, with unchanged tokens and ownership.
+Cancellation, reuse, queued work and failed drains continue from these states.
+These checks do not establish the external CUDA copy or its fence. The single
+worker retains arena ownership throughout its synchronous upload; a concurrent
+client may set a cancellation flag but cannot retire scheduler storage itself.
+
+`scheduler_initial_prompt_extents_match_lifecycle_model` repeats the text
+exploration with the same bounds and unchanged fourteen-field TLA projection.
+Its closed C×M catalog has initial extents64/128/2048. The two slots use63/65-token
+prompts and exchange those lengths on the second generation. Additional Rust
+assertions retain original N and its admitted C through every explored state,
+include them in the visited-state key, and check every queued graph's exact C.
+This covers positive-C cancellation, completion, stale plans, slot reuse and
+drains, with required witnesses for positive-C prefill submission/completion,
+queued cancellation, both drain outcomes and reuse with a changed initial extent.
+The deterministic cross-generation stale-plan control holds a decode(C0) plan;
+it does not prove rejection of a positive-C prefill plan after slot reuse.
+The mutation runner omits the real admitted-C commit guard and requires the
+wrong-extent admission/commit test to fail; it also drops C while enqueuing an
+actual submission and requires the positive-C lifecycle assertion to fail.
+These checks do not prove physical CUDA binding or audio-arena behavior with C.
+The mutation runner also removes C from the actual admission history and
+requires the same-N/different-C host-store regression to reject the collision.
+That regression exercises MemoryStore and reopened DiskStore records with the
+production scheduler histories; its byte copier remains a CPU simulation.
+
 ## Response ownership
 
 `ResponseLifecycle.tla` checks three reusable response cells, two host admission
@@ -132,6 +186,40 @@ Response mutations remove either producer or reader permit ownership, undercount
 a generation group's admission, shrink the queue below its promised budget, and
 release a model reservation when only its producer has retired. Each fault must
 fail the corresponding Rust assertion or TLA+ admission invariant.
+
+## Asynchronous admission credits
+
+`AdmissionWaiters.tla` complements the response ownership model with one ordinary
+generation and one asynchronous single-choice waiter. Host capacity one and two
+are checked separately; message capacity is one. A waiter can be waiting for
+host admission, holding host admission while waiting for message capacity, or
+holding a credit already assigned by a semaphore before its future is polled.
+The model distinguishes these assignments from free credits. Message ownership
+ends at `Worker::enqueue`; producer and response reader share host ownership.
+Cancellation and both runtime-stop and worker-exit closure retain every credit
+until the corresponding owner actually releases it.
+
+`admission_waiter_tests::admission_waiters_match_credit_model` drives the actual
+`generate`, `generate_when_available`, `Worker::enqueue`, destructors,
+`request_stop` and `CloseAdmission`. It observes both semaphore availabilities,
+producer location, reader ownership and cancellation. A polled pending future's
+stage is inferred from the observed host balance, not by inspecting Tokio's
+internal state. With one waiter, otherwise unaccounted semaphore credits identify
+its assigned credit uniquely; assertions reject any residual when no eligible
+waiter exists. Allowed-edge checks and mutation controls additionally test that
+this inferred accounting follows the production operations.
+The thirteen-integer projection is checked against every observed model edge.
+The native exploration also exercises each capacity through 100 reuse cycles.
+There is no lifetime admission-count cutoff in the abstract model.
+
+This is a bounded host protocol check. It does not prove Tokio internals,
+multiple-waiter fairness, HTTP disconnect propagation, or CUDA drain. Existing
+FIFO and transcription parent tests exercise additional host paths; physical
+GPU ownership and mixed-service latency still require native execution.
+Mutation calibration loses each assigned credit, omits held-host return,
+leaks the real waiting host reservation, retains worker message credit, and
+omits each production message-pool close. The runner restores source before
+rechecking real transitions.
 
 ## Rank coordination
 
@@ -314,6 +402,63 @@ serving path. Kani 0.68.0 uses CBMC 6.11.0 and nightly-2026-08-21. Automatic
 safety and unwinding checks remain enabled. The completion harnesses use unwind
 bound 20, the 65-token mask-boundary harness uses 66, and the state-view
 harnesses use 16.
+
+For the audio arithmetic, a separately qualified solver route uses CVC5 1.4.2
+(commit `282d5e0`) with `--solve-bv-as-int=sum --check-models`. CBMC 6.11 needs
+its [overflow-expression lowering fix](https://github.com/diffblue/cbmc/pull/9145).
+This is not a stock Kani/Bitwuzla result. The `bitwuzla` selector below chooses
+CBMC's SMT dialect; the external process actually runs CVC5 from `PATH`.
+CVC5's [IntBlaster](https://github.com/cvc5/cvc5/blob/282d5e0/src/theory/bv/int_blaster.cpp)
+retains unsigned ranges and modular semantics, but uses a trusted translation
+without an independently checkable complete proof certificate.
+
+```sh
+cargo kani --manifest-path helios/Cargo.toml --lib \
+  --harness model::contract::kani_proofs:: --solver bitwuzla \
+  --cbmc-args --external-smt2-solver /absolute/repository/path/verification/helios-lifecycle/cvc5_smt.py
+```
+
+The [restricted input adapter](cvc5_smt.py) removes only an isolated zero-width
+constant declaration and its sole single-value model query. It rejects any such
+symbol used by a constraint, compound query or additional declaration, and
+checks that every retained command and assertion stays byte-identical.
+Its ordinary tests validate that transformation, not the solver. Before using
+an alternative toolchain's result, separately run positive and deliberately
+false solver/CBMC controls, including unsigned maxima, zero divisors, modular
+overflow and the actual overflow-lowering regression. Record the real versions,
+all selected harnesses and unresolved checks. A partial run, timeout, missing
+result or unsupported input cannot establish a complete module result.
+
+The eighteen audio stride harnesses use arbitrary target-width capacity, chunk,
+window, subsampling, Mel and feature geometry, partitioned into empty, one-entry
+and two-entry frame catalogs. Four arithmetic first-failure cases, an accepted
+geometry case and an
+independent catalog-rejection property cover every integer assignment without
+restricting the inputs. Catalog rejection does not require preceding arithmetic
+to be valid: it checks all malformed catalogs regardless of the other geometry.
+The other cases cover the catalog-valid complement. They assert the derived
+`chunk <= window <= i32::MAX` bound after scalar validation, without assuming it
+or changing the original arbitrary `usize` inputs. For a representable ceiling
+numerator, `factor >= chunk` uses the independent algebraic quotient one.
+Each active case invokes the production validator and
+retains the returned `Result` in `ManuallyDrop`: it checks error construction and
+the rejection value through return, excluding caller-side destruction of that
+diagnostic. The audio fixture and frame catalog are still dropped normally.
+These properties do not prove leak freedom or safety of the returned error destructor.
+An independent wide-arithmetic oracle checks the production capacity validator's
+acceptance/rejection and BF16 row extent, including checked intermediate
+arithmetic. Only overflow arithmetic uses `u128`; division uses target-width
+integers after checking the target-width numerator against the wide sum.
+Supplemental `u32` arithmetic lemmas retain their explicit smaller domains;
+they never stub or replace the full target-width validator obligations.
+The additional `factor >= chunk` and `factor < chunk` partitions retain both
+complements alongside the unsplit obligations; one partition alone cannot
+establish the full property. Empty catalogs still exercise scalar rejection,
+but cannot reach the ceiling, window, extent or acceptance cases. Those four
+proofs are vacuous for empty catalogs and do not establish positive acceptance
+examples. The harnesses
+do not cover longer frame catalogs, manifest lookup or complete
+package validation; ordinary contract and packing tests cover those seams.
 
 The vector safety harness supplies arbitrary `i64` fields and token IDs in
 owned vectors of every length zero through sixteen, including inactive and

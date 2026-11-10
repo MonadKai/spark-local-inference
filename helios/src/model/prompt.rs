@@ -16,6 +16,12 @@ use crate::{
 };
 use serde_json::{Map, Value};
 
+#[cfg(feature = "audio")]
+#[path = "prompt/audio.rs"]
+mod audio;
+#[cfg(feature = "audio")]
+pub use audio::prepare_audio_input;
+
 pub fn prepare_input(
     config: &ModelConfig,
     frontend: &Frontend,
@@ -95,7 +101,7 @@ pub fn prepare_image_inputs(
             PreparedInput {
                 tokens: rendered.token_ids.clone(),
                 token_expansions: vec![],
-                data: PromptData {
+                data: PromptData { audio_token_indices: Vec::new(),
                     positions: if config.contract.frontend.position_dimensions == 3 {
                         (0..rendered.token_ids.len())
                             .map(|p| [p as i64; 3])

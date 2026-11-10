@@ -532,7 +532,9 @@ def prepare_rank(snapshot: Path, config: PreparationConfig, *, rank, group, prog
                     fields = row_inputs if mode == "snapshot" else ("request_state_rows", *admission.__dataclass_fields__)
                     add(name, operation, mode, capacity, 1, (*fields, "page_tables", *(("draft_page_tables",) if enabled else ()), *commands.buffers()), enabled=enabled)
     memory(f"after graph catalog (operator scratch {arena.nbytes >> 20} MiB)")
-    with phase(progress, "Prepare and tune kernels") as stage, transient:
+    from ignition.preparation.failure import retain_on_failed_drain
+
+    with retain_on_failed_drain(device, session, forwards, weights, package_storage, transient), phase(progress, "Prepare and tune kernels") as stage, transient:
         tuning = session.tune(show_progress=progress is not None and rank == 0, console=stage.console)
     report(f"selected kernels: {tuning['selection_counts']}")
     report(f"after tuning: free={torch.cuda.mem_get_info(device)[0] >> 20} MiB, "

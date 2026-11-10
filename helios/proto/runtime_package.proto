@@ -190,6 +190,21 @@ message ModelContract {
   CacheContract cache = 5;
   repeated GraphContract graphs = 6;
   FrontendContract frontend = 7;
+  AudioCapacity audio = 8;
+}
+message AudioCapacity {
+  uint64 feature_slots = 1;
+  uint64 features_per_request = 2;
+  uint64 feature_width = 3;
+  repeated uint64 frame_capacities = 4;
+  uint64 mel_bins = 5;
+  uint64 frames_per_chunk = 6;
+  uint64 features_per_chunk = 7;
+  uint64 subsampling_factor = 8;
+  uint64 attention_window_frames = 9;
+  StateView features = 10;
+  StateView generations = 11;
+  StateView counts = 12;
 }
 message VisionCapacity {
   // Zero inherits prepared execution concurrency when max_images is nonzero.
@@ -211,6 +226,9 @@ message CacheContract {
   uint64 page_tokens = 1;
   repeated HistoryRegion regions = 2;
   repeated PageTableView page_tables = 3;
+  // Immutable request inputs that condition every nonempty history boundary.
+  // Empty preserves existing prefix and offload identity bytes.
+  repeated ValueSource immutable_request_values = 4;
 }
 message HistoryRegion {
   HistoryKind kind = 1;
@@ -265,6 +283,22 @@ enum ValueSource {
   PROMPT_TARGET_TOKEN = 39;
   // Immutable per-request query-length ceiling for GPU-owned packed allocation.
   SPECULATIVE_PREFIX_LIMIT = 40;
+  AUDIO_TENSOR = 41;
+  AUDIO_FEATURE_INDEX = 42;
+  AUDIO_FEATURE_SLOT = 43;
+  // Token count after the initial prompt's feature expansion, before generation.
+  INITIAL_PROMPT_TOKENS = 44;
+}
+enum AudioTensorKind {
+  AUDIO_TENSOR_UNSPECIFIED = 0;
+  AUDIO_LOG_MEL = 1;
+  AUDIO_VALID_FRAMES = 2;
+  AUDIO_CONVOLUTION_WIDTH = 3;
+  AUDIO_GATHER_INDICES = 4;
+  AUDIO_CUMULATIVE_LENGTHS = 5;
+  AUDIO_FEATURE_COUNT = 6;
+  AUDIO_FEATURE_OFFSET = 7;
+  AUDIO_TOTAL_INPUT_FRAMES = 8;
 }
 enum InputIndexing {
   INDEXING_UNSPECIFIED = 0;
@@ -281,6 +315,7 @@ message ValueBinding {
   sint64 value_offset = 4;
   sint64 padding = 5;
   string tensor = 6;
+  optional AudioTensorKind audio_tensor = 7;
 }
 enum StateAccessKind {
   STATE_ACCESS_UNSPECIFIED = 0;
@@ -316,7 +351,7 @@ enum GraphOperation {
   reserved 10, 11, 13;
   reserved "PROPOSAL", "VERIFICATION", "PACKED_SPECULATIVE";
   SCORED_PREFILL = 12;
-
+  AUDIO_ENCODE = 14;
 }
 message TunedBinding { string buffer = 1; string tuning_graph = 2; }
 message GraphContract {
@@ -417,6 +452,54 @@ message FrontendContract {
   repeated string message_end_markers = 8;
   PrefixBoundary prefix_boundary = 9;
   ImageTokenLayout image_tokens = 10;
+  optional AudioPreparationKind audio_preparation = 11;
+  AudioTokenLayout audio_tokens = 12;
+  TranscriptionFormat transcription = 13;
+  // Absent preserves unsigned seed/default parsing in existing packages.
+  optional RequestSeedSyntax request_seed_syntax = 14;
+}
+enum RequestSeedSyntax {
+  REQUEST_SEED_UNSPECIFIED = 0;
+  // Nullable signed int64; -1 is unseeded, other negatives retain their bits.
+  SIGNED64_OPTIONAL = 1;
+}
+// Fixed prompt/output syntax. These fields never select model computation or
+// scheduling, sampling, cache, graph or completion policy.
+message TranscriptionFormat {
+  string context_prefix = 1;
+  string context_suffix = 2;
+  string audio_prefix = 3;
+  string audio_suffix = 4;
+  string assistant_prefix = 5;
+  string language_prefix = 6;
+  string text_delimiter = 7;
+  repeated TranscriptionLanguage languages = 8;
+  string default_separator = 9;
+  ControlMarkerSyntax sanitization = 10;
+}
+message TranscriptionLanguage {
+  string code = 1;
+  string label = 2;
+  string chunk_separator = 3;
+}
+// Each round removes leftmost nonoverlapping complete markers simultaneously,
+// then does the same for text_delimiter, until stable. The body is nonempty
+// and excludes one Unicode character. Prefix ends with that character exactly
+// once; suffix starts with it exactly once. This finite syntax permits bounded
+// seam-based processing; it is data, not an executable regular expression.
+message ControlMarkerSyntax {
+  string prefix = 1;
+  string suffix = 2;
+  string excluded_body_character = 3;
+}
+enum AudioPreparationKind {
+  AUDIO_PREPARATION_UNSPECIFIED = 0;
+  CENTERED_SLANEY_LOG_MEL = 1;
+}
+message AudioTokenLayout {
+  uint32 feature_token = 1;
+  uint32 start_token = 2;
+  uint32 end_token = 3;
 }
 message Cluster {
   uint32 world = 1;
@@ -460,6 +543,34 @@ message FrontendSettings {
   TemplateEncoding template_encoding = 4;
   PromptEncoder prompt_encoder = 5;
   optional uint32 image_placeholder_token_id = 6;
+  AudioSettings audio = 7;
+}
+message AudioSettings {
+  uint32 sample_rate = 1;
+  uint32 mel_bins = 2;
+  uint32 fft_size = 3;
+  uint32 hop_samples = 4;
+  uint64 max_file_bytes = 5;
+  uint64 max_samples = 6;
+  uint64 decode_timeout_millis = 7;
+  uint64 service_chunk_samples = 8;
+  uint64 silence_search_samples = 9;
+  uint64 silence_window_samples = 10;
+  AudioSamplePadding sample_padding = 11;
+  AudioNumerics numerics = 12;
+}
+// Numerical semantics of the CPU feature transform, independent of model or
+// scheduler identity. Zero retains every existing package's arithmetic.
+enum AudioNumerics {
+  AUDIO_NUMERICS_LEGACY = 0;
+  // FP32 Hann nodes, vectorized full-extent PocketFFT, FMA Mel and SLEEF log10.
+  // Currently requires Linux AArch64 SVE; unsupported hosts reject startup.
+  AUDIO_NUMERICS_FP32_FMA = 1;
+}
+enum AudioSamplePadding {
+  AUDIO_SAMPLE_PADDING_UNSPECIFIED = 0;
+  AUDIO_SAMPLE_PADDING_NONE = 1;
+  AUDIO_SAMPLE_PADDING_HOP_MULTIPLE = 2;
 }
 enum PromptEncoder {
   PROMPT_JINJA = 0;
@@ -733,6 +844,9 @@ message ExecutionGraph {
   // Number of confidence prefixes produced per request in the selected completion frame.
   uint32 confidence_width = 14;
   repeated TunedBinding tuned_bindings = 15;
+  // Physical initial-prompt extent of prefill arithmetic, independent of the
+  // current fragment. Zero preserves the unpartitioned historical catalog.
+  uint64 initial_prompt_capacity = 16;
 }
 enum DraftSource { NO_DRAFT = 0; MTP = 1; COPY_DRAFT = 2; }
 message InputBinding { string buffer_name = 1; uint64 host_offset = 2; uint64 nbytes = 3; }

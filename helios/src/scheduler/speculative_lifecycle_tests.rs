@@ -33,7 +33,7 @@ fn ready(geometry: Geometry, prompt: usize, budget: u32) -> (RequestScheduler, V
             pages: 128,
             snapshots: 16,
         },
-        SchedulerCapabilities {
+        SchedulerCapabilities { immutable_request_values: vec![], audio: None,
             completion_token_capacity: geometry.completion_token_capacity(),
             vocabulary: 1024,
             page_tokens: geometry.page,
@@ -62,7 +62,7 @@ fn ready(geometry: Geometry, prompt: usize, budget: u32) -> (RequestScheduler, V
     for graph in &mut graphs {
         graph.estimated_duration_ns = 1_000_000;
     }
-    graphs.push(GraphDescriptor {
+    graphs.push(GraphDescriptor { initial_prompt_capacity: 0,
         name: "bounded-speculative-accounting".into(),
         kind: GraphKind::Speculative,
         sampling_mode: SamplingMode::General,

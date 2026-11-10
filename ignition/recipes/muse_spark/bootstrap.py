@@ -272,7 +272,9 @@ def prepare_rank(snapshot, config, *, rank, group, progress=None, package_storag
                         admission_buffers=admission, draft_state=enabled, buffers=private_buffers.cursor())
                     fields = row_inputs if mode == "snapshot" else ("request_state_rows", *admission.__dataclass_fields__)
                     add(name, forward, mode, capacity, 1, (*fields, "page_tables", *commands.buffers()), enabled=enabled)
-    with phase(progress, "Prepare and tune kernels") as stage, transient:
+    from ignition.preparation.failure import retain_on_failed_drain
+
+    with retain_on_failed_drain(device, session, forwards, weights, package_storage, transient), phase(progress, "Prepare and tune kernels") as stage, transient:
         tuning = session.tune(show_progress=progress is not None and rank == 0, console=stage.console)
     stream, graph_pool = torch.cuda.Stream(device=device), package_storage.graph_pool.id
     if config.compile_decoder:
@@ -282,14 +284,14 @@ def prepare_rank(snapshot, config, *, rank, group, progress=None, package_storag
         scratch_pool.materialize()
         pool.clear_for_preparation()
 
-    try:
+    from ignition.preparation.failure import restore_backing
+
+    with restore_backing(scratch_pool):
         graphs, compiled = capture_forwards(forwards, signatures, session=session, device=device, stream=stream,
             pool=graph_pool, collective=collective, coordinator=coordinator, compile_decoder=config.compile_decoder,
             progress=progress, cache_root=config.kernel_cache, retain_graphs=config.retain_graphs,
             materialize=materialize, warmup_storage=package_storage,
             compile_kinds=("prefill", "scored_prefill", "decode", "resume", "speculative"))
-    finally:
-        scratch_pool.materialize()
     session.freeze()
     pool.clear_for_preparation()
     torch.cuda.synchronize(device)

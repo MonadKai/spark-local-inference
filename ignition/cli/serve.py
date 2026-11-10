@@ -66,7 +66,8 @@ def _server_options(configuration, model, plan) -> dict:
         "reserve_bytes": plan.reserve_bytes,
         "api_key": configuration.get("server.api_key").value,
         "queue_capacity": 4 * plan.concurrency, "frontend_workers": plan.concurrency,
-        "max_body_bytes": plan.max_images * recipe.image_bytes + recipe.context * _BODY_BYTES_PER_TOKEN,
+        "max_body_bytes": (recipe.max_body_bytes if recipe.max_body_bytes is not None else
+            plan.max_images * recipe.image_bytes + recipe.context * _BODY_BYTES_PER_TOKEN),
         "context_hint": "context is limited by the checkpoint and available cache capacity",
         "capacity_hint": "--max-concurrency sets the request limit; a lower [memory] reserve leaves more KV pages",
         **({"decode_weight_bytes": checkpoint.decode_weight_bytes} if checkpoint.decode_weight_bytes > 0 else {}),

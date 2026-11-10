@@ -23,6 +23,41 @@ pub(crate) enum RankExecutor {
 }
 
 impl RankExecutor {
+    #[cfg(test)]
+    pub(crate) unsafe fn hold_feature_copy(&mut self, flag: &crate::cuda::PinnedHost)
+        -> Result<crate::cuda::EventProbe> {
+        match self {
+            Self::Local(executor) => unsafe { executor.hold_feature_copy(flag) },
+            _ => Err("the test requires a local feature-copy stream".into()),
+        }
+    }
+
+    #[cfg(feature = "server")]
+    pub(crate) fn bind_feature_storage(&mut self, audio: &crate::model::contract::AudioCapacity) -> Result<()> {
+        match self {
+            Self::Local(executor) => executor.bind_feature_storage(audio),
+            _ => Err("encoded feature retention requires a single rank; cross-rank feature storage is undeclared".into()),
+        }
+    }
+
+    #[cfg(feature = "server")]
+    pub(crate) fn load_features(&mut self, owner: crate::scheduler::RequestHandle,
+        slot: usize, count: usize, bytes: &[u8]) -> Result<()> {
+        match self {
+            Self::Local(executor) => executor.load_features(owner, slot, count, bytes),
+            _ => Err("encoded feature upload has no cross-rank storage contract".into()),
+        }
+    }
+
+    #[cfg(feature = "server")]
+    pub(crate) fn read_features(&mut self, owner: crate::scheduler::RequestHandle,
+        slot: usize, count: usize, destination: &mut [u8]) -> Result<()> {
+        match self {
+            Self::Local(executor) => executor.read_features(owner, slot, count, destination),
+            _ => Err("encoded feature readback has no cross-rank storage contract".into()),
+        }
+    }
+
     /// # Safety
     /// Prepared graphs, contexts, buffers, and b12x IPC allocations must remain
     /// retained until coordinated drain. Peer sockets identify ranks 1..world.

@@ -29,11 +29,18 @@ class GraphSignature:
     packed_token_capacity: int = 0
     draft_tokens: int | None = None
     confidence_width: int = 0
+    initial_prompt_capacity: int = 0
 
     def __post_init__(self):
         if self.kind not in ("init", "restore", "snapshot", "prefill", "scored_prefill", "decode", "resume",
-                             "vision", "speculative", "mixed"):
+                             "vision", "audio_encode", "speculative", "mixed"):
             raise ValueError("unknown prepared graph operation")
+        if (type(self.initial_prompt_capacity) is not int or not 0 <= self.initial_prompt_capacity < 1 << 31
+                or self.initial_prompt_capacity and (self.kind not in ("prefill", "scored_prefill")
+                    or self.batch_capacity != 1)):
+            raise ValueError("initial prompt capacity belongs to single-lane prefill geometry")
+        if self.kind == "audio_encode" and (self.batch_capacity != 1 or self.speculation_enabled is not None):
+            raise ValueError("audio encoding requires one input window and no speculation mode")
         if self.kind == "scored_prefill" and (self.batch_capacity != 1
                 or self.token_capacity < 64 or self.token_capacity % 64
                 or "prompt_target_tokens" not in self.inputs):
@@ -98,6 +105,30 @@ class GraphSignature:
                                                "logprob_token_id_counts", "readiness_timestamps",
                                                "completion_speculative_survival")):
             raise ValueError("reserved execution buffers are bound automatically")
+
+
+def select_prefill_graph(signatures, *, tokens, initial_tokens, largest=False):
+    """Resolve diagnostic prefill geometry from immutable N before fragment M."""
+    if any(type(value) is not int or value <= 0 for value in (tokens, initial_tokens)):
+        raise ValueError("positive fragment and initial prompt lengths required")
+    groups = {}
+    for name, signature in signatures.items():
+        if signature.kind != "prefill" or signature.batch_capacity != 1:
+            continue
+        shapes = groups.setdefault(signature.initial_prompt_capacity, {})
+        if signature.token_capacity in shapes:
+            raise ValueError("ambiguous diagnostic prefill fragment geometry")
+        shapes[signature.token_capacity] = name
+    if not groups or 0 in groups and len(groups) != 1 \
+            or any(set(shapes) != set(next(iter(groups.values()))) for shapes in groups.values()):
+        raise ValueError("incomplete diagnostic initial prompt capacity catalog")
+    initial = 0 if 0 in groups else next((extent for extent in sorted(groups) if extent >= initial_tokens), None)
+    if initial is None:
+        raise ValueError("initial prompt does not fit the diagnostic catalog")
+    fitting = [extent for extent in groups[initial] if extent >= tokens]
+    if not fitting:
+        raise ValueError("fragment does not fit the diagnostic catalog")
+    return groups[initial][(max if largest else min)(fitting)]
 
 
 @dataclass(frozen=True)
@@ -226,6 +257,7 @@ class PreparedExecution(PreparedGraphBundle):
                 "sampling_mode": signature.sampling_mode,
                 "batch_capacity": signature.batch_capacity, "token_capacity": signature.token_capacity,
                 "prefill_capacity": signature.prefill_capacity,
+                "initial_prompt_capacity": signature.initial_prompt_capacity,
                 "confidence_width": signature.confidence_width,
                 "estimated_duration_ns": self.estimated_durations_ns[name],
                 "input_bindings": [{"buffer_name": field, "host_offset": offsets[field][0],

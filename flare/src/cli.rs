@@ -929,6 +929,15 @@ pub struct ServingOptions {
     #[arg(long, value_name = "SIZE", value_parser = parse_size, help_heading = "Prefix cache options")]
     pub prefix_cache_memory: Option<u64>,
 
+    /// Share prefixes across generations or isolate each generation, including prepared inputs [default: prefix_cache.reuse, else shared].
+    #[arg(long, value_name = "shared|request", help_heading = "Prefix cache options")]
+    pub prefix_cache_reuse: Option<flare_helios::server::PrefixCacheReuse>,
+
+    /// Retain CPU frontend records, encoder features, both or neither, independently of prefix KV reuse.
+    /// Omitted preserves existing prefix-cache reuse behavior. Uses the shared host-cache budget.
+    #[arg(long, value_name = "off|preprocessed|encoded|both", help_heading = "Prefix cache options")]
+    pub prepared_input_cache: Option<flare_helios::server::PreparedInputCacheMode>,
+
     /// Directory for prefix checkpoints and prepared inputs on disk [default: paths.prefix_cache, else disabled].
     #[arg(long, value_name = "DIR", help_heading = "Prefix cache options")]
     pub prefix_cache_disk: Option<PathBuf>,
@@ -1091,6 +1100,12 @@ impl ServingOptions {
         if let Some(bytes) = self.prefix_cache_memory {
             options.extend(["--prefix-cache-memory".into(), bytes.to_string()]);
         }
+        if let Some(reuse) = self.prefix_cache_reuse {
+            options.extend(["--prefix-cache-reuse".into(), reuse.as_str().into()]);
+        }
+        if let Some(mode) = self.prepared_input_cache {
+            options.extend(["--prepared-input-cache".into(), mode.as_str().into()]);
+        }
         if let Some(directory) = &self.prefix_cache_disk {
             options.extend([
                 "--prefix-cache-disk".into(),
@@ -1161,6 +1176,7 @@ impl ServingOptions {
                 None
             },
             device_labels: (!self.gpus.is_empty()).then(|| self.gpus.clone()),
+            prepared_input_cache: self.prepared_input_cache,
             prefix_cache: PrefixCacheOffload {
                 memory_bytes: self.prefix_cache_memory,
                 disk: self.prefix_cache_disk.clone(),

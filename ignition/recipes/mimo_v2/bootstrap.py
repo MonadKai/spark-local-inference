@@ -465,7 +465,9 @@ def prepare_rank(snapshot, config, *, rank, group, progress=None, package_storag
             f"before tuning: {torch.cuda.memory_allocated(device) >> 20} MiB allocated, "
             f"{torch.cuda.mem_get_info(device)[0] >> 20} MiB free"
         )
-    with phase(progress, "Prepare and tune kernels") as stage, transient:
+    from ignition.preparation.failure import retain_on_failed_drain
+
+    with retain_on_failed_drain(device, session, forwards, weights, package_storage, transient), phase(progress, "Prepare and tune kernels") as stage, transient:
         tuning = session.tune(show_progress=progress is not None and rank == 0, console=stage.console)
     stream, graph_pool = torch.cuda.Stream(device=device), package_storage.graph_pool.id
     pages = initial_pages

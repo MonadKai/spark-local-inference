@@ -905,6 +905,7 @@ dependencies = [
  "blake2",
  "brotli",
  "cc",
+ "cmake",
  "crossterm",
  "deepseek-recipe",
  "deepseek-recipe-core",
@@ -922,10 +923,12 @@ dependencies = [
  "llguidance",
  "minijinja",
  "minijinja-contrib",
+ "pkg-config",
  "png",
  "prost",
  "prost-build",
  "ratatui",
+ "regex",
  "ring",
  "ryu",
  "serde",
@@ -936,6 +939,8 @@ dependencies = [
  "tokio",
  "turbojpeg",
  "twox-hash",
+ "ureq 3.4.2",
+ "url",
  "windows-sys 0.61.2",
  "zstd",
 ]
@@ -1233,7 +1238,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.21",
- "ureq",
+ "ureq 2.12.1",
  "windows-sys 0.60.2",
 ]
 
@@ -3381,6 +3386,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "ureq"
+version = "3.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a7ac20be9b7726e0bbdbf974c059676d9acb1cd414961f570a4e8231cacd7fc"
+dependencies = [
+ "base64 0.23.1",
+ "flate2",
+ "log",
+ "percent-encoding",
+ "rustls",
+ "rustls-pki-types",
+ "ureq-proto",
+ "utf8-zero",
+ "webpki-roots 1.0.9",
+]
+
+[[package]]
+name = "ureq-proto"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f86fd172ccca569e458f61b6bdd6220965a9ef36e672a6852953b51a0e1583be"
+dependencies = [
+ "base64 0.23.1",
+ "http",
+ "httparse",
+ "log",
+]
+
+[[package]]
 name = "url"
 version = "2.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3391,6 +3425,12 @@ dependencies = [
  "percent-encoding",
  "serde",
 ]
+
+[[package]]
+name = "utf8-zero"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b8c0a043c9540bae7c578c88f91dda8bd82e59ae27c21baca69c8b191aaf5a6e"
 
 [[package]]
 name = "utf8_iter"

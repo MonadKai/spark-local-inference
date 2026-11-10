@@ -10,7 +10,7 @@ pub(super) fn measured_costs(graphs: &[crate::execution::GraphDescriptor]) -> co
     let mut costs = cost::ActionCosts::prepared(graphs, 16).unwrap();
     for graph in graphs {
         costs.observe(
-            &ScheduledStep { draft_tokens: graph.draft_tokens, packed_token_capacity: graph.packed_token_capacity,
+            &ScheduledStep { initial_prompt_capacity: graph.initial_prompt_capacity, draft_tokens: graph.draft_tokens, packed_token_capacity: graph.packed_token_capacity,
                 kind: graph.kind,
                 batch_capacity: graph.batch_capacity,
                 token_capacity: graph.token_capacity,
@@ -109,7 +109,7 @@ fn verification_catalog_covers_all_prepared_concurrencies_through_64() {
     assert!(fixed.iter().all(|widths| widths == &[4]));
 }
 
-pub(super) fn scheduler(active: usize, pages: u32, snapshots: u32) -> RequestScheduler {
+pub(crate) fn scheduler(active: usize, pages: u32, snapshots: u32) -> RequestScheduler {
     scheduler_with_geometry(active, pages, snapshots, 64, 4)
 }
 
@@ -124,7 +124,7 @@ fn scheduler_with_geometry(active: usize, pages: u32, snapshots: u32, page_token
             pages,
             snapshots,
         },
-        SchedulerCapabilities {
+        SchedulerCapabilities { immutable_request_values: vec![], audio: None,
             completion_token_capacity: 16,
             vocabulary: 248320,
             page_tokens,
@@ -162,7 +162,7 @@ pub(crate) fn duration_graphs(active: usize) -> Vec<crate::execution::GraphDescr
             GraphKind::Speculative,
         ] {
             for tokens in 1..=if kind == GraphKind::Speculative { 8 } else { 1 } {
-                graphs.push(crate::execution::GraphDescriptor { tuned_bindings: vec![], confidence_width: 0,
+                graphs.push(crate::execution::GraphDescriptor { initial_prompt_capacity: 0, tuned_bindings: vec![], confidence_width: 0,
                     draft_tokens: if kind == GraphKind::Speculative { tokens - 1 } else { 0 },
                     packed_token_capacity: if kind == GraphKind::Speculative { batch * tokens } else { 0 },
                     name: format!("{kind:?}-{batch}-{tokens}"),
@@ -183,7 +183,7 @@ pub(crate) fn duration_graphs(active: usize) -> Vec<crate::execution::GraphDescr
         (GraphKind::Vision, vec![8, 16, 256, 1024, 4096, 16384]),
     ] {
         for tokens in capacities {
-            graphs.push(crate::execution::GraphDescriptor { tuned_bindings: vec![], confidence_width: 0, draft_tokens: 0, packed_token_capacity: 0,
+            graphs.push(crate::execution::GraphDescriptor { initial_prompt_capacity: 0, tuned_bindings: vec![], confidence_width: 0, draft_tokens: 0, packed_token_capacity: 0,
                 name: format!("{kind:?}-{tokens}"),
                 kind,
                 sampling_mode: crate::execution::SamplingMode::General,
@@ -209,8 +209,9 @@ pub(crate) fn duration_graphs(active: usize) -> Vec<crate::execution::GraphDescr
 
 pub(super) fn spec(tokens: usize, max_new: u32) -> RequestSpec {
     RequestSpec {
+        prefix_scope: None,
         message_boundaries: vec![],
-        prompt: (0..tokens as u32).collect(),
+        initial_prompt_tokens: tokens, prompt: (0..tokens as u32).collect(),
         conditioning: vec![],
         max_new_tokens: max_new,
         grammar_constrained: false,
@@ -218,6 +219,298 @@ pub(super) fn spec(tokens: usize, max_new: u32) -> RequestSpec {
         prompt_logprobs: false,
         growable_output: false,
     }
+}
+
+#[test]
+fn immutable_prompt_values_survive_real_host_and_reopened_disk_records() {
+    immutable_prompt_stores(false);
+}
+
+#[test]
+fn initial_prompt_extents_isolate_real_host_and_reopened_disk_records() {
+    immutable_prompt_stores(true);
+}
+
+fn immutable_prompt_stores(bounded: bool) {
+    use crate::model::contract::ValueSource::InitialPromptTokens;
+    use flare_selene::{HostStore, Layout, PageId, StateSlotId, StoreEvent, StoreOutcome, Tier,
+        disk::DiskThread, disk_store::{DiskStore, Staged}, geometry::fingerprint,
+        memory::MemoryStore, record, slab::SlabPool, testing::{self, Ids, SimulatedGpu}};
+    use std::time::{Duration, Instant};
+
+    // These are real host stores, direct-I/O files and production scheduler
+    // histories/tickets. Only the device byte copier is simulated on the CPU;
+    // this test does not establish CUDA upload or transfer correctness.
+    for (page_tokens, row_extent) in [(64, 4096), (64, 12288), (256, 4096), (256, 12288)] {
+        for endpoint in [63u64, 65, 193] {
+            for disk in [false, true] {
+                let mut scheduler = scheduler_with_geometry(1, 32, 16, page_tokens, 4);
+                scheduler.capabilities.immutable_request_values = vec![InitialPromptTokens];
+                if bounded {
+                    scheduler.measured_graph_durations(&bounded_initial_graphs(1)).unwrap();
+                }
+                let mut original = spec(256, 4);
+                original.initial_prompt_tokens = 65;
+                let history = scheduler.plan_admission(&original).unwrap().history().clone();
+                let different_extent_history = bounded.then(|| {
+                    let mut alternate = bounded_initial_graphs(1);
+                    for graph in &mut alternate {
+                        if graph.initial_prompt_capacity == 128 { graph.initial_prompt_capacity = 256; }
+                    }
+                    scheduler.measured_graph_durations(&alternate).unwrap();
+                    let plan = scheduler.plan_admission(&original).unwrap();
+                    assert_eq!(plan.initial_prompt_capacity, 256);
+                    assert_ne!(history.key_at(endpoint), plan.history().key_at(endpoint),
+                        "same-N different-C histories must not alias");
+                    let result = plan.history().clone();
+                    scheduler.measured_graph_durations(&bounded_initial_graphs(1)).unwrap();
+                    result
+                });
+                let mut different = original.clone();
+                different.initial_prompt_tokens = 66;
+                let different_history = scheduler.plan_admission(&different).unwrap().history().clone();
+                let mut generated = original.clone();
+                generated.prompt.extend(256..300);
+                let generated_history = scheduler.plan_admission(&generated).unwrap().history().clone();
+                let geometry = vec![testing::geometry(page_tokens as u64,
+                    &[("k", 4096), ("v", 4096)], row_extent)];
+                let layout = Layout::new(&geometry).unwrap();
+                let pages = (endpoint / page_tokens as u64) as usize;
+                let intake = flare_selene::offload::intake_slots(&layout, 1);
+                let pool = SlabPool::new(layout.page_record_bytes,
+                    4 * layout.record_slots(pages, true) + intake, intake).unwrap();
+                let (copier, mut memory) = SimulatedGpu::shared_mapped(&geometry).unwrap();
+                let directory = disk.then(|| testing::test_directory("immutable",
+                    &format!("n-{page_tokens}-{row_extent}-{endpoint}-bounded-{bounded}")).expect("test requires direct-I/O files"));
+                let open_disk = |copier| {
+                    let lock = testing::directory_lock(directory.as_ref().unwrap()).unwrap();
+                    let fingerprint = fingerprint(&geometry);
+                    let scanned = record::scan(&lock, &[9; 32], &fingerprint,
+                        page_tokens as u64, &record::rank_sizes(&geometry)).unwrap();
+                    DiskStore::new(lock, [9; 32], fingerprint, 1 << 24, geometry.clone(), scanned,
+                        Box::new(Staged::new(Some(pool.clone()), copier,
+                            DiskThread::start("immutable-prompt-test").unwrap()))).unwrap()
+                };
+                let mut store: Box<dyn HostStore> = if disk {
+                    Box::new(open_disk(copier))
+                } else {
+                    Box::new(MemoryStore::new([9; 32], pool.clone(), copier).unwrap())
+                };
+                let source_pages: Vec<_> = (0..pages).map(|p| PageId(100 + p as u32)).collect();
+                let source_slot = StateSlotId(63);
+                let page_bytes: Vec<Vec<u8>> = (0..pages).map(|p| {
+                    let mut bytes = vec![0; layout.page_record_bytes as usize];
+                    testing::pattern(&mut bytes, 20261106 + p as u64);
+                    bytes
+                }).collect();
+                let mut row_bytes = vec![0; layout.row_record_bytes as usize];
+                testing::pattern(&mut row_bytes, 20261107);
+                for (page, bytes) in source_pages.iter().zip(&page_bytes) {
+                    memory.pages.lock().unwrap().insert(page.0, bytes.clone());
+                }
+                memory.rows.lock().unwrap().insert(source_slot.0, row_bytes.clone());
+                let checkpoint = testing::checkpoint(&mut Ids::new(), &history, endpoint, None,
+                    source_pages, pages, source_slot);
+                let expected_bytes = pages as u64 * layout.page_record_bytes + layout.row_record_bytes;
+                assert_eq!(store.store(&checkpoint).unwrap(), StoreOutcome::Queued);
+                let events = testing::poll_until(store.as_mut(), Instant::now() + Duration::from_secs(30),
+                    |event| matches!(event, StoreEvent::Stored { .. }));
+                assert_eq!(events.len(), 1, "{events:?}");
+                match &events[0] {
+                    StoreEvent::Stored { checkpoint: id, key, result } => {
+                        assert_eq!((*id, *key), (checkpoint.id, checkpoint.key));
+                        // DiskStore reports the serialized record length,
+                        // including its header/checksums; memory reports the
+                        // copied device records. Preserve both conventions.
+                        let stored_bytes = if disk {
+                            std::fs::metadata(directory.as_ref().unwrap().join(record::file_name(key)))
+                                .unwrap().len()
+                        } else { expected_bytes };
+                        assert_eq!(*result.as_ref().unwrap(), stored_bytes);
+                    }
+                    other => panic!("unexpected {other:?}"),
+                }
+                if !disk {
+                    // Resident memory counts whole slabs, while transferred
+                    // and hit bytes describe the unpadded records.
+                    let slots = layout.record_slots(pages, true);
+                    assert_eq!(store.stats().slots_used, slots);
+                    assert_eq!(store.stats().memory_bytes,
+                        slots as u64 * layout.page_record_bytes);
+                    assert!(store.stats().memory_bytes > expected_bytes);
+                }
+                memory.pages.lock().unwrap().clear();
+                memory.rows.lock().unwrap().clear();
+                if disk {
+                    store.close().unwrap();
+                    drop(store);
+                    let (fresh_copier, fresh_memory) = SimulatedGpu::shared_mapped(&geometry).unwrap();
+                    memory = fresh_memory;
+                    store = Box::new(open_disk(fresh_copier));
+                    assert_eq!(store.stats().disk_records, 1);
+                }
+                assert!(store.lookup(&different_history, 0, u64::MAX).is_none());
+                if let Some(history) = &different_extent_history {
+                    assert!(store.lookup(history, 0, u64::MAX).is_none());
+                }
+                let hit = store.lookup(&history, 0, u64::MAX).unwrap();
+                assert_eq!((hit.key, hit.consumed_tokens, hit.pages), (checkpoint.key, endpoint, pages));
+                assert_eq!(hit.tier, if disk { Tier::Nvme } else { Tier::Dram });
+                let hit = store.lookup(&generated_history, 0, u64::MAX).unwrap();
+                let plan = scheduler.plan_admission(&generated).unwrap();
+                let admitted = scheduler.admit_planned(generated, plan, Some(InboundRequest {
+                    key: hit.key, consumed_tokens: hit.consumed_tokens, pages: hit.pages,
+                })).unwrap();
+                let ticket = admitted.ticket.unwrap();
+                for page in &ticket.pages {
+                    memory.pages.lock().unwrap().insert(page.0, vec![0xdd; layout.page_record_bytes as usize]);
+                }
+                memory.rows.lock().unwrap().insert(ticket.slot.0, vec![0xdd; layout.row_record_bytes as usize]);
+                store.fetch(hit, ticket.clone()).unwrap();
+                let events = testing::poll_until(store.as_mut(), Instant::now() + Duration::from_secs(30),
+                    |event| matches!(event, StoreEvent::Fetched { .. }));
+                assert_eq!(events.len(), 1, "{events:?}");
+                match &events[0] {
+                    StoreEvent::Fetched { key, result } => {
+                        assert_eq!(*key, checkpoint.key);
+                        assert_eq!(*result.as_ref().unwrap(), expected_bytes);
+                    }
+                    other => panic!("unexpected {other:?}"),
+                }
+                scheduler.finish_inbound(ticket.key, true).unwrap();
+                for (page, expected) in ticket.pages.iter().zip(&page_bytes) {
+                    assert_eq!(memory.pages.lock().unwrap().get(&page.0).unwrap(), expected);
+                }
+                assert_eq!(memory.rows.lock().unwrap().get(&ticket.slot.0).unwrap(), &row_bytes);
+                let live = scheduler.request(admitted.handle).unwrap();
+                assert_eq!((live.initial_prompt_tokens(), live.prompt_tokens, live.reused_prompt_tokens()),
+                    (65, 300, endpoint));
+                scheduler.cancel(admitted.handle).unwrap();
+                let plan = scheduler.plan_admission(&different).unwrap();
+                assert_eq!(plan.resident_tokens(), 0);
+                assert!(store.lookup(plan.history(), 0, u64::MAX).is_none());
+                let next = scheduler.admit_planned(different, plan, None).unwrap().handle;
+                assert_eq!(next.slot, admitted.handle.slot);
+                assert!(next.generation > admitted.handle.generation);
+                assert_eq!(scheduler.request(next).unwrap().initial_prompt_tokens(), 66);
+                scheduler.cancel(next).unwrap();
+                store.close().unwrap();
+                drop(store);
+                if let Some(directory) = directory { std::fs::remove_dir_all(directory).unwrap(); }
+            }
+        }
+    }
+}
+
+#[test]
+fn immutable_prompt_length_conditions_every_nonempty_history_boundary() {
+    use crate::model::contract::ValueSource::InitialPromptTokens;
+    for page_tokens in [64, 256] {
+        let mut scheduler = scheduler_with_geometry(8, 512, 16, page_tokens, 4);
+        let mut original = spec(130, 4);
+        original.initial_prompt_tokens = 65;
+        original.conditioning = vec![ConditioningEvent { position: 0, identity: [1; 32] },
+            ConditioningEvent { position: 9, identity: [2; 32] }];
+        let mut legacy = PrefixHistory::new(scheduler.identity);
+        legacy.append(&original.prompt, &original.conditioning).unwrap();
+        let unchanged = scheduler.plan_admission(&original).unwrap();
+        for boundary in [0, 1, 9, 10, 63, 64, 65, 128, 130] {
+            assert_eq!(unchanged.history.key_at(boundary), legacy.key_at(boundary));
+        }
+        scheduler.capabilities.immutable_request_values = vec![InitialPromptTokens];
+        let first = scheduler.plan_admission(&original).unwrap();
+        let mut different_initial = original.clone();
+        different_initial.initial_prompt_tokens = 66;
+        let second = scheduler.plan_admission(&different_initial).unwrap();
+        let mut readmitted = original.clone();
+        readmitted.prompt.extend(130..170);
+        let replay = scheduler.plan_admission(&readmitted).unwrap();
+        let mut expected = PrefixHistory::new(scheduler.identity);
+        let mut events = vec![ConditioningEvent::request_value(InitialPromptTokens as i32, 65)];
+        events.extend_from_slice(&original.conditioning);
+        expected.append(&original.prompt, &events).unwrap();
+        assert_eq!(first.history.key_at(0), legacy.key_at(0));
+        for boundary in [1, 9, 10, 63, 64, 65, 128, 130] {
+            assert_eq!(first.history.key_at(boundary), expected.key_at(boundary));
+            assert_eq!(first.history.key_at(boundary), replay.history.key_at(boundary));
+            assert_ne!(first.history.key_at(boundary), second.history.key_at(boundary));
+            assert_ne!(first.history.key_at(boundary), legacy.key_at(boundary));
+        }
+        let live = scheduler.admit(readmitted).unwrap();
+        assert_eq!(scheduler.request(live).unwrap().prompt_tokens, 170);
+        assert_eq!(scheduler.request(live).unwrap().initial_prompt_tokens(), 65);
+        assert_eq!(original.conditioning.len(), 2);
+    }
+}
+
+#[test]
+fn invalid_initial_prompt_counts_reject_without_reserving_resources() {
+    let mut scheduler = scheduler(4, 64, 16);
+    let before = scheduler.stats();
+    for initial in [0, 66, usize::MAX] {
+        let mut invalid = spec(65, 4);
+        invalid.initial_prompt_tokens = initial;
+        assert!(scheduler.admit(invalid).is_err());
+        assert_eq!(scheduler.stats(), before);
+    }
+}
+
+#[test]
+fn planned_admission_rejects_changed_immutable_prompt_count() {
+    use crate::model::contract::ValueSource::InitialPromptTokens;
+    for dependencies in [vec![], vec![InitialPromptTokens]] {
+        let mut scheduler = scheduler(4, 64, 16);
+        scheduler.capabilities.immutable_request_values = dependencies;
+        let mut request = spec(130, 4);
+        request.initial_prompt_tokens = 65;
+        for value in [0, 66, usize::MAX] {
+            let plan = scheduler.plan_admission(&request).unwrap();
+            let before = scheduler.stats();
+            let mut changed = request.clone();
+            changed.initial_prompt_tokens = value;
+            assert!(scheduler.admit_planned(changed, plan, None).is_err());
+            assert_eq!(scheduler.stats(), before);
+        }
+        let plan = scheduler.plan_admission(&request).unwrap();
+        let before = scheduler.stats();
+        let mut short_history = request.clone();
+        short_history.prompt.truncate(64);
+        assert!(scheduler.admit_planned(short_history, plan, None).is_err());
+        assert_eq!(scheduler.stats(), before);
+        let plan = scheduler.plan_admission(&request).unwrap();
+        #[cfg(feature = "server")]
+        let plan = scheduler.refresh_admission_plan(&plan).unwrap();
+        let handle = scheduler.admit_planned(request, plan, None).unwrap().handle;
+        assert_eq!(scheduler.request(handle).unwrap().initial_prompt_tokens(), 65);
+    }
+}
+
+#[test]
+fn immutable_prompt_dependency_isolates_published_partial_pages_and_slot_reuse() {
+    use crate::model::contract::ValueSource::InitialPromptTokens;
+    let mut scheduler = scheduler(2, 64, 16);
+    scheduler.capabilities.immutable_request_values = vec![InitialPromptTokens];
+    let request = spec(65, 4);
+    let first = scheduler.admit(request.clone()).unwrap();
+    init(&mut scheduler, 1);
+    let step = scheduler.plan().unwrap();
+    assert_eq!(step.kind, GraphKind::Prefill);
+    scheduler.commit(&step, Fence(2)).unwrap();
+    scheduler.complete(Fence(2), &records(first, 2, 65, 1, 900, 1), Default::default()).unwrap();
+    retain_prompt(&mut scheduler, 3);
+    let same = scheduler.plan_admission(&request).unwrap();
+    assert_eq!(same.resident_tokens(), 65);
+    let different = scheduler.plan_admission(&spec(66, 4)).unwrap();
+    assert_eq!(different.resident_tokens(), 0);
+    let mut replay = request.clone();
+    replay.prompt.extend([900, 901]);
+    assert_eq!(scheduler.plan_admission(&replay).unwrap().resident_tokens(), 65);
+    scheduler.cancel(first).unwrap();
+    let next = scheduler.admit(replay).unwrap();
+    assert_eq!(next.slot, first.slot);
+    assert_ne!(next.generation, first.generation);
+    assert_eq!(scheduler.request(next).unwrap().initial_prompt_tokens(), 65);
+    assert_eq!(scheduler.request(next).unwrap().reused_prompt_tokens(), 65);
 }
 fn records(
     handle: RequestHandle,
@@ -497,7 +790,7 @@ fn configured_prefill_chunks_and_tails_preserve_alignment_and_live_page_extents(
                 pages: 512,
                 snapshots: 2,
             },
-            SchedulerCapabilities {
+            SchedulerCapabilities { immutable_request_values: vec![], audio: None,
                 completion_token_capacity: 16,
                 vocabulary: 248320,
                 page_tokens: 64,
@@ -577,7 +870,7 @@ fn invalid_prefill_limits_reject_before_request_resources_are_created() {
                 pages: 64,
                 snapshots: 2,
             },
-            SchedulerCapabilities {
+            SchedulerCapabilities { immutable_request_values: vec![], audio: None,
                 completion_token_capacity: 16,
                 vocabulary: 248320,
                 page_tokens: 64,
@@ -691,6 +984,62 @@ fn cancellation_waits_for_both_submissions_and_reused_slot_rejects_old_epoch() {
         )
         .unwrap();
     scheduler.cancel(reused).unwrap();
+}
+
+#[test]
+fn execution_error_keeps_storage_until_the_last_submitted_decode_completes() {
+    for page_tokens in [64, 256] {
+        let mut scheduler = scheduler_with_geometry(1, 4, 2, page_tokens, 4);
+        let old = scheduler.admit(spec(4, 8)).unwrap();
+        init(&mut scheduler, 1);
+        let prefill = scheduler.plan().unwrap();
+        scheduler.commit(&prefill, Fence(2)).unwrap();
+        scheduler
+            .complete(Fence(2), &records(old, 2, 4, 1, 77, 1), Default::default())
+            .unwrap();
+        retain_prompt(&mut scheduler, 3);
+        scheduler.take_publications();
+        let publications = scheduler.stats().snapshot_publications;
+        for fence in [4, 5] {
+            let step = scheduler.plan().unwrap();
+            assert_eq!(step.kind, GraphKind::Decode);
+            scheduler.commit(&step, Fence(fence)).unwrap();
+        }
+        let pages = scheduler.free_page_count();
+        let snapshots = scheduler.free_snapshot_count();
+        let mut error = records(old, 4, 4, 1, -1, 3);
+        error[old.slot as usize].error_code = 1;
+        assert!(scheduler.complete(Fence(4), &error, Default::default()).unwrap().is_empty());
+        let request = scheduler.request(old).unwrap();
+        assert_eq!((request.consumed_tokens, request.generated_tokens), (4, 1));
+        assert_eq!(request.error_code, Some(1));
+        assert_eq!(request.phase, RequestPhase::Finishing);
+        assert!(!request.terminal_snapshot_ready);
+        assert!(scheduler.take_publications().is_empty());
+        assert_eq!(scheduler.stats().snapshot_publications, publications);
+        assert!(scheduler.finish(old).is_err());
+        scheduler.cancel(old).unwrap();
+        assert_eq!(scheduler.stats().retiring_slots, 1);
+        assert_eq!(scheduler.free_page_count(), pages);
+        assert_eq!(scheduler.free_snapshot_count(), snapshots);
+        assert!(scheduler.admit(spec(4, 8)).is_err());
+        error[old.slot as usize].submission_sequence = 5;
+        assert!(scheduler.complete(Fence(5), &error, Default::default()).unwrap().is_empty());
+        assert_eq!(scheduler.stats().retiring_slots, 0);
+        assert_eq!(scheduler.free_page_count(), 4);
+        assert_eq!(scheduler.stats().snapshot_publications, publications);
+        let reused = scheduler.admit(spec(4, 8)).unwrap();
+        assert_eq!(reused.slot, old.slot);
+        assert!(reused.generation > old.generation);
+        let step = scheduler.plan().unwrap();
+        scheduler.commit(&step, Fence(6)).unwrap();
+        error[old.slot as usize].submission_sequence = 6;
+        assert!(scheduler.complete(Fence(6), &error, Default::default()).is_err());
+        let valid = state_records(&scheduler, &step, 6);
+        scheduler.complete(Fence(6), &valid, Default::default()).unwrap();
+        assert_eq!(scheduler.request(reused).unwrap().error_code, None);
+        scheduler.cancel(reused).unwrap();
+    }
 }
 
 #[test]
@@ -956,7 +1305,7 @@ fn branching_requests_own_distinct_tail_pages_and_terminal_snapshots() {
 #[test]
 fn host_uploaded_decode_waits_for_its_previous_sample() {
     let mut scheduler = scheduler(1, 8, 2);
-    scheduler.capabilities.completion_inputs = vec![((GraphKind::Decode, 1, 0, 1, 0, 0), vec!["token_ids".into()])];
+    scheduler.capabilities.completion_inputs = vec![((GraphKind::Decode, 1, 0, 1, 0, 0, 0), vec!["token_ids".into()])];
     let handle = scheduler.admit(spec(63, 3)).unwrap();
     init(&mut scheduler, 1);
     let prefill = scheduler.plan().unwrap();
@@ -1786,7 +2135,7 @@ fn graph_duration_median_excludes_host_delay_and_queue_wait() {
 fn readiness_correction_changes_shape_cost_without_changing_service_time() {
     use crate::execution::{ExecutionTiming, ReadinessIntervals};
     let mut costs = cost::ActionCosts::prepared(&duration_graphs(1), 16).unwrap();
-    let step = ScheduledStep { draft_tokens: 0, kind: GraphKind::Decode, batch_capacity: 1, token_capacity: 1,
+    let step = ScheduledStep { initial_prompt_capacity: 0, draft_tokens: 0, kind: GraphKind::Decode, batch_capacity: 1, token_capacity: 1,
         packed_token_capacity: 0, mixed: None, lanes: vec![], requires_feedback: false };
     let timestamps = [1000u64, 3000, 3100].into_iter().flat_map(u64::to_ne_bytes).collect::<Vec<_>>();
     let mut gpu_ns = [None; 16];
@@ -1987,7 +2336,7 @@ fn copy_source_uses_no_draft_page_and_fixed_graph_masks_host_stops() {
 
 #[test]
 fn declared_model_capabilities_drive_state_slots_vision_buckets_and_copy_validation() {
-    let capabilities = SchedulerCapabilities {
+    let capabilities = SchedulerCapabilities { immutable_request_values: vec![], audio: None,
             completion_token_capacity: 16,        vocabulary: 32,
         page_tokens: 64,
         vision: crate::model::VisionCapabilities {
@@ -2015,8 +2364,9 @@ fn declared_model_capabilities_drive_state_slots_vision_buckets_and_copy_validat
     s.enable_speculation(&[1, 2]).unwrap();
     let handle = s
         .admit(RequestSpec {
+            prefix_scope: None,
             message_boundaries: vec![],
-            prompt: vec![7; 4],
+            initial_prompt_tokens: 4, prompt: vec![7; 4],
             conditioning: vec![],
             max_new_tokens: 8,
             grammar_constrained: false,
@@ -3118,7 +3468,7 @@ fn starved_growable_request_preempts_the_newest_and_resumes_from_its_checkpoint(
     // Readmitting the history restores the published checkpoint instead of recomputing it.
     let resumed = scheduler
         .admit(RequestSpec {
-            prompt: tokens,
+            initial_prompt_tokens: tokens.len(), prompt: tokens,
             growable_output: true,
             ..spec(1, remaining)
         })
@@ -3331,4 +3681,115 @@ fn state_slot_extent_uses_storage_geometry_independently_of_completion_capacity(
     let scheduler = RequestScheduler::new([0; 32], fixture.limits.clone(), capabilities).unwrap();
     assert_eq!(scheduler.execution_rows(), 1024);
     assert_eq!(scheduler.snapshot_slot(SnapshotId(3)).0, 1028);
+}
+
+/// Enter the production snapshot/parking transition after real decode has drained.
+/// This deterministic execution probe does not establish page-pressure policy.
+pub(crate) fn preempt_completed_decode(scheduler: &mut RequestScheduler, handle: RequestHandle) -> Result<()> {
+    let request = scheduler.request(handle)?;
+    if request.phase != RequestPhase::Decode || request.generated_tokens == 0
+        || request.pending != 0 || request.last_use() > scheduler.completed()
+    {
+        return Err("preemption probe requires completed ordinary decode".into());
+    }
+    scheduler.finish_early(handle, true)
+}
+
+/// Logical pages already owned or reserved for a quiescent request's next writes.
+pub(crate) fn owned_execution_pages(scheduler: &RequestScheduler, handle: RequestHandle) -> Result<Vec<u32>> {
+    let request = scheduler.request(handle)?;
+    if request.pending != 0 || request.last_use() > scheduler.completed() {
+        return Err("page inspection requires a quiescent request".into());
+    }
+    Ok(request.pages().chain(request.reserved_pages.iter().rev().copied()).map(|page| page.0).collect())
+}
+
+
+fn bounded_initial_graphs(active: usize) -> Vec<crate::execution::GraphDescriptor> {
+    let mut graphs = duration_graphs(active);
+    let prefill = graphs.iter().filter(|g| g.kind == GraphKind::Prefill && g.token_capacity <= 512)
+        .cloned().collect::<Vec<_>>();
+    graphs.retain(|g| g.kind != GraphKind::Prefill);
+    for initial in [128, 2048] {
+        for source in &prefill {
+            let mut graph = source.clone(); graph.initial_prompt_capacity = initial;
+            graph.name = format!("{}-c{initial}", graph.name);
+            graph.estimated_duration_ns = if initial == 128 { 1000 } else { 4000 };
+            graphs.push(graph);
+        }
+    }
+    graphs
+}
+
+#[test]
+fn initial_extent_cost_measurements_and_freshness_are_isolated() {
+    let graphs = bounded_initial_graphs(1);
+    let mut costs = cost::ActionCosts::prepared(&graphs, 16).unwrap();
+    let step = |initial| ScheduledStep { initial_prompt_capacity: initial, draft_tokens: 0,
+        kind: GraphKind::Prefill, batch_capacity: 1, token_capacity: 128,
+        packed_token_capacity: 0, mixed: None, lanes: vec![], requires_feedback: true };
+    let small = step(128); let large = step(2048);
+    assert_eq!(costs.prefill_duration(GraphKind::Prefill, 128, 128), Some(0));
+    assert_eq!(costs.duration(GraphKind::Prefill, 1, 128), None);
+    costs.advance_to(10, 100);
+    costs.observe(&small, crate::execution::ExecutionTiming { gpu_ns: [Some(123); 16], ..Default::default() });
+    assert_eq!(costs.get(&small), Some(123)); assert_eq!(costs.get(&large), Some(0));
+    assert!(costs.is_fresh(cost::Key::from_step(&small)));
+    assert!(!costs.is_fresh(cost::Key::from_step(&large)));
+    costs.advance_to(111, 100);
+    assert!(!costs.is_fresh(cost::Key::from_step(&small)));
+    costs.observe(&large, crate::execution::ExecutionTiming { gpu_ns: [Some(987); 16], ..Default::default() });
+    assert!(costs.is_fresh(cost::Key::from_step(&large)));
+    assert!(!costs.is_fresh(cost::Key::from_step(&small)));
+    assert_eq!(costs.get(&small), Some(123)); assert_eq!(costs.get(&large), Some(987));
+}
+
+#[test]
+fn lifecycle_batches_mix_initial_extents_but_prefill_commit_keeps_each_admitted_extent() {
+    let mut scheduler = scheduler(2, 256, 16);
+    scheduler.capabilities.immutable_request_values = vec![crate::model::contract::ValueSource::InitialPromptTokens];
+    scheduler.measured_graph_durations(&bounded_initial_graphs(2)).unwrap();
+    let handles = [65, 129].map(|initial| {
+        let mut request = spec(165, 16); request.initial_prompt_tokens = initial;
+        scheduler.admit(request).unwrap()
+    });
+    assert_eq!(scheduler.request(handles[0]).unwrap().initial_prompt_capacity(), 128);
+    assert_eq!(scheduler.request(handles[1]).unwrap().initial_prompt_capacity(), 2048);
+    let init = scheduler.plan().unwrap();
+    assert_eq!(init.kind, GraphKind::Init); assert_eq!(init.initial_prompt_capacity, 0);
+    assert_eq!(init.lanes.len(), 2);
+    scheduler.commit(&init, Fence(1)).unwrap();
+    let records = init.lanes.iter().map(|lane| CompletionRecord { generation: lane.request.generation as i64,
+        submission_sequence: 1, status: 1, token_id: -1, ..Default::default() }).collect::<Vec<_>>();
+    scheduler.complete(Fence(1), &records, Default::default()).unwrap();
+    let plan = scheduler.plan().unwrap();
+    assert_eq!(plan.kind, GraphKind::Prefill);
+    for lane in &plan.lanes {
+        assert_eq!(scheduler.request(lane.request).unwrap().initial_prompt_capacity(), plan.initial_prompt_capacity);
+    }
+    let mut wrong = scheduler.plan().unwrap();
+    wrong.step.initial_prompt_capacity = if wrong.initial_prompt_capacity == 128 { 2048 } else { 128 };
+    let before = (scheduler.submitted, scheduler.submissions.len(), scheduler.refresh.credit_ns);
+    let error = scheduler.commit(&wrong, Fence(2)).unwrap_err();
+    assert!(error.to_string().contains("admitted geometry"), "{error}");
+    assert_eq!(before, (scheduler.submitted, scheduler.submissions.len(), scheduler.refresh.credit_ns));
+    scheduler.commit(&plan, Fence(2)).unwrap();
+}
+
+#[test]
+fn admission_plan_rejects_initial_extent_drift_without_reserving_a_slot() {
+    let mut scheduler = scheduler(1, 128, 8);
+    let graphs = bounded_initial_graphs(1);
+    scheduler.measured_graph_durations(&graphs).unwrap();
+    let request = spec(65, 16);
+    let plan = scheduler.plan_admission(&request).unwrap();
+    assert_eq!(plan.initial_prompt_capacity, 128);
+    let mut different = graphs;
+    for graph in &mut different {
+        if graph.initial_prompt_capacity == 128 { graph.initial_prompt_capacity = 256; }
+    }
+    scheduler.measured_graph_durations(&different).unwrap();
+    assert!(scheduler.admit_planned(request, plan, None).is_err());
+    assert!(scheduler.slots.iter().all(|slot| slot.request.is_none()));
+    assert_eq!(scheduler.submitted, Fence(0));
 }

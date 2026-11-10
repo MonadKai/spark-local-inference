@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 Flare community contributors
 # SPDX-License-Identifier: Apache-2.0
 
-"""Request-owned stochastic sampling and admission for native CUDA graph replay.
+"""Request-owned sampling and admission for native CUDA graph replay.
 
 Physical slots retain RNG counters, token counts, penalties, and grammar masks.
 Recipes own model history and supply vocabulary size and EOS token IDs.
@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from enum import Enum
 
 import torch
 import triton
@@ -27,6 +28,11 @@ EOS_CAPACITY = 8
 INACTIVE, RUNNING, FINISHED, ERROR = 0, 1, 2, 3
 INVALID_DISTRIBUTION, UNCONSUMED_PENDING, INVALID_CONSUMPTION, DUPLICATE_SLOT = 1, 2, 3, 4
 INVALID_ADMISSION = 5
+
+
+class SamplingSelection(Enum):
+    CATEGORICAL = "categorical"
+    FIRST_MAXIMUM = "first_maximum"
 
 
 @dataclass(frozen=True)
@@ -460,10 +466,20 @@ class PreparedSampling:
     the logical counter advances once. FlashInfer's temporary outputs remain
     inside the captured graph. ``scratch_tensors``
     enumerates mutable storage retained through graph replay.
+
+    FIRST_MAXIMUM is a preparation-time point-mass selection. It preserves the
+    common score/completion/state contract and does not reinterpret categorical
+    top-k ties. Its current downstream authorization is the ASR D2 decision.
     """
 
     @staticmethod
-    def scratch_layout(rows, vocab):
+    def scratch_layout(rows, vocab, *, selection=SamplingSelection.CATEGORICAL):
+        if selection == SamplingSelection.FIRST_MAXIMUM:
+            return dict(scores=((rows, vocab), torch.float32), maximum=((rows,), torch.float32),
+                probability_mass=((rows, 1), torch.float32), sampled_tokens=((rows,), torch.int32),
+                sample_valid=((rows,), torch.bool), argmax_tokens=((rows,), torch.int64))
+        if selection != SamplingSelection.CATEGORICAL:
+            raise ValueError("sampling selection must be explicitly prepared")
         return dict(scores=((rows, vocab), torch.float32), maximum=((rows,), torch.float32),
             probabilities=((rows, vocab), torch.float32), probability_maximum=((rows,), torch.float32),
             probability_mass=((rows, 1), torch.float32), packed_top_k=((rows,), torch.int32),
@@ -473,7 +489,7 @@ class PreparedSampling:
 
     def __init__(self, logits, state: DeviceRequestState, row_slot_ids, row_generations, live_rows,
                  completion: CompletionOutputs, frame_index, submission_sequence, *, sample_enabled: torch.Tensor | None = None,
-                 workspace=None):
+                 workspace=None, selection=SamplingSelection.CATEGORICAL):
         records = completion.records
         rows, vocab = logits.shape
         if not 1 <= rows <= state.capacity or vocab != state.vocab_size or logits.dtype not in (torch.float32, torch.bfloat16):
@@ -489,7 +505,8 @@ class PreparedSampling:
         self.state, self.logits, self.slots = state, logits, row_slot_ids
         self.sample_enabled = torch.ones(rows, dtype=torch.int32, device=device) if sample_enabled is None else sample_enabled
         _check_tensor(self.sample_enabled, (rows,), torch.int32, device, "sample_enabled")
-        self.scratch_tensors = bind_scratch(self.scratch_layout(rows, vocab), device=device, workspace=workspace)
+        self.selection = selection
+        self.scratch_tensors = bind_scratch(self.scratch_layout(rows, vocab, selection=selection), device=device, workspace=workspace)
         for name, tensor in self.scratch_tensors.items():
             setattr(self, name, tensor)
         self._rows = rows
@@ -497,15 +514,16 @@ class PreparedSampling:
         self._score_args = (logits, self.scores, row_slot_ids, row_generations, live_rows, state.generation,
             state.status, state.histogram, state.parameters, state.grammar_mask, state.grammar_enabled,
             vocab, state.grammar_mask.shape[1], 1024, state.capacity)
-        from flashinfer import sampling
-        self._flashinfer = sampling
-        self._metadata_args = (row_slot_ids, row_generations, live_rows, state.generation, state.status,
-            state.parameters, state.top_k, state.seed, state.rng_counter, self.packed_top_k,
-            self.packed_top_p, self.packed_min_p, self.packed_seed, self.packed_offset, vocab, state.capacity)
-        self._sanitize_args = (self.scores, self.maximum, vocab, 1024)
-        self._normalize_args = (self.probabilities, self.probability_mass, vocab, 1024)
-        # The top-p output address is graph-private and supplied during capture.
-        self._min_p_kernel = None
+        if selection == SamplingSelection.CATEGORICAL:
+            from flashinfer import sampling
+            self._flashinfer = sampling
+            self._metadata_args = (row_slot_ids, row_generations, live_rows, state.generation, state.status,
+                state.parameters, state.top_k, state.seed, state.rng_counter, self.packed_top_k,
+                self.packed_top_p, self.packed_min_p, self.packed_seed, self.packed_offset, vocab, state.capacity)
+            self._sanitize_args = (self.scores, self.maximum, vocab, 1024)
+            self._normalize_args = (self.probabilities, self.probability_mass, vocab, 1024)
+            # The top-p output address is graph-private and supplied during capture.
+            self._min_p_kernel = None
         sampled, valid, mass = self.sampled_tokens, self.sample_valid, self.probability_mass
         self._complete_args = (self.maximum, sampled, valid, mass,
             row_slot_ids, row_generations, live_rows, self.sample_enabled,
@@ -530,30 +548,40 @@ class PreparedSampling:
         self._scores = _compile(_scores, self._score_args, self._grid)
         self._complete = _compile(_complete, self._complete_args, (self.state.capacity, 1, 1))
         self._record = _compile(_complete, (*self._complete_args[:-2], False, self.state.capacity), (self.state.capacity, 1, 1))
-        self._metadata = _compile(_sampling_metadata, self._metadata_args, (self._rows, 1, 1))
-        self._sanitize = _compile(_sanitize_scores, self._sanitize_args, self._grid)
-        self._normalize = _compile(_normalize_probs, self._normalize_args, self._grid)
-        from ignition.preparation.triton import warmup_triton
+        if self.selection == SamplingSelection.CATEGORICAL:
+            self._metadata = _compile(_sampling_metadata, self._metadata_args, (self._rows, 1, 1))
+            self._sanitize = _compile(_sanitize_scores, self._sanitize_args, self._grid)
+            self._normalize = _compile(_normalize_probs, self._normalize_args, self._grid)
+            from ignition.preparation.triton import warmup_triton
 
-        self._min_p_kernel = warmup_triton(_mask_min_p,
-            (self.probabilities, self.probabilities, self.probability_maximum,
-             self.packed_min_p, self.state.vocab_size, 1024), self._grid,
-            num_warps=4, enable_fp_fusion=False)
-        # FlashInfer's public operators share these buffers on the model stream.
-        self.scratch_tensors["flashinfer_top_k_row_states"] = self._flashinfer._get_cache_buf(
-            f"top_k_mask_logits_row_states_{self.logits.device}", 1024 * 1024,
-            self.logits.device, zero_init=True)
-        self.scratch_tensors["flashinfer_softmax_workspace"] = self._flashinfer._get_cache_buf(
-            "softmax_workspace", 1024 * 1024, self.logits.device)
-        self.scratch_tensors["flashinfer_top_p_workspace"] = probability_filter_workspace(
-            self._rows, self.state.vocab_size, self.logits.device)
+            self._min_p_kernel = warmup_triton(_mask_min_p,
+                (self.probabilities, self.probabilities, self.probability_maximum,
+                 self.packed_min_p, self.state.vocab_size, 1024), self._grid,
+                num_warps=4, enable_fp_fusion=False)
+            # FlashInfer's public operators share these buffers on the model stream.
+            self.scratch_tensors["flashinfer_top_k_row_states"] = self._flashinfer._get_cache_buf(
+                f"top_k_mask_logits_row_states_{self.logits.device}", 1024 * 1024,
+                self.logits.device, zero_init=True)
+            self.scratch_tensors["flashinfer_softmax_workspace"] = self._flashinfer._get_cache_buf(
+                "softmax_workspace", 1024 * 1024, self.logits.device)
+            self.scratch_tensors["flashinfer_top_p_workspace"] = probability_filter_workspace(
+                self._rows, self.state.vocab_size, self.logits.device)
         self._scores()
         self._filter_scores()
         self._prepared = True
 
     def _filter_scores(self):
+        if self.selection == SamplingSelection.CATEGORICAL:
+            self._metadata()
         torch.amax(self.scores, dim=-1, out=self.maximum)
-        self._metadata()
+        if self.selection == SamplingSelection.FIRST_MAXIMUM:
+            # Keep the original maximum for completion's nonfinite/all-masked
+            # guards. Invalid rows cannot commit this tentative selection.
+            torch.argmax(self.scores, dim=-1, out=self.argmax_tokens)
+            self.sampled_tokens.copy_(self.argmax_tokens)
+            self.probability_mass.fill_(1.)
+            self.sample_valid.fill_(True)
+            return
         self._sanitize()
         filter_probabilities_out(self.scores, self.packed_top_k, self.packed_top_p,
             self.scratch_tensors["flashinfer_top_k_row_states"],

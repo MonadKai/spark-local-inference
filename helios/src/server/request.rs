@@ -95,6 +95,23 @@ pub(super) fn prepare_inference_cached(
     count_only: bool,
     input_store: Option<&flare_selene::input::InputStore>,
 ) -> Result<PreparedInference> {
+    prepare_inference_with_audio_cached(frontend, processor, compiler, config, request, index,
+        count_only, input_store, #[cfg(feature = "audio")] None,
+        #[cfg(feature = "audio")] &std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)))
+}
+
+pub(super) fn prepare_inference_with_audio_cached(
+    frontend: &Frontend,
+    processor: Option<&ImageProcessor>,
+    compiler: &crate::grammar::GrammarCompiler,
+    config: &ModelConfig,
+    request: &super::inference::Request,
+    index: usize,
+    count_only: bool,
+    input_store: Option<&flare_selene::input::InputStore>,
+    #[cfg(feature = "audio")] audio_processor: Option<&crate::frontend::audio::AudioProcessor>,
+    #[cfg(feature = "audio")] cancelled: &std::sync::Arc<std::sync::atomic::AtomicBool>,
+) -> Result<PreparedInference> {
     use super::inference::{Constraint, Input, RawPrompt, ToolChoice};
     let opts = &request.options;
     if let Some(top) = opts.prompt_logprobs {
@@ -250,6 +267,12 @@ pub(super) fn prepare_inference_cached(
     } else {
         (frontend.render_chat(&normalized, &options)?, String::new())
     };
+    #[cfg(feature = "audio")]
+    let audio = super::audio::prepare_chat_audio(frontend, audio_processor, config, request, cancelled, input_store)?;
+    #[cfg(not(feature = "audio"))]
+    if super::audio::has_audio(request) {
+        return Err(super::inference::unsupported("native audio frontend is not included in this build"));
+    }
     let images = describe_images(&rendered.image_sources, processor, input_store)?;
     let output = if raw.is_some() {
         None
@@ -281,24 +304,19 @@ pub(super) fn prepare_inference_cached(
         None => None,
     };
     let mut message_boundaries = rendered.message_boundaries.clone();
+    #[cfg(feature = "audio")]
+    let (prepared_input, conditioned_audio) = if let Some((audio, identity)) = audio {
+        let (prepared, input) = crate::model::prepare_audio_input(config, &rendered, audio, identity)?;
+        (prepared, Some(input))
+    } else {
+        (crate::model::prepare_image_inputs(config, frontend, processor, &rendered, images)?, None)
+    };
+    #[cfg(not(feature = "audio"))]
+    let prepared_input = crate::model::prepare_image_inputs(config, frontend, processor, &rendered, images)?;
     let crate::model::PreparedInput {
-        tokens,
-        token_expansions,
-        data,
-        conditioning,
-        conditioned_inputs,
-    } = crate::model::prepare_image_inputs(config, frontend, processor, &rendered, images)?;
-    let mut expansions = token_expansions.iter().peekable();
-    let mut additional = 0;
-    for boundary in &mut message_boundaries {
-        let original = *boundary;
-        while let Some((index, count)) = expansions.peek() {
-            if *index >= original { break; }
-            additional += count;
-            expansions.next();
-        }
-        *boundary += additional;
-    }
+        tokens, token_expansions, data, conditioning, conditioned_inputs,
+    } = prepared_input;
+    expand_boundaries(&mut message_boundaries, &token_expansions);
     if !rendered.image_checkpoint_hints.is_empty() {
         for &index in &rendered.image_checkpoint_hints {
             let image = conditioned_inputs
@@ -380,6 +398,8 @@ pub(super) fn prepare_inference_cached(
     }
     Ok(PreparedInference {
         prompt: Prompt {
+            #[cfg(feature = "audio")]
+            conditioned_audio,
             tokens,
             message_boundaries,
             data,
@@ -424,7 +444,21 @@ pub(super) fn thinking_budget_close(
     })
 }
 
-fn output_limit(
+pub(super) fn expand_boundaries(boundaries: &mut [usize], token_expansions: &[(usize, usize)]) {
+    let mut expansions = token_expansions.iter().peekable();
+    let mut additional = 0;
+    for boundary in boundaries {
+        let original = *boundary;
+        while let Some((index, count)) = expansions.peek() {
+            if *index >= original { break; }
+            additional += count;
+            expansions.next();
+        }
+        *boundary += additional;
+    }
+}
+
+pub(super) fn output_limit(
     object: &Map<String, Value>,
     configured: u32,
     prompt: usize,

@@ -15,6 +15,7 @@ from pathlib import Path
 import torch
 
 from .device_binding import _device_source, _freeze_tuning_winners
+from .failure import drain_or_retain, resources_retained, retain_undrained
 
 
 def _selected(tuner):
@@ -116,10 +117,23 @@ class InductorSelections:
         dist.all_gather_object(values, value, group=self.coordinator.group)
         return values
 
-    def _check(self, failure):
-        failures = self._gather(failure)
+    def _check(self, failure, *, error=None):
+        try:
+            failures = self._gather(failure)
+            retained = (self._gather(error is not None and resources_retained(error))
+                        if any(failures) else ())
+        except BaseException as communication_error:
+            # Peers may still reference this rank's resources when rendezvous
+            # fails; a later local device fence cannot establish their drain.
+            retain_undrained(communication_error, self)
+            if error is not None:
+                raise communication_error from error
+            raise
         if any(failures):
-            raise RuntimeError(f"Inductor preparation failed across ranks: {failures}")
+            combined = RuntimeError(f"Inductor preparation failed across ranks: {failures}")
+            if any(retained):
+                retain_undrained(combined, self)
+            raise combined from error
 
     def register(self, bound):
         from torch._inductor.async_compile import CompiledTritonKernels
@@ -230,7 +244,7 @@ class InductorSelections:
             if variant in variants and variants[variant] != identities:
                 raise RuntimeError(f"equivalent compiled forward variant {variant!r} has different Inductor kernels")
             variants[variant] = identities
-        failure = None
+        failure, primary = None, None
         try:
             with warmup(), self._tuning(bindings, frozen=self.forwards[id(bound)][0]._tuning_frozen):
                 if before_run is not None:
@@ -238,10 +252,12 @@ class InductorSelections:
                 bound()
             torch.cuda.current_stream(self.device).synchronize()
         except Exception as error:
+            drain_or_retain(error, self.device, self, bound, warmup, before_run)
+            primary = error
             failure = f"{type(error).__name__}: {error}"
-        self._check(failure)
+        self._check(failure, error=primary)
         self._reconcile(bindings)
-        failure = None
+        failure, primary = None, None
         try:
             with warmup(), self._tuning(bindings, frozen=True):
                 if before_run is not None:
@@ -249,8 +265,10 @@ class InductorSelections:
                 bound()
             torch.cuda.current_stream(self.device).synchronize()
         except Exception as error:
+            drain_or_retain(error, self.device, self, bound, warmup, before_run)
+            primary = error
             failure = f"{type(error).__name__}: {error}"
-        self._check(failure)
+        self._check(failure, error=primary)
         actual, failure = {}, None
         try:
             for identity, _, tuner in bindings.values():

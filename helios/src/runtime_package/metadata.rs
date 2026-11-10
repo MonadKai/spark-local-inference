@@ -332,6 +332,7 @@ fn unverified_payload(
                 "batch_capacity": graph.batch_capacity, "token_capacity": graph.token_capacity,
                 "packed_token_capacity": graph.packed_token_capacity,
                 "prefill_capacity": graph.prefill_capacity,
+                "initial_prompt_capacity": graph.initial_prompt_capacity,
                 "draft_tokens": graph.draft_tokens, "verify_tokens": graph.verify_tokens,
                 "estimated_duration_ns": graph.estimated_duration_ns,
             })).collect::<Vec<_>>()

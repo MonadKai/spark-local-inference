@@ -11,10 +11,58 @@ use crate::Result;
 
 pub use flare_selene::{HASH_BLOCK_TOKENS, PrefixKey};
 
+/// Bind computed histories to an authenticated executable producer when present.
+pub(crate) fn model_cache_identity(
+    model: &str,
+    producer: Option<&str>,
+) -> std::result::Result<[u8; 32], &'static str> {
+    fn decode(text: &str) -> Option<[u8; 32]> {
+        if text.len() != 64 || !text.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+            return None;
+        }
+        let mut digest = [0; 32];
+        for (index, byte) in digest.iter_mut().enumerate() {
+            *byte = u8::from_str_radix(&text[index * 2..index * 2 + 2], 16).ok()?;
+        }
+        Some(digest)
+    }
+    let model = decode(model).ok_or("model identity must be 64 hexadecimal characters")?;
+    let Some(producer) = producer else { return Ok(model) };
+    let producer = decode(producer).ok_or("cache producer identity must be 64 hexadecimal characters")?;
+    let mut hash = Blake2b::<blake2::digest::consts::U32>::new();
+    hash.update(b"flare-prefix-producer-v1\0");
+    hash.update(model);
+    hash.update(producer);
+    Ok(hash.finalize().into())
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ConditioningEvent {
     pub position: u64,
     pub identity: [u8; 32],
+}
+
+impl ConditioningEvent {
+    /// Request data conditioning every nonempty prefix, before frontend events.
+    pub(crate) fn request_value(source: i32, value: u64) -> Self {
+        let mut hash = Blake2b::<blake2::digest::consts::U32>::new();
+        hash.update(b"flare-prefix-request-value-v1\0");
+        hash.update(source.to_le_bytes());
+        hash.update(value.to_le_bytes());
+        Self { position: 0, identity: hash.finalize().into() }
+    }
+
+    /// A resolved physical extent is part of the same immutable request input.
+    /// Unpartitioned packages retain their original event and all prefix bytes.
+    pub(crate) fn request_value_with_extent(source: i32, value: u64, extent: u64) -> Self {
+        if extent == 0 { return Self::request_value(source, value); }
+        let mut hash = Blake2b::<blake2::digest::consts::U32>::new();
+        hash.update(b"flare-prefix-request-value-extent-v1\0");
+        hash.update(source.to_le_bytes());
+        hash.update(value.to_le_bytes());
+        hash.update(extent.to_le_bytes());
+        Self { position: 0, identity: hash.finalize().into() }
+    }
 }
 
 /// Incremental token and conditioning identity for a single model/recipe.
@@ -35,9 +83,20 @@ pub struct PrefixHistory {
 
 impl PrefixHistory {
     pub fn new(identity: [u8; 32]) -> Self {
+        Self::new_scoped(identity, None)
+    }
+
+    /// Isolate externally submitted generations while retaining their complete
+    /// checkpoint history through preemption and readmission. Absent scope keeps
+    /// the original shared-prefix bytes, including host-store bucket keys.
+    pub fn new_scoped(identity: [u8; 32], scope: Option<[u8; 24]>) -> Self {
         let mut hash = Blake2b::<U16>::new();
         hash.update(b"flare-prefix-root-v1\0");
         hash.update(identity);
+        if let Some(scope) = scope {
+            hash.update(b"flare-prefix-request-v1\0");
+            hash.update(scope);
+        }
         Self {
             identity,
             boundaries: vec![PrefixKey {

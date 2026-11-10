@@ -18,6 +18,7 @@ _PATCHES = (
     "torch-inductor-triton-cache-filenames.patch",
     "torch-inductor-cooperative-static-launch.patch",
     "triton-platform-key-pointer-width.patch",
+    "torch-inductor-singleton-decomposition.patch",
 )
 
 

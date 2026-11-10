@@ -18,6 +18,7 @@ use crate::{
 pub struct PromptMetadataMut<'a> {
     pub positions: Option<&'a mut Vec<[i64; 3]>>,
     pub vision_token_indices: Option<&'a mut Vec<i32>>,
+    pub audio_token_indices: Option<&'a mut Vec<i32>>,
 }
 
 #[cfg(feature = "server")]
@@ -29,6 +30,7 @@ impl PromptMetadataMut<'_> {
                 .vision_token_indices
                 .as_ref()
                 .is_some_and(|v| v.len() != before)
+            || self.audio_token_indices.as_ref().is_some_and(|indices| indices.len() != before)
         {
             return Err("text continuation metadata does not match its token history".into());
         }
@@ -52,6 +54,9 @@ impl PromptMetadataMut<'_> {
         if let Some(indices) = self.vision_token_indices {
             indices.resize(after, -1);
         }
+        if let Some(indices) = self.audio_token_indices {
+            indices.resize(after, -1);
+        }
         Ok(())
     }
 }
@@ -69,6 +74,10 @@ pub struct Admission {
 
 impl Admission {
     pub fn validate(&self, config: &ModelConfig) -> Result<()> {
+        self.validate_with_initial(config, self.prompt.len())
+    }
+
+    pub(crate) fn validate_with_initial(&self, config: &ModelConfig, initial_prompt_tokens: usize) -> Result<()> {
         self.sampling.validate()?;
         if self.handle.slot as usize >= config.limits.max_active
             || self.handle.generation == 0
@@ -90,7 +99,7 @@ impl Admission {
                 "invalid prompt, sampling parameters, grammar mask, or request generation".into(),
             );
         }
-        crate::model::validate_prompt_data(config, &self.prompt, &self.data)
+        crate::model::validate_prompt_data_with_initial(config, &self.prompt, &self.data, initial_prompt_tokens)
     }
 
     #[cfg(feature = "server")]
@@ -108,6 +117,17 @@ impl Admission {
         prompt: &crate::server::Prompt,
         ignore_eos: bool,
     ) -> Result<Self> {
+        Self::from_prompt_with_initial(config, handle, prompt, ignore_eos, prompt.tokens.len())
+    }
+
+    #[cfg(feature = "server")]
+    pub(crate) fn from_prompt_with_initial(
+        config: &ModelConfig,
+        handle: RequestHandle,
+        prompt: &crate::server::Prompt,
+        ignore_eos: bool,
+        initial_prompt_tokens: usize,
+    ) -> Result<Self> {
         let admission = Self {
             handle,
             sampling: prompt.sampling.clone(),
@@ -121,7 +141,7 @@ impl Admission {
             ignore_eos,
             prompt_logprobs: prompt.prompt_logprobs,
         };
-        admission.validate(config)?;
+        admission.validate_with_initial(config, initial_prompt_tokens)?;
         Ok(admission)
     }
 }
@@ -170,18 +190,47 @@ pub fn validate_prompt(config: &ModelConfig, prompt: &crate::server::Prompt) -> 
         || prompt.sampling.top_k > config.contract.vocabulary as i32
         || (prompt.max_new_tokens == 0 && !prompt.prompt_logprobs)
         || prompt.max_new_tokens > i32::MAX as u32
-        || (!config.contract.vision.enabled()
-            && (!prompt.conditioned_inputs.is_empty() || !prompt.conditioning.is_empty()))
+        || (!config.contract.vision.enabled() && !prompt.conditioned_inputs.is_empty())
+        || (!config.contract.vision.enabled() && config.contract.audio.is_none() && !prompt.conditioning.is_empty())
     {
         return Err("prompt, output limit, or inputs violate the prepared model contract".into());
     }
     crate::model::validate_prompt_data(config, &prompt.tokens, &prompt.data)?;
+    #[cfg(feature = "audio")]
+    validate_audio_input(config, prompt)?;
     crate::model::validate_conditioned_inputs(
         config,
         &prompt.tokens,
         &prompt.data,
         &prompt.conditioned_inputs,
     )
+}
+
+#[cfg(all(feature = "server", feature = "audio"))]
+fn validate_audio_input(config: &ModelConfig, prompt: &crate::server::Prompt) -> Result<()> {
+    let Some(input) = &prompt.conditioned_audio else {
+        if prompt.data.audio_token_indices.iter().any(|index| *index >= 0) {
+            return Err("audio features lack an immutable input owner".into());
+        }
+        return Ok(());
+    };
+    let capacity = config.contract.audio.as_ref().ok_or("audio input lacks prepared storage")?;
+    let tokens = config.contract.frontend.audio_tokens.as_ref().ok_or("audio input lacks token syntax")?;
+    let span = input.token_span();
+    if !prompt.conditioned_inputs.is_empty() || !input.audio().matches_layout(capacity)
+        || span.start == 0 || span.end >= prompt.tokens.len()
+        || prompt.tokens[span.start - 1] != tokens.start_token || prompt.tokens[span.end] != tokens.end_token
+        || prompt.data.audio_token_indices.len() != prompt.tokens.len()
+        || prompt.data.audio_token_indices.iter().enumerate().any(|(position, index)| {
+            *index != if span.contains(&position) { (position - span.start) as i32 } else { -1 }
+        })
+        || prompt.conditioning.len() != 1
+        || prompt.conditioning[0].position != span.start as u64
+        || prompt.conditioning[0].identity != input.identity()
+    {
+        return Err("audio ownership, token expansion or cache identity differs from its immutable input".into());
+    }
+    Ok(())
 }
 
 #[cfg(all(test, feature = "server"))]
@@ -193,6 +242,7 @@ mod continuation_tests {
         let mut positions = vec![[0; 3], [1, 4, 2], [2, 4, 3]];
         let mut indices = vec![-1, 128, 129];
         PromptMetadataMut {
+            audio_token_indices: None,
             positions: Some(&mut positions),
             vision_token_indices: Some(&mut indices),
         }

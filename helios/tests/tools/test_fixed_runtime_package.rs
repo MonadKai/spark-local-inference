@@ -32,6 +32,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if std::env::args().nth(2).as_deref() == Some("--tp4-collective") {
         return tp4_collective::run(root);
     }
+    let replays = match std::env::args().nth(2).as_deref() {
+        None => 1,
+        Some("--replays") => std::env::args().nth(3).ok_or("missing replay count")?.parse::<usize>()?,
+        _ => return Err("unknown replay argument".into()),
+    };
+    if replays == 0 { return Err("replay count must be positive".into()); }
     let expected: Expected = serde_json::from_slice(&std::fs::read(root.join("expected.json"))?)?;
     let owner = unsafe {
         NativeResources::load(
@@ -39,8 +45,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             0,
         )?
     };
-    for (name, address) in expected.addresses {
-        assert_eq!(owner.allocation(&name)?.address, address);
+    for (name, address) in &expected.addresses {
+        assert_eq!(owner.allocation(name)?.address, *address);
     }
     owner.execution_manifest()?.validate()?;
     let transient = owner.download(&expected.zero_reference.allocation)?;
@@ -51,19 +57,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .all(|byte| *byte == 0)
     );
     let worker = unsafe { ReplayWorker::new(owner.graph_bundle(), 1)? };
-    let ticket = worker.submit(0, 7)?;
-    let result = worker
-        .poll(Duration::from_secs(30))?
-        .ok_or("replay timed out")?;
-    assert_eq!(result.ticket, ticket);
-    if let Some(error) = result.error {
-        return Err(error.into());
+    for _ in 0..replays {
+        let mut poisoned = owner.download(&expected.reference.allocation)?;
+        for (byte, reference) in poisoned[expected.reference.offset..expected.reference.offset + expected.bytes.len()]
+            .iter_mut().zip(&expected.bytes) {
+            *byte = reference ^ 0xff;
+        }
+        owner.upload(&expected.reference.allocation, &poisoned)?;
+        let ticket = worker.submit(0, 7)?;
+        let result = worker.poll(Duration::from_secs(30))?.ok_or("replay timed out")?;
+        assert_eq!(result.ticket, ticket);
+        if let Some(error) = result.error { return Err(error.into()); }
+        let bytes = owner.download(&expected.reference.allocation)?;
+        assert_eq!(&bytes[expected.reference.offset..expected.reference.offset + expected.bytes.len()], &expected.bytes);
+        for (name, address) in &expected.addresses {
+            assert_eq!(owner.allocation(name)?.address, *address);
+        }
     }
-    let bytes = owner.download(&expected.reference.allocation)?;
-    assert_eq!(
-        &bytes[expected.reference.offset..expected.reference.offset + expected.bytes.len()],
-        &expected.bytes
-    );
     assert!(worker.close().drained);
     let maps = std::fs::read_to_string("/proc/self/maps")?;
     assert!(

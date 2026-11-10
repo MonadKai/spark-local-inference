@@ -471,7 +471,9 @@ def prepare_rank(snapshot, config, *, rank=0, group=None, progress=None, package
                     )
                     fields = row_inputs if mode == "snapshot" else ("request_state_rows", *admission.__dataclass_fields__)
                     add(name, forward, mode, capacity, 1, (*fields, "page_tables", *commands.buffers()), enabled=enabled)
-    with phase(progress, "Prepare and tune kernels") as stage, transient:
+    from ignition.preparation.failure import retain_on_failed_drain
+
+    with retain_on_failed_drain(device, session, forwards, weights, package_storage, transient), phase(progress, "Prepare and tune kernels") as stage, transient:
         tuning = session.tune(show_progress=progress is not None and rank == 0, console=stage.console)
     stream = torch.cuda.Stream(device=device)
     graph_pool = torch.cuda.graph_pool_handle() if package_storage is None else package_storage.graph_pool.id
@@ -486,7 +488,9 @@ def prepare_rank(snapshot, config, *, rank=0, group=None, progress=None, package
                 pool.memory_capacity[1] = pages
         pool.clear_for_preparation()
 
-    try:
+    from ignition.preparation.failure import restore_backing
+
+    with restore_backing(scratch_pool if package_storage is not None else None):
         graphs, compiled = capture_forwards(
             forwards,
             signatures,
@@ -504,9 +508,6 @@ def prepare_rank(snapshot, config, *, rank=0, group=None, progress=None, package
             warmup_storage=package_storage,
             compile_kinds=("prefill", "scored_prefill", "decode", "resume", "speculative"),
         )
-    finally:
-        if package_storage is not None:
-            scratch_pool.materialize()
     session.freeze()
     pool.clear_for_preparation()
     torch.cuda.synchronize(device)

@@ -565,7 +565,9 @@ def prepare_rank(snapshot, config, *, rank, group, progress=None, package_storag
 
     if feature_pool is not None:
         feature_pool.release_backing()
-    try:
+    from ignition.preparation.failure import restore_backing
+
+    with restore_backing(scratch_pool, feature_pool):
         contextual = None
         if _can_race_contextual_plans(config, signatures, device):
             from .contextual_selection import CatalogContextualSelection
@@ -575,7 +577,9 @@ def prepare_rank(snapshot, config, *, rank, group, progress=None, package_storag
                 graph_pool=package_storage.graph_pool.id, cache_root=config.kernel_cache,
                 compile_decoder=config.compile_decoder, warmup_storage=package_storage,
                 progress=progress)
-        with phase(progress, "Prepare and tune kernels") as stage, package_storage.transient():
+        from ignition.preparation.failure import retain_on_failed_drain
+
+        with retain_on_failed_drain(device, session, forwards, weights, package_storage, transient), phase(progress, "Prepare and tune kernels") as stage, package_storage.transient():
             tuning = session.tune(show_progress=progress is not None and rank == 0,
                                   console=stage.console, contextual=contextual)
         if contextual is not None and progress is not None:
@@ -598,10 +602,6 @@ def prepare_rank(snapshot, config, *, rank, group, progress=None, package_storag
             progress=progress, cache_root=config.kernel_cache, retain_graphs=config.retain_graphs,
             materialize=materialize, warmup_storage=package_storage,
             compile_kinds=("prefill", "scored_prefill", "decode", "resume", "speculative", "vision"))
-    finally:
-        scratch_pool.materialize()
-        if feature_pool is not None:
-            feature_pool.materialize()
     session.freeze()
     pool.clear_for_preparation()
     torch.cuda.synchronize(device)

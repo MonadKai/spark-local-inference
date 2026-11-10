@@ -16,6 +16,23 @@ from ignition.preparation import contract as c, runtime_package_pb2 as p
 from ignition.preparation.execution import GraphSignature
 
 
+def test_immutable_request_values_are_additive_typed_cache_dependencies():
+    arguments = dict(vocabulary=32, page_tokens=64, page_tables=[], graphs=[], frontend={}, regions=[])
+    legacy = c.model_contract(**arguments)
+    assert "immutable_request_values" not in legacy["cache"]
+    legacy_wire = ParseDict(legacy, p.ModelContract()).SerializeToString()
+    explicit_empty = c.model_contract(**arguments, immutable_request_values=[])
+    assert ParseDict(explicit_empty, p.ModelContract()).SerializeToString() == legacy_wire
+    current = c.model_contract(**arguments, immutable_request_values=[p.INITIAL_PROMPT_TOKENS])
+    decoded = ParseDict(current, p.ModelContract())
+    assert list(decoded.cache.immutable_request_values) == [44]
+    decoded.cache.ClearField("immutable_request_values")
+    assert decoded.SerializeToString() == legacy_wire
+    for invalid in ([0], [p.QUERY_LENGTH], [p.INITIAL_PROMPT_TOKENS] * 2, [999]):
+        with pytest.raises(ValueError, match="unsupported or duplicate"):
+            c.model_contract(**arguments, immutable_request_values=invalid)
+
+
 @pytest.mark.parametrize("recipe,page,lag,rows", [
     ("qwen38", 64, 1, 1), ("glm53", 256, 1, 1),
     ("deepseek41", 128, 0, None), ("deepseek4", 128, 0, None), ("mimo_v2", 128, 0, 1),

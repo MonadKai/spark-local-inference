@@ -26,6 +26,7 @@ pub fn binding(
         value_offset,
         padding,
         tensor: String::new(),
+        audio_tensor: None,
     }
 }
 
@@ -215,7 +216,8 @@ pub fn metadata() -> PreparedContract {
         vocabulary: 248320,
         input_vocabulary: 248320,
         vision: VisionCapabilities::disabled(),
-        cache: CacheContract {
+        audio: None,
+        cache: CacheContract { immutable_request_values: vec![],
             page_tokens: 64,
             regions: vec![],
             page_tables: vec![PageTableView {
@@ -235,6 +237,9 @@ pub fn metadata() -> PreparedContract {
             message_end_markers: vec![],
             prefix_boundary: None,
             image_tokens: None,
+            audio_preparation: None,
+            audio_tokens: None,
+            transcription: None, request_seed_syntax: None,
         },
     }
 }
@@ -280,7 +285,7 @@ pub fn manifest(config: &ModelConfig) -> ExecutionManifest {
                 }
                 CopyTokenCount | CopyGrammarMask | CopyGrammarCount | QueryLength | LiveRows
                 | SampleEnabled | SamplingTopK | EosCount | PromptHistogram | GrammarMask
-                | GrammarEnabled | ImageFeatureIndex | ImageFeatureSlot | PageTable => Dtype::Int32,
+                | GrammarEnabled | ImageFeatureIndex | ImageFeatureSlot | PageTable | InitialPromptTokens => Dtype::Int32,
                 Constant
                     if matches!(
                         b.buffer.as_str(),
@@ -352,7 +357,7 @@ pub fn manifest(config: &ModelConfig) -> ExecutionManifest {
                 GraphOperation::Speculative => GraphKind::Speculative,
                 _ => unreachable!(),
             };
-            GraphDescriptor { tuned_bindings: vec![], confidence_width: 0, draft_tokens: if kind == GraphKind::Speculative { fields[2].parse::<usize>().unwrap() - 1 } else { 0 }, packed_token_capacity: if kind == GraphKind::Speculative { fields[1].parse::<usize>().unwrap() * fields[2].parse::<usize>().unwrap() } else { 0 },
+            GraphDescriptor { initial_prompt_capacity: 0, tuned_bindings: vec![], confidence_width: 0, draft_tokens: if kind == GraphKind::Speculative { fields[2].parse::<usize>().unwrap() - 1 } else { 0 }, packed_token_capacity: if kind == GraphKind::Speculative { fields[1].parse::<usize>().unwrap() * fields[2].parse::<usize>().unwrap() } else { 0 },
                 name: g.graph.clone(),
                 kind,
                 sampling_mode: SamplingMode::General,

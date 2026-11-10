@@ -185,16 +185,40 @@ impl RetainedMappingPool {
     }
 }
 
+// A failed driver call may report an earlier asynchronous failure. Do not retry
+// a possibly released handle or reuse a possibly mapped address. The process
+// retains this owner and the rest of the arena until process exit.
+struct AbandonedAllocation {
+    address: u64,
+    size: usize,
+    creator_reference: Option<u64>,
+    mapping_confirmed: bool,
+}
+
 struct Arena {
     driver: Driver,
     device: i32,
     granularity: usize,
+    total_memory: usize,
     gpudirect: bool,
     host_base: u64,
     free: Vec<(u64, usize)>,
     mappings: BTreeMap<u64, usize>,
     retained: RetainedBacking,
     retained_mappings: RetainedMappingPool,
+    abandoned: Option<AbandonedAllocation>,
+}
+
+impl Arena {
+    fn check_healthy(&self) -> Result<()> {
+        if let Some(owner) = &self.abandoned {
+            return Err(invalid(format!(
+                "native package allocator abandoned allocation {:#x}+{:#x}, creator reference={:?}, mapping confirmed={}",
+                owner.address, owner.size, owner.creator_reference, owner.mapping_confirmed
+            )));
+        }
+        Ok(())
+    }
 }
 static ARENA: Mutex<Option<Arena>> = Mutex::new(None);
 static ERROR: Mutex<Option<CString>> = Mutex::new(None);
@@ -211,6 +235,7 @@ pub(crate) fn memory_inventory() -> Result<MemoryInventory> {
     let a = arena
         .as_ref()
         .ok_or_else(|| invalid("native package allocator is uninitialized"))?;
+    a.check_healthy()?;
     let (_, device) = crate::current_context()?;
     if device != a.device {
         return Err(invalid(
@@ -278,8 +303,12 @@ extern "C" fn flare_package_initialize(rank: u32, world: u32, device: i32) -> i3
             ));
         }
         let driver = Driver::load()?;
-        let (mut address, mut granularity, mut gpudirect) = (0, 0, 0);
+        let (mut address, mut granularity, mut gpudirect, mut total_memory) = (0, 0, 0, 0);
         unsafe {
+            driver.check(
+                "cuDeviceTotalMem_v2",
+                (driver.device_total_memory)(&mut total_memory, device),
+            )?;
             driver.check(
                 "cuDeviceGetAttribute(GPU_DIRECT_RDMA_SUPPORTED)",
                 (driver.device_attribute)(&mut gpudirect, 116, device),
@@ -311,12 +340,14 @@ extern "C" fn flare_package_initialize(rank: u32, world: u32, device: i32) -> i3
             driver,
             device,
             granularity,
+            total_memory,
             gpudirect: gpudirect != 0,
             host_base: host_base + u64::from(rank) * EXTENT as u64,
             free: vec![(BASE + u64::from(rank) * EXTENT as u64, EXTENT / 2)],
             mappings: BTreeMap::new(),
             retained: RetainedBacking::default(),
             retained_mappings: RetainedMappingPool::default(),
+            abandoned: None,
         });
         Ok(())
     };
@@ -353,6 +384,7 @@ fn package_allocate(size: usize, device: i32, transient: bool) -> *mut c_void {
         let a = guard
             .as_mut()
             .ok_or_else(|| invalid("native package allocator is uninitialized"))?;
+        a.check_healthy()?;
         if device != a.device {
             return Err(invalid("allocation device differs from package rank"));
         }
@@ -366,6 +398,12 @@ fn package_allocate(size: usize, device: i32, transient: bool) -> *mut c_void {
                 a.mappings.insert(mapping.address, mapping.size);
                 return Ok(mapping.address);
             }
+        }
+        // Impossible allocations can make an integrated GPU's driver reclaim
+        // host memory for a long time before returning OOM. Return the same
+        // retryable null result without entering that driver allocation.
+        if size > a.total_memory {
+            return Ok(0);
         }
         let index = a
             .free
@@ -384,23 +422,45 @@ fn package_allocate(size: usize, device: i32, transient: bool) -> *mut c_void {
                     0,
                 ),
             )?;
-            let mapped = (a.driver.map)(address, size, 0, physical, 0);
-            (a.driver.physical_release)(physical);
-            a.driver.check("cuMemMap", mapped)?;
-            let access = Access {
-                location: Location { kind: 1, device },
-                flags: 3,
-            };
-            let status = (a.driver.access)(address, size, &access, 1);
-            if status != 0 {
-                (a.driver.unmap)(address, size);
-            }
-            a.driver.check("cuMemSetAccess", status)?;
         }
+        // OOM above remains retryable. After successful creation, reserve this
+        // VA even if a later call fails; PyTorch must never retry over it.
         if size == available {
             a.free.remove(index);
         } else {
             a.free[index] = (address + size as u64, available - size);
+        }
+        let mut owner = AbandonedAllocation {
+            address,
+            size,
+            creator_reference: Some(physical),
+            mapping_confirmed: false,
+        };
+        let mapped = (|| -> Result<()> {
+            unsafe {
+                a.driver
+                    .check("cuMemMap", (a.driver.map)(address, size, 0, physical, 0))?;
+                owner.mapping_confirmed = true;
+                a.driver
+                    .check("cuMemRelease", (a.driver.physical_release)(physical))?;
+                owner.creator_reference = None;
+                let access = Access {
+                    location: Location { kind: 1, device },
+                    flags: 3,
+                };
+                a.driver.check(
+                    "cuMemSetAccess",
+                    (a.driver.access)(address, size, &access, 1),
+                )?;
+            }
+            Ok(())
+        })();
+        if let Err(error) = mapped {
+            a.abandoned = Some(owner);
+            // Publish the originating error while ARENA still excludes other
+            // callbacks; their quarantine errors must not win ERROR's first slot.
+            failure(&error);
+            return Err(error);
         }
         a.mappings.insert(address, size);
         Ok(address)
@@ -446,6 +506,7 @@ fn package_free(pointer: *mut c_void, transient: bool) {
         let a = guard
             .as_mut()
             .ok_or_else(|| invalid("native package allocator is uninitialized"))?;
+        a.check_healthy()?;
         let address = pointer as u64;
         let size = *a
             .mappings
@@ -499,7 +560,7 @@ fn retention_operation(operation: impl FnOnce(&mut Arena) -> Result<()>) -> i32 
         failure(invalid("native package allocator is uninitialized"));
         return -1;
     };
-    match operation(a) {
+    match a.check_healthy().and_then(|()| operation(a)) {
         Ok(()) => 0,
         Err(error) => {
             failure(invalid(format!(
@@ -578,6 +639,10 @@ extern "C" fn flare_package_snapshot() -> *mut c_char {
     let Some(a) = arena.as_ref() else {
         return null_mut();
     };
+    if let Err(error) = a.check_healthy() {
+        failure(error);
+        return null_mut();
+    }
     let value = serde_json::json!({
         "granularity": a.granularity, "mappings": a.mappings, "host_base": a.host_base,
         "retained_reference_bytes": a.retained.reference_bytes,
@@ -1078,12 +1143,14 @@ mod tests {
                 driver,
                 device: 0,
                 granularity: 4096,
+                total_memory: usize::MAX,
                 gpudirect: false,
                 host_base: 0,
                 free: Vec::new(),
                 mappings: BTreeMap::new(),
                 retained,
                 retained_mappings,
+                abandoned: None,
             });
         }
         let pointer = flare_package_transient_allocate(4095, 0, null_mut());
@@ -1156,12 +1223,14 @@ mod tests {
                 driver,
                 device: 0,
                 granularity: 4096,
+                total_memory: usize::MAX,
                 gpudirect: false,
                 host_base: 0,
                 free: Vec::new(),
                 mappings: BTreeMap::new(),
                 retained,
                 retained_mappings,
+                abandoned: None,
             });
         }
         assert_eq!(flare_package_retention_finish(), -1);
@@ -1175,6 +1244,379 @@ mod tests {
     }
 
     static FREE_TEST_UNMAP_CALLS: AtomicUsize = AtomicUsize::new(0);
+
+    static PHYSICAL_CREATE_CALLS: AtomicUsize = AtomicUsize::new(0);
+
+    static CREATOR_RELEASE_CALLS: AtomicUsize = AtomicUsize::new(0);
+    static ALLOCATION_MAP_CALLS: AtomicUsize = AtomicUsize::new(0);
+    static ALLOCATION_ACCESS_CALLS: AtomicUsize = AtomicUsize::new(0);
+    static ALLOCATION_MAP_STATUS: AtomicUsize = AtomicUsize::new(0);
+    static CREATOR_RELEASE_STATUS: AtomicUsize = AtomicUsize::new(0);
+    static ALLOCATION_ACCESS_STATUS: AtomicUsize = AtomicUsize::new(0);
+
+    unsafe extern "C" fn allocation_test_create(
+        handle: *mut u64,
+        _size: usize,
+        _properties: *const AllocationProperties,
+        _flags: u64,
+    ) -> i32 {
+        PHYSICAL_CREATE_CALLS.fetch_add(1, Ordering::SeqCst);
+        unsafe { *handle = 7 };
+        0
+    }
+
+    unsafe extern "C" fn allocation_test_map(
+        _address: u64,
+        _size: usize,
+        _offset: usize,
+        _handle: u64,
+        _flags: u64,
+    ) -> i32 {
+        ALLOCATION_MAP_CALLS.fetch_add(1, Ordering::SeqCst);
+        ALLOCATION_MAP_STATUS.load(Ordering::SeqCst) as i32
+    }
+
+    unsafe extern "C" fn allocation_test_release(_handle: u64) -> i32 {
+        CREATOR_RELEASE_CALLS.fetch_add(1, Ordering::SeqCst);
+        CREATOR_RELEASE_STATUS.load(Ordering::SeqCst) as i32
+    }
+
+    unsafe extern "C" fn allocation_test_access(
+        _address: u64,
+        _size: usize,
+        _access: *const Access,
+        _count: usize,
+    ) -> i32 {
+        ALLOCATION_ACCESS_CALLS.fetch_add(1, Ordering::SeqCst);
+        ALLOCATION_ACCESS_STATUS.load(Ordering::SeqCst) as i32
+    }
+
+    unsafe extern "C" fn allocation_test_unmap(_address: u64, _size: usize) -> i32 {
+        FREE_TEST_UNMAP_CALLS.fetch_add(1, Ordering::SeqCst);
+        0
+    }
+
+    fn allocation_test_arena(transient: bool) -> Arena {
+        let mut driver =
+            Driver::load().expect("allocator callback control requires the NVIDIA driver library");
+        driver.physical_create = allocation_test_create;
+        driver.map = allocation_test_map;
+        driver.physical_release = allocation_test_release;
+        driver.access = allocation_test_access;
+        driver.unmap = allocation_test_unmap;
+        for counter in [
+            &PHYSICAL_CREATE_CALLS,
+            &CREATOR_RELEASE_CALLS,
+            &ALLOCATION_MAP_CALLS,
+            &ALLOCATION_ACCESS_CALLS,
+            &FREE_TEST_UNMAP_CALLS,
+            &ALLOCATION_MAP_STATUS,
+            &CREATOR_RELEASE_STATUS,
+            &ALLOCATION_ACCESS_STATUS,
+        ] {
+            counter.store(0, Ordering::SeqCst);
+        }
+        *ERROR.lock().unwrap_or_else(|error| error.into_inner()) = None;
+        let mut retained = RetainedBacking::default();
+        if transient {
+            retained.begin().unwrap();
+        }
+        Arena {
+            driver,
+            device: 0,
+            granularity: 4096,
+            total_memory: 8192,
+            gpudirect: false,
+            host_base: 0,
+            free: vec![(0x10000, 8192)],
+            mappings: BTreeMap::new(),
+            retained,
+            retained_mappings: RetainedMappingPool::default(),
+            abandoned: None,
+        }
+    }
+
+    #[test]
+    fn allocation_rejects_failed_creator_handle_release() {
+        let _guard = ARENA_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        for transient in [false, true] {
+            for code in [1, 715] {
+                let allocator = allocation_test_arena(transient);
+                CREATOR_RELEASE_STATUS.store(code, Ordering::SeqCst);
+                *ARENA.lock().unwrap_or_else(|error| error.into_inner()) = Some(allocator);
+                let pointer = if transient {
+                    flare_package_transient_allocate(4096, 0, null_mut())
+                } else {
+                    flare_package_allocate(4096, 0, null_mut())
+                };
+                let error = ERROR
+                    .lock()
+                    .unwrap_or_else(|error| error.into_inner())
+                    .take()
+                    .map(|error| error.to_string_lossy().into_owned());
+                *ARENA.lock().unwrap_or_else(|error| error.into_inner()) = None;
+                assert!(
+                    pointer.is_null(),
+                    "published {pointer:p} after cuMemRelease failed"
+                );
+                assert_eq!(PHYSICAL_CREATE_CALLS.load(Ordering::SeqCst), 1);
+                assert_eq!(CREATOR_RELEASE_CALLS.load(Ordering::SeqCst), 1);
+                assert_eq!(ALLOCATION_ACCESS_CALLS.load(Ordering::SeqCst), 0);
+                assert!(
+                    error
+                        .as_deref()
+                        .is_some_and(|error| error.contains("cuMemRelease")
+                            && error.contains(&code.to_string())),
+                    "{error:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn failed_allocation_preserves_resources_and_stops_driver_calls() {
+        let _guard = ARENA_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        for transient in [false, true] {
+            for (operation, stage) in [("cuMemMap", 0), ("cuMemRelease", 1), ("cuMemSetAccess", 2)]
+            {
+                for code in [1, 715] {
+                    let mut allocator = allocation_test_arena(transient);
+                    allocator.mappings.insert(0x30000, 4096);
+                    if transient {
+                        allocator.retained.retain(4096, || Ok(9)).unwrap();
+                        allocator.retained_mappings.insert(RetainedMapping {
+                            address: 0x40000,
+                            size: 8192,
+                        });
+                    }
+                    [
+                        &ALLOCATION_MAP_STATUS,
+                        &CREATOR_RELEASE_STATUS,
+                        &ALLOCATION_ACCESS_STATUS,
+                    ][stage]
+                        .store(code, Ordering::SeqCst);
+                    *ARENA.lock().unwrap_or_else(|error| error.into_inner()) = Some(allocator);
+                    let pointer = if transient {
+                        flare_package_transient_allocate(4096, 0, null_mut())
+                    } else {
+                        flare_package_allocate(4096, 0, null_mut())
+                    };
+                    let first = ERROR
+                        .lock()
+                        .unwrap_or_else(|error| error.into_inner())
+                        .clone();
+                    let retry = flare_package_allocate(4096, 0, null_mut());
+                    let transient_retry = flare_package_transient_allocate(4096, 0, null_mut());
+                    flare_package_free(0x30000 as *mut c_void, 4096, 0, null_mut());
+                    flare_package_transient_free(0x30000 as *mut c_void, 4096, 0, null_mut());
+                    let begin = flare_package_retention_begin();
+                    let finish = flare_package_retention_finish();
+                    let abort = flare_package_retention_abort();
+                    let snapshot = flare_package_snapshot();
+                    // Health rejection must occur before asking for a CUDA context.
+                    let inventory_failed = memory_inventory().is_err();
+                    let last = ERROR
+                        .lock()
+                        .unwrap_or_else(|error| error.into_inner())
+                        .take();
+                    let allocator = ARENA
+                        .lock()
+                        .unwrap_or_else(|error| error.into_inner())
+                        .take()
+                        .unwrap();
+                    assert!(pointer.is_null() && retry.is_null() && transient_retry.is_null());
+                    assert_eq!((begin, finish, abort), (-1, -1, -1));
+                    assert!(snapshot.is_null() && inventory_failed);
+                    assert_eq!(first, last);
+                    let error = first.unwrap().into_string().unwrap();
+                    assert!(
+                        error.contains(operation) && error.contains(&code.to_string()),
+                        "{error}"
+                    );
+                    assert_eq!(allocator.free, [(0x11000, 4096)]);
+                    assert_eq!(allocator.mappings, BTreeMap::from([(0x30000, 4096)]));
+                    let owner = allocator.abandoned.unwrap();
+                    assert_eq!((owner.address, owner.size), (0x10000, 4096));
+                    assert_eq!(
+                        owner.creator_reference,
+                        if stage == 2 { None } else { Some(7) }
+                    );
+                    assert_eq!(owner.mapping_confirmed, stage != 0);
+                    assert_eq!(
+                        allocator.retained.reference_bytes,
+                        if transient { 4096 } else { 0 }
+                    );
+                    assert_eq!(
+                        allocator.retained.handles,
+                        if transient { vec![(9, 4096)] } else { vec![] }
+                    );
+                    assert_eq!(
+                        allocator.retained_mappings.bytes(),
+                        if transient { 8192 } else { 0 }
+                    );
+                    assert_eq!(PHYSICAL_CREATE_CALLS.load(Ordering::SeqCst), 1);
+                    assert_eq!(ALLOCATION_MAP_CALLS.load(Ordering::SeqCst), 1);
+                    assert_eq!(
+                        CREATOR_RELEASE_CALLS.load(Ordering::SeqCst),
+                        usize::from(stage > 0)
+                    );
+                    assert_eq!(
+                        ALLOCATION_ACCESS_CALLS.load(Ordering::SeqCst),
+                        usize::from(stage > 1)
+                    );
+                    assert_eq!(FREE_TEST_UNMAP_CALLS.load(Ordering::SeqCst), 0);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn successful_allocation_releases_creator_once_and_publishes_mapping() {
+        let _guard = ARENA_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        for transient in [false, true] {
+            let allocator = allocation_test_arena(transient);
+            *ARENA.lock().unwrap_or_else(|error| error.into_inner()) = Some(allocator);
+            let pointer = if transient {
+                flare_package_transient_allocate(4096, 0, null_mut())
+            } else {
+                flare_package_allocate(4096, 0, null_mut())
+            };
+            // Use the ordinary callback so no artificial retained handle is needed.
+            flare_package_free(pointer, 4096, 0, null_mut());
+            let allocator = ARENA
+                .lock()
+                .unwrap_or_else(|error| error.into_inner())
+                .take()
+                .unwrap();
+            let error = ERROR
+                .lock()
+                .unwrap_or_else(|error| error.into_inner())
+                .take();
+            assert_eq!(pointer as u64, 0x10000);
+            assert!(error.is_none());
+            assert!(allocator.abandoned.is_none() && allocator.mappings.is_empty());
+            assert_eq!(allocator.free, [(0x10000, 8192)]);
+            assert_eq!(PHYSICAL_CREATE_CALLS.load(Ordering::SeqCst), 1);
+            assert_eq!(ALLOCATION_MAP_CALLS.load(Ordering::SeqCst), 1);
+            assert_eq!(CREATOR_RELEASE_CALLS.load(Ordering::SeqCst), 1);
+            assert_eq!(ALLOCATION_ACCESS_CALLS.load(Ordering::SeqCst), 1);
+            assert_eq!(FREE_TEST_UNMAP_CALLS.load(Ordering::SeqCst), 1);
+        }
+    }
+
+    unsafe extern "C" fn oom_create(
+        _handle: *mut u64,
+        _size: usize,
+        _properties: *const AllocationProperties,
+        _flags: u64,
+    ) -> i32 {
+        PHYSICAL_CREATE_CALLS.fetch_add(1, Ordering::SeqCst);
+        2
+    }
+
+    #[test]
+    fn create_oom_can_retry_without_poisoning_or_losing_address_space() {
+        let _guard = ARENA_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        for transient in [false, true] {
+            let mut allocator = allocation_test_arena(transient);
+            allocator.driver.physical_create = oom_create;
+            *ARENA.lock().unwrap_or_else(|error| error.into_inner()) = Some(allocator);
+            let first = if transient {
+                flare_package_transient_allocate(8192, 0, null_mut())
+            } else {
+                flare_package_allocate(8192, 0, null_mut())
+            };
+            {
+                let mut arena = ARENA.lock().unwrap_or_else(|error| error.into_inner());
+                let allocator = arena.as_mut().unwrap();
+                assert!(allocator.abandoned.is_none() && allocator.mappings.is_empty());
+                assert_eq!(allocator.free, [(0x10000, 8192)]);
+                allocator.driver.physical_create = allocation_test_create;
+            }
+            let retry = if transient {
+                flare_package_transient_allocate(8192, 0, null_mut())
+            } else {
+                flare_package_allocate(8192, 0, null_mut())
+            };
+            flare_package_free(retry, 8192, 0, null_mut());
+            let allocator = ARENA
+                .lock()
+                .unwrap_or_else(|error| error.into_inner())
+                .take()
+                .unwrap();
+            let error = ERROR
+                .lock()
+                .unwrap_or_else(|error| error.into_inner())
+                .take();
+            assert!(first.is_null());
+            assert_eq!(retry as u64, 0x10000);
+            assert!(error.is_none());
+            assert!(allocator.abandoned.is_none() && allocator.mappings.is_empty());
+            assert_eq!(allocator.free, [(0x10000, 8192)]);
+            assert_eq!(PHYSICAL_CREATE_CALLS.load(Ordering::SeqCst), 2);
+            assert_eq!(ALLOCATION_MAP_CALLS.load(Ordering::SeqCst), 1);
+            assert_eq!(CREATOR_RELEASE_CALLS.load(Ordering::SeqCst), 1);
+            assert_eq!(ALLOCATION_ACCESS_CALLS.load(Ordering::SeqCst), 1);
+            assert_eq!(FREE_TEST_UNMAP_CALLS.load(Ordering::SeqCst), 1);
+        }
+    }
+
+    #[test]
+    fn impossible_allocation_is_retryable_without_entering_driver() {
+        let _guard = ARENA_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        let mut driver =
+            Driver::load().expect("allocator callback control requires the NVIDIA driver library");
+        driver.physical_create = oom_create;
+        PHYSICAL_CREATE_CALLS.store(0, Ordering::SeqCst);
+        *ERROR.lock().unwrap_or_else(|error| error.into_inner()) = None;
+        *ARENA.lock().unwrap_or_else(|error| error.into_inner()) = Some(Arena {
+            driver,
+            device: 0,
+            granularity: 4096,
+            total_memory: 8192,
+            gpudirect: false,
+            host_base: 0,
+            free: vec![(0x10000, 32768)],
+            mappings: BTreeMap::new(),
+            retained: RetainedBacking::default(),
+            retained_mappings: RetainedMappingPool::default(),
+            abandoned: None,
+        });
+        // Rounding the first byte above the limit must not enter cuMemCreate.
+        assert!(flare_package_allocate(8193, 0, null_mut()).is_null());
+        assert_eq!(PHYSICAL_CREATE_CALLS.load(Ordering::SeqCst), 0);
+        assert!(
+            ERROR
+                .lock()
+                .unwrap_or_else(|error| error.into_inner())
+                .is_none()
+        );
+        // A within-limit retry still reaches the driver and preserves ordinary
+        // driver OOM as retryable, rather than poisoning the package allocator.
+        assert!(flare_package_allocate(8192, 0, null_mut()).is_null());
+        assert_eq!(PHYSICAL_CREATE_CALLS.load(Ordering::SeqCst), 1);
+        assert!(
+            ERROR
+                .lock()
+                .unwrap_or_else(|error| error.into_inner())
+                .is_none()
+        );
+        let mut arena = ARENA.lock().unwrap_or_else(|error| error.into_inner());
+        let allocator = arena.as_ref().unwrap();
+        assert_eq!(allocator.free, vec![(0x10000, 32768)]);
+        assert!(allocator.mappings.is_empty());
+        *arena = None;
+    }
 
     unsafe extern "C" fn failing_once_unmap(_address: u64, _size: usize) -> i32 {
         if FREE_TEST_UNMAP_CALLS.fetch_add(1, Ordering::SeqCst) == 0 {
@@ -1199,12 +1641,14 @@ mod tests {
                 driver,
                 device: 0,
                 granularity: 4096,
+                total_memory: usize::MAX,
                 gpudirect: false,
                 host_base: 0,
                 free: Vec::new(),
                 mappings: BTreeMap::from([(0x10000, 4096)]),
                 retained: RetainedBacking::default(),
                 retained_mappings: RetainedMappingPool::default(),
+                abandoned: None,
             });
         }
         let pointer = 0x10000 as *mut c_void;

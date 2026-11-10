@@ -106,7 +106,7 @@ spans do not overlap; captured weights and scratch need not appear in this I/O
 manifest but must remain in the resource owner.
 
 Graph kinds are `init`, `restore`, `snapshot`, `prefill`, `scored_prefill`,
-`decode`, `speculative`, `mixed`, `resume`, and `vision`. Decode and speculative
+`decode`, `speculative`, `mixed`, `resume`, `vision`, and `audio_encode`. Decode and speculative
 batch capacities are powers of two through 64. Decode has one token per lane.
 A speculative graph performs complete proposal, optional confidence/allocation,
 verification, and commit work. It declares B/D/W/P explicitly: request capacity,
@@ -119,9 +119,31 @@ Prefill has batch capacity 1. Token capacities are 1, 16, or a multiple of 64
 within 64..=262144. The model configuration separately requires the captured
 catalog for its `prefill_chunk_size`; transport validation does not infer a
 scheduling policy or substitute a missing graph.
+
+`ExecutionGraph.initial_prompt_capacity` optionally declares the physical
+initial-prompt arithmetic extent C of a single-lane prefill or scored-prefill
+graph. An omitted or zero value preserves the historical catalog. Positive
+extents fit Int32 and are independent of the fragment's token capacity M;
+M may exceed C. Such graphs bind `INITIAL_PROMPT_TOKENS`, with the existing
+immutable cache dependency. All C values cover the same complete fragment
+catalog, including scored variants if present, and the largest covers the
+prepared context. A positive catalog cannot mix zero-C text prefill or Mixed
+graphs. Missing combinations reject before serving.
+
+Admission resolves the smallest declared C covering the validated original N
+from the full catalog. It retains C through queueing, fragments and generated
+history replay. Plans, cost measurements, graph selection, input packing,
+completion contracts and rank layout identity carry this exact extent. A
+different fitting C cannot substitute for it. This is capacity selection of
+existing operations; the prepared programs retain their model computation.
 State operations
 and resume use power-of-two batch capacities through 64. Vision batch capacity is 1, and its
-token capacity is one of 256, 1024, 4096, or 16384 patches. Batch capacity can
+token capacity is one of 256, 1024, 4096, or 16384 patches.
+Audio encode batch capacity is 1 and its positive token-capacity field measures
+Mel frames, not consumed text tokens. The typed audio contract declares its
+actual frame catalog, tensor geometry and feature storage. It has no draft,
+packed-token, prefill or confidence extent and never samples a token.
+Batch capacity can
 exceed `max_active` for padding, but must not exceed its next power of two.
 Request storage capacity is `max_active.next_power_of_two()`. The manifest records
 capture capacity. Runtime admission may use a smaller `SchedulerLimits.max_active`,
@@ -137,6 +159,14 @@ The sampling mode is `general` for every graph. Requests require a positive
 normal FP32 temperature and use the same stochastic sampling executable.
 Unsupported mode strings reject manifest parsing before CUDA initialization.
 A model contract defines the required graph capacities.
+
+The downstream Qwen3-ASR recipe has the explicitly approved preparation-only
+fixed-argmax exception in [its D2 design decision](../docs/qwen3-asr-design.md#approved-downstream-exact-greedy-exception).
+Its captured program still uses `general` transport and positive parameter
+validation, with the same completion/state contract. Rust does not interpret a
+new greedy mode or select an algorithm from model identity or top-k. Existing
+packages keep their original stochastic executable and inclusive cutoff ties.
+The authorization is separate from recipe registration and GPU/package qualification.
 
 Two graph inputs are reserved and required in every serving executable's bindings:
 
@@ -274,7 +304,7 @@ selected frame's records, marking unused lanes inactive. Records for
 active lanes carry the submitted sequence and the corresponding request
 generation. Finished requests suppress further mutation inside subsequent
 graphs. The model scheduler requires an active completion for every submitted
-live maintenance or vision lane; an inactive row cannot confirm a state copy.
+live maintenance, vision or audio encode lane; an inactive row cannot confirm a state copy.
 
 The executor allocates two pinned input frames and two pinned completion
 frames. Input updates, graph execution and production events use the model
@@ -283,7 +313,7 @@ completion row, and records its completion event. A frame remains occupied
 until its transfer completes and its completion is consumed. Only decode and
 complete speculative generation may occupy both frames. Grammar-constrained
 work and host token stops require an empty window. Prefill, scored prefill,
-mixed, resume, vision, and state operations also drain the window before replay.
+mixed, resume, vision, audio encode, and state operations also drain the window before replay.
 Scheduler dependencies additionally serialize host-fed pending tokens and
 committed cursors, history inputs, unknown or stale costs, and phase transitions.
 
@@ -315,6 +345,13 @@ The manifest describes transport and graph capacities. The model recipe's
 request-state, page-table, positional and sampling input names are additional
 named buffers and bindings. Shared input packing validates their semantic
 bindings before serving requests.
+
+An optional `INITIAL_PROMPT_TOKENS` input uses a contiguous Int32 submission-row
+buffer, width one, zero offset and zero inactive padding. Each active row carries
+the request's original expanded prompt count, including after readmission with
+generated history. Its cache dependency is declared in the prepared model
+contract. Existing manifests without this input retain their binding and cache
+semantics. The value does not introduce a graph-selection dimension.
 
 ## Native runtime package
 

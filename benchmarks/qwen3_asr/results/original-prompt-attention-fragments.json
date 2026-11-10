@@ -1,0 +1,190 @@
+{
+  "scope": "Frozen synthetic Q/K/V full165 versus real128+37 fragments; fixed original geometry with actual consumed KV endpoints. Component diagnostic only; no metadata implementation, model, native or performance qualification.",
+  "seed": 20261106,
+  "original_tokens": 165,
+  "fixed_family": [
+    192,
+    2,
+    256
+  ],
+  "status": "passed_component_control_only",
+  "observations": [
+    {
+      "mode": "automatic",
+      "part": "full",
+      "actual_consumed_keys": 165,
+      "query_count": 165,
+      "physical_query_rows": 256,
+      "family_geometry": [
+        1,
+        1,
+        256,
+        1,
+        2,
+        256,
+        256,
+        1,
+        256,
+        192,
+        2,
+        256
+      ],
+      "compiled": false,
+      "changed": 0,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    {
+      "mode": "automatic",
+      "part": "first",
+      "actual_consumed_keys": 128,
+      "query_count": 128,
+      "physical_query_rows": 128,
+      "family_geometry": [
+        1,
+        1,
+        256,
+        1,
+        2,
+        256,
+        128,
+        1,
+        256,
+        128,
+        2,
+        256
+      ],
+      "compiled": false,
+      "changed": 25629,
+      "max_abs": 0.00048828125,
+      "relative_l2": 0.0005082190045928253
+    },
+    {
+      "mode": "automatic",
+      "part": "tail",
+      "actual_consumed_keys": 165,
+      "query_count": 37,
+      "physical_query_rows": 64,
+      "family_geometry": [
+        1,
+        1,
+        256,
+        1,
+        2,
+        256,
+        64,
+        1,
+        256,
+        64,
+        2,
+        256
+      ],
+      "compiled": false,
+      "changed": 0,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    {
+      "mode": "fixed-original",
+      "part": "full",
+      "actual_consumed_keys": 165,
+      "query_count": 165,
+      "physical_query_rows": 256,
+      "family_geometry": [
+        192,
+        2,
+        256
+      ],
+      "compiled": true,
+      "captured": true,
+      "identical_replays": 5,
+      "replay_allocation_stable": true,
+      "changed": 0,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    {
+      "mode": "fixed-original",
+      "part": "first",
+      "actual_consumed_keys": 128,
+      "query_count": 128,
+      "physical_query_rows": 128,
+      "family_geometry": [
+        192,
+        2,
+        256
+      ],
+      "compiled": true,
+      "captured": true,
+      "identical_replays": 5,
+      "replay_allocation_stable": true,
+      "changed": 0,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    {
+      "mode": "fixed-original",
+      "part": "tail",
+      "actual_consumed_keys": 165,
+      "query_count": 37,
+      "physical_query_rows": 64,
+      "family_geometry": [
+        192,
+        2,
+        256
+      ],
+      "compiled": true,
+      "captured": true,
+      "identical_replays": 5,
+      "replay_allocation_stable": true,
+      "changed": 0,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    }
+  ],
+  "errors": [],
+  "started_at": "2026-11-08T11:33:02.802908+00:00",
+  "automatic_partition_comparison": {
+    "changed": 25629,
+    "max_abs": 0.00048828125,
+    "relative_l2": 0.0004979322418620489
+  },
+  "fixed-original_partition_comparison": {
+    "changed": 0,
+    "max_abs": 0.0,
+    "relative_l2": 0.0
+  },
+  "future_kv_poison_unread_after_larger_extent": true,
+  "active_kv_poison_rejected": true,
+  "poison_recovery_exact": true,
+  "finished_at": "2026-11-08T11:33:11.030024+00:00",
+  "configuration": {
+    "hardware": "NVIDIA GB10 SM121",
+    "torch": "2.14.1+cu132",
+    "torch_revision": "5c4886908584029761b579af026dcfb627c84070",
+    "query_shape": [
+      165,
+      16,
+      128
+    ],
+    "key_value_shape": [
+      256,
+      8,
+      128
+    ],
+    "dtype": "BF16",
+    "random_draw_order": [
+      "query",
+      "key",
+      "value"
+    ],
+    "random_distribution": "CUDA torch.randn BF16, multiplied by 0.2",
+    "first_fragment_keys": 128,
+    "tail_fragment_keys": 165,
+    "original_capacity": 192,
+    "num_splits": 2,
+    "max_key_bound": 256,
+    "component": "ignition/components/request_flash.py",
+    "component_bytes_equal_revision": "6695823c"
+  }
+}

@@ -1,0 +1,141 @@
+{
+  "scope": "Finite native compatibility comparisons of the same clean-old-source signed VISION package, with every strict failure retained.",
+  "status": "FAILED_strict_repeat_and_cross_engine_comparisons",
+  "producer_source": "0009b89de948e6b06c47252c777890c0a071c45c",
+  "package_primary_sha256": "8940c4a62e6094f238558ec7a64f324f74161f7ba64be40febb7bbc3bb7a0868",
+  "package_envelope_sha256": "adde326d07abf8336de79205d3f029b749a3d92696e81ce80cbe599fe3f59ff9",
+  "package_id": "df9cb32136707e5d06ac0f9507975a5da5064d9c795d9b476aff8fd7979955b4",
+  "prepared_identity": "83c133eff42739efa98457796550e831d62b7c20d5dd9ace530421d0d18060f5",
+  "checkpoint_revision": "c6cc2e8ffa353403213d6b9b18aaf8eb684d705a",
+  "source_of_old_binary": "Current isolated clean historical-source rebuild, not a historical installed binary",
+  "actual_HTTP_requests": 24,
+  "per_engine_requests": 12,
+  "engine_runs": [
+    {
+      "label": "producer",
+      "binary_sha256": "6d6b9cdbfb2e9bc8262f9a873645ee4efc252c0e02c9b3af59ea22d5f64d862d",
+      "status": "completed_HTTP_controls_with_strict_comparison_failures",
+      "exit_code": 0,
+      "GPU_after": [],
+      "shutdown_passed": true
+    },
+    {
+      "label": "candidate",
+      "binary_sha256": "1c177cda5f5640888e54842af9ffaaf2ca15b261c19b4f06c69a25bdb75bd687",
+      "status": "completed_HTTP_controls_with_strict_comparison_failures",
+      "exit_code": 0,
+      "GPU_after": [],
+      "shutdown_passed": true
+    }
+  ],
+  "strict_comparison_failures": [
+    {
+      "gate": "same-path-repeat",
+      "engine": "producer",
+      "id": "text-long",
+      "repetition": 1,
+      "changed_fields": [
+        "token_ids",
+        "message"
+      ],
+      "first_different_token": 24
+    },
+    {
+      "gate": "same-path-repeat",
+      "engine": "producer",
+      "id": "image-medium",
+      "repetition": 1,
+      "changed_fields": [
+        "token_ids",
+        "message"
+      ],
+      "first_different_token": 4
+    },
+    {
+      "gate": "matched-sequence-cross-engine",
+      "engine": "candidate",
+      "id": "text-long",
+      "repetition": 0,
+      "changed_fields": [
+        "token_ids",
+        "message"
+      ],
+      "first_different_token": 24
+    },
+    {
+      "gate": "matched-sequence-cross-engine",
+      "engine": "candidate",
+      "id": "image-medium",
+      "repetition": 0,
+      "changed_fields": [
+        "token_ids",
+        "message",
+        "finish_reason",
+        "usage"
+      ],
+      "first_different_token": 9
+    },
+    {
+      "gate": "same-path-repeat",
+      "engine": "candidate",
+      "id": "text-long",
+      "repetition": 1,
+      "changed_fields": [
+        "token_ids",
+        "message"
+      ],
+      "first_different_token": 19
+    },
+    {
+      "gate": "matched-sequence-cross-engine",
+      "engine": "candidate",
+      "id": "text-long",
+      "repetition": 1,
+      "changed_fields": [
+        "token_ids",
+        "message"
+      ],
+      "first_different_token": 19
+    },
+    {
+      "gate": "same-path-repeat",
+      "engine": "candidate",
+      "id": "image-medium",
+      "repetition": 1,
+      "changed_fields": [
+        "token_ids",
+        "message",
+        "finish_reason",
+        "usage"
+      ],
+      "first_different_token": 4
+    },
+    {
+      "gate": "matched-sequence-cross-engine",
+      "engine": "candidate",
+      "id": "image-medium",
+      "repetition": 1,
+      "changed_fields": [
+        "token_ids",
+        "message"
+      ],
+      "first_different_token": 26
+    }
+  ],
+  "sampling": "Original General recipe sampling, seed0; no greedy substitution or sampler/graph change",
+  "caches": "Failed long-text and medium-image requests all report cached_tokens5; host_hits delta0. Host cache limits0 do not disable GPU prefix reuse.",
+  "actual_image_tokens": [
+    256,
+    1024,
+    2500
+  ],
+  "actual_VISION_graph_capacities": [
+    1024,
+    4096,
+    13312
+  ],
+  "limits": "32-token finite reasoning controls, not complete natural-stop quality; strict failures block old-package qualification. No logits/RNG/snapshot byte readbacks or root cause established.",
+  "full_old_package_qualification": false,
+  "model_qualified": false,
+  "performance_qualified": false
+}

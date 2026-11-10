@@ -66,6 +66,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             PromptEncoder::DeepseekV4
         },
         image_placeholder_token_id: Some(placeholder),
+        audio: None,
         template_encoding: Default::default(),
         image: None,
     };

@@ -39,6 +39,10 @@ tempfile = "3"
 [dev-dependencies]
 prost = "0.14"
 
+# Native audio decoding/Log-Mel uses the system FFmpeg libraries on Linux.
+[target.'cfg(target_os = "linux")'.dependencies]
+flare-helios = { path = "../helios", features = ["runtime-package", "server", "audio"] }
+
 # DGX Spark and Grace hosts serve multi-host packages over RoCEnante, which links libibverbs.
 [target.'cfg(all(target_os = "linux", target_arch = "aarch64"))'.dependencies]
 flare-helios = { path = "../helios", features = ["runtime-package", "server", "roce"] }

@@ -31,7 +31,7 @@ fn prompt_prefill_gpu_and_native_costs() {
         "page_tokens":config.contract.cache.page_tokens,"graphs":manifest.graphs.len()}));
     let scoring = manifest.prompt_logprob_capacity().unwrap() > 0;
     let runtime = unsafe { ModelRuntime::start(manifest, config, 16, 256, frontend,
-        None, crate::scheduler::PolicyConfig::default()).unwrap() };
+        None, crate::scheduler::PolicyConfig::default(), super::super::PrefixCacheReuse::Shared, None).unwrap() };
     runtime.metrics().scheduler_trace.start();
     let asynchronous = tokio::runtime::Runtime::new().unwrap();
     let mut samples = VecDeque::new();
@@ -46,9 +46,11 @@ fn prompt_prefill_gpu_and_native_costs() {
                     tokens[0] = 100 + serial;
                     let prompt = Prompt {
                         tokens, message_boundaries: vec![],
-                        data: crate::model::PromptData { positions: (0..length).map(|i| [i as i64; 3]).collect(),
+                        data: crate::model::PromptData { audio_token_indices: Vec::new(), positions: (0..length).map(|i| [i as i64; 3]).collect(),
                             vision_token_indices: vec![-1; length], spans: vec![] },
-                        conditioned_inputs: vec![], conditioning: vec![], sampling: crate::model::SamplingParameters {
+                        conditioned_inputs: vec![],
+                        #[cfg(feature = "audio")]
+                        conditioned_audio: None, conditioning: vec![], sampling: crate::model::SamplingParameters {
                             top_k: 1, ..Default::default()
                         }, max_new_tokens: budget, reasoning_cut: None, stop_sequences: vec![], stop_strings: vec![],
                         grammar: None, ignore_eos: false, logprobs: false,

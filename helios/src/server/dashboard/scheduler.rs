@@ -465,6 +465,7 @@ fn shape(graph: &GraphLabel) -> String {
         GraphKind::Resume => "resume",
         GraphKind::Snapshot => "snapshot",
         GraphKind::Vision => "vision",
+        GraphKind::AudioEncode => "audio encode",
     };
     if graph.kind == GraphKind::Mixed {
         format!(
@@ -495,6 +496,7 @@ fn kind_style(kind: GraphKind) -> (&'static str, Color) {
         GraphKind::Resume => ("U", GOLD),
         GraphKind::Snapshot => ("C", MUTED),
         GraphKind::Vision => ("V", GOLD),
+        GraphKind::AudioEncode => ("A", GOLD),
     }
 }
 
@@ -504,6 +506,7 @@ fn phase(phase: RequestPhase) -> &'static str {
         RequestPhase::Inbound => "inbound",
         RequestPhase::Restore => "restore",
         RequestPhase::Vision => "vision",
+        RequestPhase::AudioEncode => "audio encode",
         RequestPhase::Prefill => "prefill",
         RequestPhase::Resume => "resume",
         RequestPhase::Decode => "decode",

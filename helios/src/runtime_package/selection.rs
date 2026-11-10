@@ -37,6 +37,7 @@ pub struct LoadOptions {
     /// User-visible ordinals when the launcher renumbers CUDA devices.
     pub device_labels: Option<Vec<i32>>,
     pub prefix_cache: crate::offload::PrefixCacheOffload,
+    pub prepared_input_cache: Option<crate::offload::PreparedInputCacheMode>,
     /// For a package whose ranks run on separate hosts: the one rank this host loads.
     pub cluster_rank: Option<usize>,
 }
@@ -214,12 +215,15 @@ impl LoadOptions {
                         && graph.prefill_capacity <= config["prefill_chunk_size"].as_u64().unwrap_or(0)
                         && graph.speculation_enabled.is_some()
                         && if speculative { (1..=crate::execution::resolve_completion_token_capacity(execution.completion_token_capacity) as u64).contains(&graph.token_capacity) } else { graph.token_capacity == 1 },
-                    GraphKind::Prefill | GraphKind::ScoredPrefill | GraphKind::Vision => graph.batch_capacity == 1 && graph.token_capacity > 0,
+                    GraphKind::Prefill | GraphKind::ScoredPrefill | GraphKind::Vision | GraphKind::AudioEncode => graph.batch_capacity == 1 && graph.token_capacity > 0,
                     GraphKind::Speculative => BATCH_CAPACITIES.contains(&(graph.batch_capacity as usize)) && (1..=crate::execution::resolve_completion_token_capacity(execution.completion_token_capacity) as u64).contains(&graph.token_capacity),
                     _ => BATCH_CAPACITIES.contains(&(graph.batch_capacity as usize)) && graph.token_capacity == 1,
                 };
                 if !valid || graph.batch_capacity > prepared.next_power_of_two() as u64
                     || (kind != GraphKind::Mixed && graph.prefill_capacity != 0)
+                    || (graph.initial_prompt_capacity != 0
+                        && (!matches!(kind, GraphKind::Prefill | GraphKind::ScoredPrefill)
+                            || graph.initial_prompt_capacity > i32::MAX as u64))
                     || (kind == GraphKind::Speculative && (graph.packed_token_capacity < graph.batch_capacity
                         || graph.packed_token_capacity > graph.batch_capacity.saturating_mul(graph.token_capacity)))
                     || (kind != GraphKind::Speculative && graph.packed_token_capacity != 0)
@@ -227,6 +231,7 @@ impl LoadOptions {
                         || graph.draft_tokens != Some(graph.confidence_width)))
                     || (kind == GraphKind::Speculative && graph.speculation_enabled == Some(false))
                     || (kind == GraphKind::Decode && graph.speculation_enabled == Some(true))
+                    || (kind == GraphKind::AudioEncode && graph.speculation_enabled.is_some())
                     || if speculative {
                         graph.verify_tokens != Some(graph.token_capacity as u32)
                             || graph.draft_tokens.is_none_or(|n| n as usize >= crate::execution::resolve_completion_token_capacity(execution.completion_token_capacity))
@@ -238,7 +243,8 @@ impl LoadOptions {
                     || (kind == GraphKind::Speculative && graph.token_capacity > 1 && graph.packed_token_capacity > token_capacity)
                     || !names.insert(graph.name.clone())
                     || !variants.insert((graph.kind.clone(), graph.sampling_mode.clone(), graph.batch_capacity,
-                        graph.token_capacity, graph.prefill_capacity, graph.packed_token_capacity, graph.draft_tokens, graph.draft_source, graph.speculation_enabled)) {
+                        graph.token_capacity, graph.prefill_capacity, graph.initial_prompt_capacity,
+                        graph.packed_token_capacity, graph.draft_tokens, graph.draft_source, graph.speculation_enabled)) {
                     return Err(invalid("invalid or duplicate serving graph variant"));
                 }
             }
@@ -330,7 +336,7 @@ impl LoadOptions {
             rank_tuning_catalog = Some(tuning_catalog);
             let catalog: BTreeSet<_> = execution.graphs.iter().map(|g|
                 (g.name.clone(), g.kind.clone(), g.sampling_mode.clone(), g.batch_capacity,
-                    g.token_capacity, g.prefill_capacity, g.packed_token_capacity, g.draft_tokens,
+                    (g.token_capacity, g.initial_prompt_capacity), g.prefill_capacity, g.packed_token_capacity, g.draft_tokens,
                     g.verify_tokens, g.draft_source, g.confidence_width,
                     g.tuned_bindings.iter().map(|binding| (binding.buffer.clone(), binding.tuning_graph.clone())).collect::<Vec<_>>())).collect();
             if rank_catalog.as_ref().is_some_and(|expected| *expected != catalog) {
@@ -358,6 +364,9 @@ impl LoadOptions {
             object.insert("history_drafts".into(), history.into());
         } else if !enabled {
             object.insert("history_drafts".into(), false.into());
+        }
+        if let Some(mode) = self.prepared_input_cache {
+            object.insert("prepared_input_cache".into(), mode.as_str().into());
         }
         Ok(active)
     }

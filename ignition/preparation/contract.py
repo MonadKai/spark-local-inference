@@ -7,9 +7,19 @@
 from . import runtime_package_pb2 as p
 
 
-def binding(buffer, source, indexing=p.SUBMISSION_ROW, *, offset=0, padding=0, tensor=""):
-    return dict(buffer=buffer, source=source, indexing=indexing, value_offset=offset,
-                padding=padding, tensor=tensor)
+def binding(buffer, source, indexing=p.SUBMISSION_ROW, *, offset=0, padding=0, tensor="", audio_tensor=None):
+    value = dict(buffer=buffer, source=source, indexing=indexing, value_offset=offset,
+                 padding=padding, tensor=tensor)
+    if source == p.AUDIO_TENSOR and audio_tensor is None:
+        raise ValueError("audio tensor bindings require an explicit tensor kind")
+    if audio_tensor is not None:
+        if source != p.AUDIO_TENSOR or tensor:
+            raise ValueError("typed audio tensors require the audio tensor source without an image tensor name")
+        p.AudioTensorKind.Name(audio_tensor)
+        if audio_tensor == p.AUDIO_TENSOR_UNSPECIFIED:
+            raise ValueError("an audio tensor kind must be specified")
+        value["audio_tensor"] = audio_tensor
+    return value
 
 
 def state_view(buffer, stride, *, offset=0, nbytes=None):
@@ -76,8 +86,8 @@ def graph_contracts(signatures, inputs, *, continuation, pending, cursor=None, r
         if kind == "speculative" and "speculative_prefix_limits" in signature.inputs:
             selected["speculative_prefix_limits"] = binding("speculative_prefix_limits", p.SPECULATIVE_PREFIX_LIMIT)
         values = [selected[field] for field in signature.inputs if field in selected]
-        states = [] if kind == "vision" else [dict(view=continuation, access=p.READ_WRITE)]
-        if pending is not None and kind not in ("snapshot", "vision"):
+        states = [] if kind in ("vision", "audio_encode") else [dict(view=continuation, access=p.READ_WRITE)]
+        if pending is not None and kind not in ("snapshot", "vision", "audio_encode"):
             states.append(dict(view=pending, access=p.WRITE if kind in ("init", "restore") else p.READ_WRITE))
         result.append(dict(graph=name, kind=p.GraphOperation.Value(kind.upper()), inputs=values, state=states,
             tuned_bindings=[],
@@ -85,7 +95,7 @@ def graph_contracts(signatures, inputs, *, continuation, pending, cursor=None, r
             draft_cursor=cursor if signature.speculation_enabled and kind in ("speculative", "mixed") else None,
             embedding_tables=list(embedding_tables) if kind in (
                 "prefill", "scored_prefill", "decode", "speculative", "mixed") else [],
-            pending_token=pending if kind not in ("init", "restore", "snapshot", "vision") else None))
+            pending_token=pending if kind not in ("init", "restore", "snapshot", "vision", "audio_encode") else None))
     return result
 
 
@@ -106,11 +116,16 @@ def prefix_boundary(roles, *, append_role=None, minimum_messages=1, required_sta
         required_marker=required_marker)
 
 
-def model_contract(*, vocabulary, input_vocabulary=None, vision=None, page_tokens, page_tables, graphs, frontend,
-                   regions):
+def model_contract(*, vocabulary, input_vocabulary=None, vision=None, audio=None, page_tokens, page_tables, graphs, frontend,
+                   regions, immutable_request_values=()):
+    if (len(immutable_request_values) > 1
+            or any(value != p.INITIAL_PROMPT_TOKENS for value in immutable_request_values)):
+        raise ValueError("unsupported or duplicate immutable cache request value")
     return dict(version=3, vocabulary=vocabulary, input_vocabulary=input_vocabulary or vocabulary,
         vision={"feature_slots": 0, **(vision or dict(features_per_request=0, max_images=0, patches_per_feature=0, patch_capacities=[]))},
-        cache=dict(page_tokens=page_tokens, page_tables=page_tables, regions=regions), graphs=graphs, frontend=frontend)
+        cache=dict(page_tokens=page_tokens, page_tables=page_tables, regions=regions,
+            **(dict(immutable_request_values=list(immutable_request_values)) if immutable_request_values else {})), graphs=graphs, frontend=frontend,
+        **({"audio": audio} if audio is not None else {}))
 
 
 def vision_inputs(fields):

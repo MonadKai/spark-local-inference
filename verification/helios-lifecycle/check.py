@@ -12,6 +12,8 @@ import tempfile
 MODEL = Path(__file__).resolve().parent
 ROOT = MODEL.parent.parent
 TEST = "scheduler::lifecycle_tests::scheduler_matches_lifecycle_model"
+INITIAL_TEST = "scheduler::lifecycle_tests::scheduler_initial_prompt_extents_match_lifecycle_model"
+AUDIO_TEST = "scheduler::lifecycle_tests::scheduler_audio_matches_lifecycle_model"
 RANK_TEST = "execution::threaded::protocol_tests::rank_coordinator_matches_model"
 CHECKS = [("Lifecycle", TEST, "LIFECYCLE_EDGE ", 14),
           ("RankProtocol", RANK_TEST, "RANK_EDGE ", 15),
@@ -22,8 +24,12 @@ CHECKS = [("Lifecycle", TEST, "LIFECYCLE_EDGE ", 14),
           ("Speculation", "scheduler::speculative_lifecycle_tests::scheduler_matches_speculative_accounting_model",
            "SPECULATION_EDGE ", 6),
           ("ResponseLifecycle", "server::runtime::phase_tests::response_lifecycle_tests::native_responses_match_lifecycle_model",
-           "RESPONSE_EDGE ", 28)]
-MODELS = [check[0] for check in CHECKS] + ["RankDispatch"]
+           "RESPONSE_EDGE ", 28),
+          ("AdmissionWaiters", "server::runtime::phase_tests::admission_waiter_tests::admission_waiters_match_credit_model",
+           "ADMISSION_WAITER_EDGE ", 13),
+          ("Lifecycle", AUDIO_TEST, "LIFECYCLE_EDGE ", 14),
+          ("Lifecycle", INITIAL_TEST, "LIFECYCLE_EDGE ", 14)]
+MODELS = list(dict.fromkeys(check[0] for check in CHECKS)) + ["RankDispatch"]
 
 
 def run(command, *, cwd=ROOT):
@@ -91,7 +97,7 @@ def check_mutations(cargo, source, test, mutations):
                 raise RuntimeError(f"update the {name} mutation for {source}")
             source.write_text(original.replace(needle, replacement, 1))
             try:
-                run(cargo + [test, "--"] + (["--exact"] if test == TEST else []))
+                run(cargo + [test, "--"] + (["--exact"] if test in (TEST, AUDIO_TEST, INITIAL_TEST) else []))
             except subprocess.CalledProcessError as failure:
                 if expected not in failure.output:
                     raise RuntimeError(f"{name} failed for an unexpected reason") from failure
@@ -104,14 +110,14 @@ def check_mutations(cargo, source, test, mutations):
         source.write_text(original)
 
 
-def check_model_mutation(directory, java, jar, module, needle, replacement, invariant):
+def check_model_mutation(directory, java, jar, module, needle, replacement, invariant, config=None):
     source = directory / f"{module}.tla"
     original = source.read_text()
     if original.count(needle) != 1:
         raise RuntimeError(f"update the {invariant} mutation for {module}")
     source.write_text(original.replace(needle, replacement, 1))
     try:
-        run(tlc(java, jar, directory, module), cwd=directory)
+        run(tlc(java, jar, directory, module, config), cwd=directory)
     except subprocess.CalledProcessError as failure:
         if f"Invariant {invariant} is violated" not in failure.output:
             raise RuntimeError("model mutation failed for an unexpected reason") from failure
@@ -139,18 +145,22 @@ def main():
                          for suffix in ["tla", "cfg"]]:
             shutil.copyfile(MODEL / filename, directory / filename)
         shutil.copyfile(MODEL / "Speculation16.cfg", directory / "Speculation16.cfg")
+        shutil.copyfile(MODEL / "AdmissionWaitersHost1.cfg", directory / "AdmissionWaitersHost1.cfg")
         for module in MODELS:
             run(tlc(args.java, jar, directory, module), cwd=directory)
         run(tlc(args.java, jar, directory, "Speculation", "Speculation16.cfg"), cwd=directory)
+        run(tlc(args.java, jar, directory, "AdmissionWaiters", "AdmissionWaitersHost1.cfg"), cwd=directory)
         cargo = ["cargo", "test", "--locked", "--manifest-path", "helios/Cargo.toml", "--lib",
                  "--features", "server"]
         if args.target_dir:
             cargo.extend(["--target-dir", str(args.target_dir.resolve())])
         for module, test, prefix, width in CHECKS:
-            exact = ["--exact"] if test == TEST else []
+            exact = ["--exact"] if test in (TEST, AUDIO_TEST, INITIAL_TEST) else []
             output = run(cargo + [test, "--"] + exact + ["--nocapture"])
             check_observations(output, directory, args.java, jar, module, prefix, width)
         for test in ["cache::lifecycle_tests::reclaimable_projection_matches_eviction_with_pins",
+                     "scheduler::lifecycle_tests::late_prerequisite_ticket_cannot_publish_into_a_reused_slot_and_arena",
+                     "scheduler::lifecycle_tests::duplicate_prerequisite_ticket_cannot_advance_the_epoch_twice",
                      "scheduler::speculative_lifecycle_tests::packed_two_lane_completions_validate_atomically_for_bounded_geometry",
                      "scheduler::speculative_lifecycle_tests::terminal_noop_and_cancel_preserve_queued_speculative_storage",
                      "scheduler::cache_memory::tests::all_two_snapshot_alias_layouts_preserve_page_ownership_and_reservation_budget",
@@ -161,6 +171,28 @@ def main():
             if "1 passed; 0 failed" not in output:
                 raise RuntimeError(f"{test} did not execute successfully")
         if args.mutations:
+            for needle, replacement in [
+                ("!.assignedHost = 1", "!.assignedHost = 0"),
+                ("!.assignedMessage = 1", "!.assignedMessage = 0"),
+                ("!.host = @ + Bit(before.waiting = 2) + before.assignedHost",
+                 "!.host = @ + before.assignedHost"),
+            ]:
+                check_model_mutation(directory, args.java, jar, "AdmissionWaiters", needle, replacement,
+                    "CreditsRetained", "AdmissionWaitersHost1.cfg" if needle == "!.assignedHost = 1" else None)
+            check_mutations(cargo, ROOT / "helios/src/server/runtime.rs",
+                "server::runtime::phase_tests::admission_waiter_tests::admission_waiters_match_credit_model", [
+                    ("leaked waiting host credit",
+                     "let queue = Arc::new(self.queue_capacity.clone().acquire_owned().await.map_err(unavailable)?);",
+                     "std::mem::forget(capacity.clone());\n        let queue = Arc::new(self.queue_capacity.clone().acquire_owned().await.map_err(unavailable)?);",
+                     "unowned host credit"),
+                    ("retained worker message credit",
+                     "for incoming in &mut requests { incoming.queue_capacity.take(); }",
+                     "let _ = &mut requests;", "worker enqueue must release only message credit"),
+                    ("worker exit leaves message admission open", "self.messages.close();", "",
+                     "closing admission must close both credit pools"),
+                    ("stop leaves message admission open", "self.queue_capacity.close();", "",
+                     "closing admission must close both credit pools"),
+                ])
             for module, needle, replacement, invariant in [
                 ("Lifecycle", "!.phase[slot] = IF waiting THEN Retiring ELSE Free",
                  "!.phase[slot] = Free", "QueuedReferencesRetainOwnership"),
@@ -188,6 +220,38 @@ def main():
                 ("unconfirmed drain", "if !shutdown.drained {", "if false {",
                  "unconfirmed drain accepted resource release"),
             ])
+            check_mutations(cargo, ROOT / "helios/src/scheduler.rs",
+                "scheduler::tests::initial_prompt_extents_isolate_real_host_and_reopened_disk_records", [
+                ("lost initial extent cache dependency",
+                 "events.push(ConditioningEvent::request_value_with_extent(*source as i32, value,\n                    initial_prompt_capacity as u64));",
+                 "events.push(ConditioningEvent::request_value(*source as i32, value));",
+                 "same-N different-C histories must not alias"),
+            ])
+            check_mutations(cargo, ROOT / "helios/src/scheduler.rs",
+                "scheduler::tests::lifecycle_batches_mix_initial_extents_but_prefill_commit_keeps_each_admitted_extent", [
+                ("wrong admitted initial extent", "if step.lane_kind(row).is_prefill() && step.initial_prompt_capacity != request.initial_prompt_capacity {",
+                 "if false {", "called `Result::unwrap_err()` on an `Ok` value"),
+            ])
+            check_mutations(cargo, ROOT / "helios/src/scheduler.rs", INITIAL_TEST, [
+                ("lost queued initial extent", "step: ScheduledStep { requires_feedback: feedback, ..step.clone() },",
+                 "step: ScheduledStep { initial_prompt_capacity: 0, requires_feedback: feedback, ..step.clone() },",
+                 "queued graph does not retain its request's initial geometry"),
+            ])
+            check_mutations(cargo, ROOT / "helios/src/scheduler.rs", AUDIO_TEST, [
+                ("lost audio arena", "audio_slot: request.audio_slot,", "audio_slot: None,",
+                 "audio arena ownership was lost"),
+                ("unreturned audio arena", "self.free_audio_slots.insert(slot);", "let _ = slot;",
+                 "audio arena ownership was lost"),
+                ("unretired encoder job", "request.encoder_jobs.pop_front();", "let _ = &request.encoder_jobs;",
+                 "audio completion did not retire exactly one encoder job"),
+                ("premature audio retirement", "through: request.last_use,", "through: self.completed,",
+                 "cancel released a slot referenced by queued work"),
+                ("unretired uploaded prerequisite", "request.encoder_jobs.clear();", "let _ = &request.encoder_jobs;",
+                 "conditioned upload did not retire its encoder jobs"),
+                ("uploaded prerequisite keeps stale epoch", "let request = self.request_mut(ticket.state.handle)?;",
+                 "let request = self.slots[ticket.state.handle.slot as usize].request.as_mut().unwrap();",
+                 "conditioned upload did not invalidate prior scheduler plans"),
+            ])
             check_mutations(cargo, ROOT / "helios/src/execution/threaded/protocol.rs", RANK_TEST, [
                 ("partial readiness", "frame.ready.iter().all(|ready| *ready)",
                  "frame.ready.iter().any(|ready| *ready)", "commit must wait for every peer readiness"),
@@ -210,8 +274,9 @@ def main():
                 ("unread response admission", "_capacity: Some(capacity.clone()),\n                admission: admitted,",
                  "_capacity: None,\n                admission: admitted,",
                  "retained output lost its admission reservation"),
-                ("unfinished producer admission", "_capacity: Some(capacity.clone()),\n                arrival_ns:",
-                 "_capacity: None,\n                arrival_ns:",
+                ("unfinished producer admission",
+                 "prefix_scope: self.prefix_scopes.as_ref().map(PrefixScopes::next).transpose()?,\n                _capacity: Some(capacity.clone()),",
+                 "prefix_scope: self.prefix_scopes.as_ref().map(PrefixScopes::next).transpose()?,\n                _capacity: None,",
                  "retained output lost its admission reservation"),
                 ("generation group admission", ".try_acquire_many_owned(count)",
                  ".try_acquire_many_owned(1)", "retained output lost its admission reservation"),
@@ -226,7 +291,7 @@ def main():
                  "queued lane must retain full target and draft page reservation"),
             ])
             for module, test, prefix, width in CHECKS:
-                exact = ["--exact"] if test == TEST else []
+                exact = ["--exact"] if test in (TEST, AUDIO_TEST, INITIAL_TEST) else []
                 output = run(cargo + [test, "--"] + exact + ["--nocapture"])
                 check_observations(output, directory, args.java, jar, module, prefix, width)
 

@@ -1,0 +1,1429 @@
+{
+  "scope": "Full original frozen matrix after independent metadata compilation; all production/observer artifacts required, no compile fallback or numerical relaxation.",
+  "status": "complete_original_frozen_matrix_only",
+  "initial_restores": [
+    {
+      "name": "audio800",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/d9ea760fc71368c918c0411c59096feddd92f6de236e643420075fd1c40b53b8.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "audio100",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/3edc507fcfea9cb807459ea302b49d66ddcf0431c9d9e4fccd583854b8807668.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill64_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/82d7809b7adaed267c79e43e1bd2bb9affbcf978eca6409ea38ff3a4cdcf3c62.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill64_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/79f4c9a10526b7d5a9c18ce21e60bdbd7643d0dc41f9b64f55c8c6410bb51007.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill64_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/2c2dda313118f7a220ac30596b5d4b91b5ccb516a82287b591c2ddf09a999667.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill128_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/f24c4bb21fcf5e45eba84a7ceb350215d09a244f760f923cdb17bfb6b95842ed.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill128_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/040f95212c515a17d49c4940fb38344696f4ab059010403193367c4c54947f64.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill128_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/1b608ce50af4dbc33bfd93b267ef5d0f7e84bf1efb724c696e195042988a61ec.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill256_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/29751a94919d341a273faeaa25c614df198173909b6732d9ae585ca75bccad09.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill256_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/acdd15d53cd92b4535dc0622b334af679dd1b9040b495e31bf06d9ae37c95c48.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill256_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/f338fcb8352ddb49865125515c0c23ec57d2bf1ea3ef4ccf1203862191bd0c49.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill512_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/1509dbe96cd665ab0cd23d506a4ac61556e6f08cebc66bb2c0e4f51b89b75351.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill512_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/aa821dcad95501a079573d655620e117ec17a64d20d5aa0f31c83aa4d973ef2d.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill512_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/1a9c1f4bced0e05684cee06c3d48edca7320ccff10ebc955c3199b4e7b299fd5.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill1024_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/2a0d34afb341d1aae146d2aeb8501e61e3fb345418c6370e98c74c8137959fa7.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill1024_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/65b6dd41b91593b388b3b167e13c6645e58ab574bf0b67c1d1bf4f1fc2cbcb81.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill1024_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/e1026f2ae9d190af0ffbb819469e3ee4f2c5ad5f525618fc1150ebcc7d79ef50.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill1536_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/9d2d7e8d83d7cbdb1f679f0e90a6be10987835874e80e17dcb20258c2798f631.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill1536_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/9b2fca4e9400713a05595d912dd6bed7f31afc914a939ead4498dae01a04255f.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill1536_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/bbe32fcefc928d48300942aeac1c927774c86587d5ca9678e3f29880120011a3.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill2048_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/a33891ec53630a185a007fbdce7761c2731216e754c1ef6f511186b69139e416.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill2048_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/7379e65bb5f9a6bb245518cdd83f90cdfc745b542286f52eafecd26ce8dce7dc.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill2048_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/3e3817fd9bb108e75ad3280f9f1ebb84dc4b15392d69245e0deec1f63c06c9f5.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill2560_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/c32fa81fd0dfc157f684f7d02a23ffc269239aef2dfb56eff509ac211f44ad2f.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill2560_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/7f226fa0ff8324263f54f314cb60614d6f7381694af2a83959574de4e5f1a62a.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill2560_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/8206f37644b4fe3ba6aa74b0b8f138ad8b7e00c7661f1e14e2f2de84a0316240.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill3072_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/f6e54a13847cffb7ae3998b717032dd8e6e70381819267d35237038a25acd49c.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill3072_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/c5c58fbe18c8e2af1c1054fe12fa37905d2c13143ec8b93c752a4d4c85d80ef1.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill3072_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/8a32bc1a827f75f92486aa5d1617f72a487186889e606c802dc00c014a359d94.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill3584_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/789b8f84f2e9c0c3f8e167bd637ec89683c1d34b8d425a793612e0a0983e5e1e.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill3584_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/71f784249f3e2c50e9bd806977dbc982a5f4e0de4527d90fa13b7a16215e7305.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill3584_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/8e5ba56bfe75e415b6eb499a75166745c1dc2d2a34be44fe8f349e5a6c0d0cab.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill4096_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/4d05e757d9c0948e23ee91d5e2f8e759edce82feb296ff02b8ddd0b3a2402935.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill4096_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/a38095f51ceaa8c7be6bfab509e1fca908efe3751410bda9746a108de45465de.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "prefill4096_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/bed997d39aed5d36b2d370420fd04c04b8f05c583bf9947770ec0b997eed4432.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "decode8",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/e4b42c7ee44f0995c4a6064880049fb7a951b79911c468cebb042c2cc995bee0.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "decode4",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/a7a29e3ba3e9aa900c25054a31fe3858ee249a7a89d0ceed4f81d6efc1147009.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "decode2",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/64286a7f11bd7550c24547e7b475ebc94215c02084e0ccbbaf0a0b9910f38d52.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "decode1",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/ceca1ed4c2f56237d7e909c315e837aa348306c8558ddae0ca0652cf6a7f4557.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "resume8",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/e0721ca2c215f47c6f1342a807843d6c291489bce84570c028a2a81bcf01caa3.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "resume4",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/b9ea7be164d33056d0c0b9eac4866f12890364812c04cb8e957c387182a149f3.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "resume2",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/fd72162b547016931a7eaa2832ee7d066e3c1fbc3fc6558dc05d2935ef3f0302.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    },
+    {
+      "name": "resume1",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/7b63b15f6c916169f8a771f575245505dfa6e5b826e21a67a77b0eea84ae9911.bin",
+      "file_exists": true,
+      "status": "bound",
+      "bound_nonempty": true,
+      "cache_hit": true
+    }
+  ],
+  "loads": [
+    {
+      "name": "audio800",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/d9ea760fc71368c918c0411c59096feddd92f6de236e643420075fd1c40b53b8.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "audio100",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/3edc507fcfea9cb807459ea302b49d66ddcf0431c9d9e4fccd583854b8807668.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill64_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/82d7809b7adaed267c79e43e1bd2bb9affbcf978eca6409ea38ff3a4cdcf3c62.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill64_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/79f4c9a10526b7d5a9c18ce21e60bdbd7643d0dc41f9b64f55c8c6410bb51007.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill64_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/2c2dda313118f7a220ac30596b5d4b91b5ccb516a82287b591c2ddf09a999667.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill128_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/f24c4bb21fcf5e45eba84a7ceb350215d09a244f760f923cdb17bfb6b95842ed.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill128_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/040f95212c515a17d49c4940fb38344696f4ab059010403193367c4c54947f64.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill128_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/1b608ce50af4dbc33bfd93b267ef5d0f7e84bf1efb724c696e195042988a61ec.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill256_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/29751a94919d341a273faeaa25c614df198173909b6732d9ae585ca75bccad09.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill256_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/acdd15d53cd92b4535dc0622b334af679dd1b9040b495e31bf06d9ae37c95c48.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill256_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/f338fcb8352ddb49865125515c0c23ec57d2bf1ea3ef4ccf1203862191bd0c49.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill512_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/1509dbe96cd665ab0cd23d506a4ac61556e6f08cebc66bb2c0e4f51b89b75351.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill512_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/aa821dcad95501a079573d655620e117ec17a64d20d5aa0f31c83aa4d973ef2d.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill512_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/1a9c1f4bced0e05684cee06c3d48edca7320ccff10ebc955c3199b4e7b299fd5.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill1024_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/2a0d34afb341d1aae146d2aeb8501e61e3fb345418c6370e98c74c8137959fa7.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill1024_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/65b6dd41b91593b388b3b167e13c6645e58ab574bf0b67c1d1bf4f1fc2cbcb81.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill1024_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/e1026f2ae9d190af0ffbb819469e3ee4f2c5ad5f525618fc1150ebcc7d79ef50.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill1536_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/9d2d7e8d83d7cbdb1f679f0e90a6be10987835874e80e17dcb20258c2798f631.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill1536_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/9b2fca4e9400713a05595d912dd6bed7f31afc914a939ead4498dae01a04255f.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill1536_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/bbe32fcefc928d48300942aeac1c927774c86587d5ca9678e3f29880120011a3.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill2048_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/a33891ec53630a185a007fbdce7761c2731216e754c1ef6f511186b69139e416.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill2048_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/7379e65bb5f9a6bb245518cdd83f90cdfc745b542286f52eafecd26ce8dce7dc.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill2048_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/3e3817fd9bb108e75ad3280f9f1ebb84dc4b15392d69245e0deec1f63c06c9f5.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill2560_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/c32fa81fd0dfc157f684f7d02a23ffc269239aef2dfb56eff509ac211f44ad2f.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill2560_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/7f226fa0ff8324263f54f314cb60614d6f7381694af2a83959574de4e5f1a62a.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill2560_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/8206f37644b4fe3ba6aa74b0b8f138ad8b7e00c7661f1e14e2f2de84a0316240.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill3072_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/f6e54a13847cffb7ae3998b717032dd8e6e70381819267d35237038a25acd49c.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill3072_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/c5c58fbe18c8e2af1c1054fe12fa37905d2c13143ec8b93c752a4d4c85d80ef1.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill3072_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/8a32bc1a827f75f92486aa5d1617f72a487186889e606c802dc00c014a359d94.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill3584_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/789b8f84f2e9c0c3f8e167bd637ec89683c1d34b8d425a793612e0a0983e5e1e.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill3584_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/71f784249f3e2c50e9bd806977dbc982a5f4e0de4527d90fa13b7a16215e7305.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill3584_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/8e5ba56bfe75e415b6eb499a75166745c1dc2d2a34be44fe8f349e5a6c0d0cab.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill4096_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/4d05e757d9c0948e23ee91d5e2f8e759edce82feb296ff02b8ddd0b3a2402935.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill4096_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/a38095f51ceaa8c7be6bfab509e1fca908efe3751410bda9746a108de45465de.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill4096_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/bed997d39aed5d36b2d370420fd04c04b8f05c583bf9947770ec0b997eed4432.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "decode8",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/e4b42c7ee44f0995c4a6064880049fb7a951b79911c468cebb042c2cc995bee0.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "decode4",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/a7a29e3ba3e9aa900c25054a31fe3858ee249a7a89d0ceed4f81d6efc1147009.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "decode2",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/64286a7f11bd7550c24547e7b475ebc94215c02084e0ccbbaf0a0b9910f38d52.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "decode1",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/ceca1ed4c2f56237d7e909c315e837aa348306c8558ddae0ca0652cf6a7f4557.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "resume8",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/e0721ca2c215f47c6f1342a807843d6c291489bce84570c028a2a81bcf01caa3.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "resume4",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/b9ea7be164d33056d0c0b9eac4866f12890364812c04cb8e957c387182a149f3.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "resume2",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/fd72162b547016931a7eaa2832ee7d066e3c1fbc3fc6558dc05d2935ef3f0302.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "resume1",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/7b63b15f6c916169f8a771f575245505dfa6e5b826e21a67a77b0eea84ae9911.bin",
+      "phase": "initial",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "audio800",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/d9ea760fc71368c918c0411c59096feddd92f6de236e643420075fd1c40b53b8.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "audio100",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/3edc507fcfea9cb807459ea302b49d66ddcf0431c9d9e4fccd583854b8807668.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill64_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/82d7809b7adaed267c79e43e1bd2bb9affbcf978eca6409ea38ff3a4cdcf3c62.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill64_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/79f4c9a10526b7d5a9c18ce21e60bdbd7643d0dc41f9b64f55c8c6410bb51007.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill64_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/2c2dda313118f7a220ac30596b5d4b91b5ccb516a82287b591c2ddf09a999667.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill128_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/f24c4bb21fcf5e45eba84a7ceb350215d09a244f760f923cdb17bfb6b95842ed.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill128_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/040f95212c515a17d49c4940fb38344696f4ab059010403193367c4c54947f64.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill128_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/1b608ce50af4dbc33bfd93b267ef5d0f7e84bf1efb724c696e195042988a61ec.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill256_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/29751a94919d341a273faeaa25c614df198173909b6732d9ae585ca75bccad09.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill256_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/acdd15d53cd92b4535dc0622b334af679dd1b9040b495e31bf06d9ae37c95c48.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill256_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/f338fcb8352ddb49865125515c0c23ec57d2bf1ea3ef4ccf1203862191bd0c49.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill512_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/1509dbe96cd665ab0cd23d506a4ac61556e6f08cebc66bb2c0e4f51b89b75351.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill512_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/aa821dcad95501a079573d655620e117ec17a64d20d5aa0f31c83aa4d973ef2d.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill512_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/1a9c1f4bced0e05684cee06c3d48edca7320ccff10ebc955c3199b4e7b299fd5.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill1024_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/2a0d34afb341d1aae146d2aeb8501e61e3fb345418c6370e98c74c8137959fa7.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill1024_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/65b6dd41b91593b388b3b167e13c6645e58ab574bf0b67c1d1bf4f1fc2cbcb81.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill1024_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/e1026f2ae9d190af0ffbb819469e3ee4f2c5ad5f525618fc1150ebcc7d79ef50.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill1536_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/9d2d7e8d83d7cbdb1f679f0e90a6be10987835874e80e17dcb20258c2798f631.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill1536_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/9b2fca4e9400713a05595d912dd6bed7f31afc914a939ead4498dae01a04255f.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill1536_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/bbe32fcefc928d48300942aeac1c927774c86587d5ca9678e3f29880120011a3.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill2048_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/a33891ec53630a185a007fbdce7761c2731216e754c1ef6f511186b69139e416.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill2048_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/7379e65bb5f9a6bb245518cdd83f90cdfc745b542286f52eafecd26ce8dce7dc.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill2048_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/3e3817fd9bb108e75ad3280f9f1ebb84dc4b15392d69245e0deec1f63c06c9f5.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill2560_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/c32fa81fd0dfc157f684f7d02a23ffc269239aef2dfb56eff509ac211f44ad2f.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill2560_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/7f226fa0ff8324263f54f314cb60614d6f7381694af2a83959574de4e5f1a62a.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill2560_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/8206f37644b4fe3ba6aa74b0b8f138ad8b7e00c7661f1e14e2f2de84a0316240.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill3072_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/f6e54a13847cffb7ae3998b717032dd8e6e70381819267d35237038a25acd49c.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill3072_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/c5c58fbe18c8e2af1c1054fe12fa37905d2c13143ec8b93c752a4d4c85d80ef1.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill3072_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/8a32bc1a827f75f92486aa5d1617f72a487186889e606c802dc00c014a359d94.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill3584_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/789b8f84f2e9c0c3f8e167bd637ec89683c1d34b8d425a793612e0a0983e5e1e.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill3584_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/71f784249f3e2c50e9bd806977dbc982a5f4e0de4527d90fa13b7a16215e7305.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill3584_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/8e5ba56bfe75e415b6eb499a75166745c1dc2d2a34be44fe8f349e5a6c0d0cab.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill4096_initial256",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/4d05e757d9c0948e23ee91d5e2f8e759edce82feb296ff02b8ddd0b3a2402935.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill4096_initial512",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/a38095f51ceaa8c7be6bfab509e1fca908efe3751410bda9746a108de45465de.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill4096_initial8192",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/bed997d39aed5d36b2d370420fd04c04b8f05c583bf9947770ec0b997eed4432.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "decode8",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/e4b42c7ee44f0995c4a6064880049fb7a951b79911c468cebb042c2cc995bee0.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "decode4",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/a7a29e3ba3e9aa900c25054a31fe3858ee249a7a89d0ceed4f81d6efc1147009.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "decode2",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/64286a7f11bd7550c24547e7b475ebc94215c02084e0ccbbaf0a0b9910f38d52.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "decode1",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/ceca1ed4c2f56237d7e909c315e837aa348306c8558ddae0ca0652cf6a7f4557.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "resume8",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/e0721ca2c215f47c6f1342a807843d6c291489bce84570c028a2a81bcf01caa3.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "resume4",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/b9ea7be164d33056d0c0b9eac4866f12890364812c04cb8e957c387182a149f3.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "resume2",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/fd72162b547016931a7eaa2832ee7d066e3c1fbc3fc6558dc05d2935ef3f0302.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    },
+    {
+      "name": "resume1",
+      "path": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/7b63b15f6c916169f8a771f575245505dfa6e5b826e21a67a77b0eea84ae9911.bin",
+      "phase": "materialized_or_warm",
+      "status": "bound",
+      "cache_hit": true
+    }
+  ],
+  "final_compiled": [
+    {
+      "name": "audio800",
+      "cache_hit": true
+    },
+    {
+      "name": "audio100",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill64_initial256",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill64_initial512",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill64_initial8192",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill128_initial256",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill128_initial512",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill128_initial8192",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill256_initial256",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill256_initial512",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill256_initial8192",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill512_initial256",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill512_initial512",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill512_initial8192",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill1024_initial256",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill1024_initial512",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill1024_initial8192",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill1536_initial256",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill1536_initial512",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill1536_initial8192",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill2048_initial256",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill2048_initial512",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill2048_initial8192",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill2560_initial256",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill2560_initial512",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill2560_initial8192",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill3072_initial256",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill3072_initial512",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill3072_initial8192",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill3584_initial256",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill3584_initial512",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill3584_initial8192",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill4096_initial256",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill4096_initial512",
+      "cache_hit": true
+    },
+    {
+      "name": "prefill4096_initial8192",
+      "cache_hit": true
+    },
+    {
+      "name": "decode8",
+      "cache_hit": true
+    },
+    {
+      "name": "decode4",
+      "cache_hit": true
+    },
+    {
+      "name": "decode2",
+      "cache_hit": true
+    },
+    {
+      "name": "decode1",
+      "cache_hit": true
+    },
+    {
+      "name": "resume8",
+      "cache_hit": true
+    },
+    {
+      "name": "resume4",
+      "cache_hit": true
+    },
+    {
+      "name": "resume2",
+      "cache_hit": true
+    },
+    {
+      "name": "resume1",
+      "cache_hit": true
+    }
+  ],
+  "forbidden_compilation_attempts": [],
+  "errors": [],
+  "full_model_qualified": false,
+  "performance_qualified": false,
+  "started_at": "2026-11-10T02:41:50.934784+00:00",
+  "diagnostic_source_head": "e50c949b01eb85aa35d4025365290d0c35e3b478",
+  "native_package_primary_sha256": "0d5f2748c9a64c8d9d54a8d429ca126b0ebad3f57e7af6a99e14eb3659c6c8fa",
+  "expected_prepared_identity": "3fa029cdfb84854100c617c86c89581b517a7376f47ac802e13e8b10b5b8f3a2",
+  "phase2_process_exit_proof": {
+    "scope": "Independent parent after the phase main process was waited; exact task-cgroup and PID/starttick barrier, not a physical DRAM measurement",
+    "phase": "light-observer-compilation",
+    "main_pid": 3791200,
+    "main_exit_code": 0,
+    "original_process_identities": [
+      {
+        "pid": 3791200,
+        "start_ticks": "103646221",
+        "original_identity_absent": true
+      },
+      {
+        "pid": 3791201,
+        "start_ticks": "103646221",
+        "original_identity_absent": true
+      },
+      {
+        "pid": 3792111,
+        "start_ticks": "103646442",
+        "original_identity_absent": true
+      },
+      {
+        "pid": 3793106,
+        "start_ticks": "103646599",
+        "original_identity_absent": true
+      },
+      {
+        "pid": 3793107,
+        "start_ticks": "103646599",
+        "original_identity_absent": true
+      }
+    ],
+    "remaining_task_descendants": [],
+    "GPU_after": [],
+    "all_original_identities_absent": true,
+    "observed_at": "2026-11-10T02:19:50.502618+00:00",
+    "passed": true
+  },
+  "installation_matches_preparation_source": true,
+  "ambient_threads": 20,
+  "expected_names": [
+    "audio100",
+    "audio800",
+    "decode1",
+    "decode2",
+    "decode4",
+    "decode8",
+    "prefill1024_initial256",
+    "prefill1024_initial512",
+    "prefill1024_initial8192",
+    "prefill128_initial256",
+    "prefill128_initial512",
+    "prefill128_initial8192",
+    "prefill1536_initial256",
+    "prefill1536_initial512",
+    "prefill1536_initial8192",
+    "prefill2048_initial256",
+    "prefill2048_initial512",
+    "prefill2048_initial8192",
+    "prefill2560_initial256",
+    "prefill2560_initial512",
+    "prefill2560_initial8192",
+    "prefill256_initial256",
+    "prefill256_initial512",
+    "prefill256_initial8192",
+    "prefill3072_initial256",
+    "prefill3072_initial512",
+    "prefill3072_initial8192",
+    "prefill3584_initial256",
+    "prefill3584_initial512",
+    "prefill3584_initial8192",
+    "prefill4096_initial256",
+    "prefill4096_initial512",
+    "prefill4096_initial8192",
+    "prefill512_initial256",
+    "prefill512_initial512",
+    "prefill512_initial8192",
+    "prefill64_initial256",
+    "prefill64_initial512",
+    "prefill64_initial8192",
+    "resume1",
+    "resume2",
+    "resume4",
+    "resume8"
+  ],
+  "observer_metadata_and_artifact_paths_reconciled": true,
+  "observer_loads": [
+    {
+      "group": "audio100",
+      "path": "<task>/observer-offline-cache-r2/audio100/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/2f94315d7028de6457f9f9c491ba5d28ac00bbefe5c7440bacd4082df5c47038.bin",
+      "status": "bound_cache_hit",
+      "required": true
+    },
+    {
+      "group": "audio100",
+      "path": "<task>/observer-offline-cache-r2/audio100/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/2f94315d7028de6457f9f9c491ba5d28ac00bbefe5c7440bacd4082df5c47038.bin",
+      "status": "bound_cache_hit",
+      "required": true
+    },
+    {
+      "group": "audio800",
+      "path": "<task>/observer-offline-cache-r2/audio800/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/d7906074007156beca6b9f89ed1df843cb1709cdf98139350b915d5cc555b0f0.bin",
+      "status": "bound_cache_hit",
+      "required": true
+    },
+    {
+      "group": "audio800",
+      "path": "<task>/observer-offline-cache-r2/audio800/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/d7906074007156beca6b9f89ed1df843cb1709cdf98139350b915d5cc555b0f0.bin",
+      "status": "bound_cache_hit",
+      "required": true
+    },
+    {
+      "group": "prefill128_initial256",
+      "path": "<task>/observer-offline-cache-r2/prefill128_initial256/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/9a3ada440c8b30bd86a9ea8e91f96c94c5d3b3f96e6d728962fc392450f2a495.bin",
+      "status": "bound_cache_hit",
+      "required": true
+    },
+    {
+      "group": "prefill128_initial256",
+      "path": "<task>/observer-offline-cache-r2/prefill128_initial256/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/b850b24f9e2918bf7729294810e66d7de5fb60b746d2e9446fe2df1367727924.bin",
+      "status": "bound_cache_hit",
+      "required": true
+    },
+    {
+      "group": "prefill128_initial256",
+      "path": "<task>/observer-offline-cache-r2/prefill128_initial256/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/9a3ada440c8b30bd86a9ea8e91f96c94c5d3b3f96e6d728962fc392450f2a495.bin",
+      "status": "bound_cache_hit",
+      "required": true
+    },
+    {
+      "group": "prefill128_initial256",
+      "path": "<task>/observer-offline-cache-r2/prefill128_initial256/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/b850b24f9e2918bf7729294810e66d7de5fb60b746d2e9446fe2df1367727924.bin",
+      "status": "bound_cache_hit",
+      "required": true
+    },
+    {
+      "group": "prefill256_initial256",
+      "path": "<task>/observer-offline-cache-r2/prefill256_initial256/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/336baaf852ff184277133cd11ff56412a005a51918dc87c595031c61d869838a.bin",
+      "status": "bound_cache_hit",
+      "required": true
+    },
+    {
+      "group": "prefill256_initial256",
+      "path": "<task>/observer-offline-cache-r2/prefill256_initial256/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/b850b24f9e2918bf7729294810e66d7de5fb60b746d2e9446fe2df1367727924.bin",
+      "status": "bound_cache_hit",
+      "required": true
+    },
+    {
+      "group": "prefill256_initial256",
+      "path": "<task>/observer-offline-cache-r2/prefill256_initial256/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/336baaf852ff184277133cd11ff56412a005a51918dc87c595031c61d869838a.bin",
+      "status": "bound_cache_hit",
+      "required": true
+    },
+    {
+      "group": "prefill256_initial256",
+      "path": "<task>/observer-offline-cache-r2/prefill256_initial256/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/b850b24f9e2918bf7729294810e66d7de5fb60b746d2e9446fe2df1367727924.bin",
+      "status": "bound_cache_hit",
+      "required": true
+    },
+    {
+      "group": "prefill512_initial512",
+      "path": "<task>/observer-offline-cache-r2/prefill512_initial512/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/48716bf08fd717b7991983ac7baff9b57ac62357f4199dbee811812d53ec8bd9.bin",
+      "status": "bound_cache_hit",
+      "required": true
+    },
+    {
+      "group": "prefill512_initial512",
+      "path": "<task>/observer-offline-cache-r2/prefill512_initial512/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/b850b24f9e2918bf7729294810e66d7de5fb60b746d2e9446fe2df1367727924.bin",
+      "status": "bound_cache_hit",
+      "required": true
+    },
+    {
+      "group": "prefill512_initial512",
+      "path": "<task>/observer-offline-cache-r2/prefill512_initial512/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/48716bf08fd717b7991983ac7baff9b57ac62357f4199dbee811812d53ec8bd9.bin",
+      "status": "bound_cache_hit",
+      "required": true
+    },
+    {
+      "group": "prefill512_initial512",
+      "path": "<task>/observer-offline-cache-r2/prefill512_initial512/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/b850b24f9e2918bf7729294810e66d7de5fb60b746d2e9446fe2df1367727924.bin",
+      "status": "bound_cache_hit",
+      "required": true
+    },
+    {
+      "group": "prefill64_initial256",
+      "path": "<task>/observer-offline-cache-r2/prefill64_initial256/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/4a4e5c32b54c903267c3d33b546b01ba1295038fecdadbe160efe9e4a0341a4e.bin",
+      "status": "bound_cache_hit",
+      "required": true
+    },
+    {
+      "group": "prefill64_initial256",
+      "path": "<task>/observer-offline-cache-r2/prefill64_initial256/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/b850b24f9e2918bf7729294810e66d7de5fb60b746d2e9446fe2df1367727924.bin",
+      "status": "bound_cache_hit",
+      "required": true
+    },
+    {
+      "group": "prefill64_initial256",
+      "path": "<task>/observer-offline-cache-r2/prefill64_initial256/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/4a4e5c32b54c903267c3d33b546b01ba1295038fecdadbe160efe9e4a0341a4e.bin",
+      "status": "bound_cache_hit",
+      "required": true
+    },
+    {
+      "group": "prefill64_initial256",
+      "path": "<task>/observer-offline-cache-r2/prefill64_initial256/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e/b850b24f9e2918bf7729294810e66d7de5fb60b746d2e9446fe2df1367727924.bin",
+      "status": "bound_cache_hit",
+      "required": true
+    }
+  ],
+  "argv": [
+    "<task>/canonical-rmsnorm-teacher-source-r2/qualify/asr_candidate_teacher.py",
+    "--checkpoint",
+    "<task>/checkpoint-original",
+    "--config",
+    "<task>/asr-uniform-static-r2.toml",
+    "--output",
+    "<task>/observer-offline-full-matrix-r2",
+    "--contract",
+    "<task>/canonical-rmsnorm-teacher-source-r2/benchmarks/qwen3_asr/numerical-contract.json",
+    "--compile-workers",
+    "2",
+    "--prefill-chunk-size",
+    "4096",
+    "--preparation-mode",
+    "no-grad",
+    "--snapshot-budget-bytes",
+    "1879326720",
+    "--preparation-headroom-bytes",
+    "13958643712",
+    "--retain-graphs",
+    "--decoder-encoder-features",
+    "captured",
+    "--prefix-kv-layers",
+    "28",
+    "--prefill-capacity",
+    "smallest",
+    "--audio-capacity",
+    "smallest",
+    "--full-prefill",
+    "--prefill-network-nodes",
+    "--encoder-network-nodes",
+    "--sdk-observations",
+    "<task>/sdk-stages-reference-r5/observations",
+    "--sdk-observations",
+    "<task>/sdk-stages-reference-r6/observations",
+    "--sdk-observations",
+    "<task>/sdk-stages-reference-r7/observations",
+    "--canonical-observations",
+    "<task>/canonical-stages-reference-r3",
+    "--canonical-observations",
+    "<task>/canonical-boundaries-original-r1",
+    "--canonical-observations",
+    "<task>/canonical-minimum-original-r1"
+  ],
+  "scope_detail": "Original complete20/12-cell teacher/state/node matrix, original references and budgets, actual43 cached production forwards and55 graphs. Ten independently compiled observer artifacts must bind with all original guards/aliases and full persistent-state bridges; no AOT/submit fallback. Per-production-geometry observer cache roots only; original production cache unchanged.",
+  "actual_forward_cache_root": "<task>/caches/uniform-static-kernels-r2/forwards/cc9781f051323535cf59be60465af1187e125ae1f080c791b3e0aca48a59525e",
+  "actual_prepared_identity": "3fa029cdfb84854100c617c86c89581b517a7376f47ac802e13e8b10b5b8f3a2",
+  "actual_production_graph_count": 55,
+  "production_initial43_and_materialized_loads_verified": true,
+  "production_compile_attempts": 0,
+  "production_patches_restored_before_observers": true,
+  "post_context_package_storage_error": null,
+  "candidate_status": "complete",
+  "observer_groups": [
+    "audio100",
+    "audio800",
+    "prefill128_initial256",
+    "prefill256_initial256",
+    "prefill512_initial512",
+    "prefill64_initial256"
+  ],
+  "finished_at": "2026-11-10T03:03:11.737214+00:00",
+  "public_redaction": "Replace private task/source/field paths and host names by neutral labels; retain numerical values, failures, contexts and package/artifact identities.",
+  "completed_matrix_summary": {
+    "inputs": 20,
+    "cells": 12,
+    "teacher_rows_per_complete_cell": 169,
+    "actual_teacher_rows_including_declared_row_retirement": 1783,
+    "full_prefill_comparisons": 240,
+    "same_path_state_comparisons": 960,
+    "encoder_state_bridges": 27,
+    "node_comparisons": {
+      "encoder_network_nodes": 8460,
+      "prefill_network_nodes": 13000,
+      "head_network_nodes": 40
+    },
+    "numerical_thresholds_or_references_changed": false,
+    "initial_and_materialized_production_forwards": 43,
+    "production_graphs": 55,
+    "full_model_qualification": false,
+    "native_or_performance_qualification": false,
+    "earlier_failed_attempt": "numerics-observer-context-failure.json.gz",
+    "remaining": "Independent local operator and full affected CUDA/native/lifecycle/cache/old-package gates, long regression, final source qualification and formal serving performance remain open."
+  }
+}

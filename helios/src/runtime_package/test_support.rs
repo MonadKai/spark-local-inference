@@ -13,6 +13,9 @@ use crate::Result;
 use ring::signature::{Ed25519KeyPair, KeyPair};
 use std::{io::Read, path::Path};
 
+pub mod programs;
+pub mod sampling;
+
 pub fn publisher() -> Publisher {
     let key = Ed25519KeyPair::from_seed_unchecked(&[42; 32]).unwrap();
     Publisher {
@@ -28,6 +31,27 @@ pub fn authorize(path: impl AsRef<Path>) -> AuthorizedPackage {
         .authorize("flare-tests", false)
         .unwrap()
 }
+/// Allocation facts from the authenticated native reader, including raw graph
+/// fixtures without a model-serving contract to describe.
+pub fn allocation_map(path: &Path) -> Result<Vec<Vec<serde_json::Value>>> {
+    let package = VerifiedPackage::open(path, &[publisher()], None)?
+        .authorize("flare-tests", false)?;
+    if let AuthorizedKind::Payload(payload) = &package.kind {
+        return Ok(payload.rank_packages().iter().map(|rank| rank.allocations.iter().map(|a| {
+            let memory = match a.memory {
+                super::format::Memory::Device => "DEVICE",
+                super::format::Memory::MappedHost => "MAPPED_HOST",
+                super::format::Memory::Peer => "PEER",
+            };
+            serde_json::json!({"name":a.name,"address":a.address,"nbytes":a.nbytes,"memory":memory})
+        }).collect()).collect());
+    }
+    Ok(package.legacy_index().unwrap().ranks.iter().map(|rank| rank.allocations.iter().map(|a| {
+        serde_json::json!({"name":a.name,"address":a.address,"nbytes":a.nbytes,
+            "memory":super::protobuf::wire::Memory::try_from(a.memory).unwrap().as_str_name()})
+    }).collect()).collect())
+}
+
 /// Authenticate a package, every rank or only `rank` of a multi-host package, and digest the
 /// plaintext of each verified rank's executables and supporting resources and of the assets.
 pub fn inspect(

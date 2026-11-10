@@ -8,7 +8,7 @@ import torch
 
 from ignition.components.collectives import PreparedAllReduce
 from ignition.components.resume import PreparedResumeState
-from ignition.components.sampling import PreparedSampling
+from ignition.components.sampling import PreparedSampling, SamplingSelection
 from ignition.components.vocabulary import PreparedVocabularyProjection
 from ignition.preparation.scratch import bind_scratch
 
@@ -33,6 +33,9 @@ class PreparedResume:
         activation_mode="a16",
         logits_dtype=torch.bfloat16,
         buffers=None,
+        sampling_selection=SamplingSelection.CATEGORICAL,
+        projection_row_capacity=None,
+        vocabulary_projection=None,
     ):
         if logits_dtype not in (torch.bfloat16, torch.float32):
             raise ValueError("resume logits require BF16 or FP32 storage")
@@ -60,7 +63,10 @@ class PreparedResume:
         self.local_logits = empty((rows, weights.head.shape[0] if isinstance(weights.head, torch.Tensor)
                                    else weights.head.out_features))
         self.logits = empty((rows, requests.vocab_size))
-        self.projection = PreparedVocabularyProjection(
+        # Recipe composition chooses the preparation-time projection constructor;
+        # the returned computation is compiled/captured with this ordinary graph.
+        project = PreparedVocabularyProjection if vocabulary_projection is None else vocabulary_projection
+        self.projection = project(
             self.state.hidden,
             weights.head,
             self.local_logits,
@@ -71,6 +77,7 @@ class PreparedResume:
             name=name + ".head",
             activation_mode=activation_mode,
             buffers=buffers,
+            row_capacity=projection_row_capacity,
         )
         args = (
             requests,
@@ -82,9 +89,9 @@ class PreparedResume:
             sequence,
         )
         sampling_workspace = None if buffers is None else bind_scratch(
-            PreparedSampling.scratch_layout(rows, requests.vocab_size),
+            PreparedSampling.scratch_layout(rows, requests.vocab_size, selection=sampling_selection),
             device=self.logits.device, workspace=buffers)
-        self.completion = PreparedSampling(self.logits, *args, workspace=sampling_workspace)
+        self.completion = PreparedSampling(self.logits, *args, workspace=sampling_workspace, selection=sampling_selection)
         self.completion.prepare()
         self.completion.prepare_broadcast(runtime=vocabulary_runtime, session=session,
             coordinator=coordinator, name=name + ".sampling", buffers=buffers)

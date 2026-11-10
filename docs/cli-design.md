@@ -1115,7 +1115,7 @@ file or an invalid runtime setting is an error. Help does not read the file.
 
 Native `flare run` applies `[server] host`, `port`, `api_key`, and `thinking_token_budget`,
 `[memory] reserve`, `[defaults] max_concurrency`, `[models.<name>] max_concurrency`, all `[prefix_cache]`
-settings, and `[paths] prefix_cache`. Prepared-model acquisition and cache commands
+settings, `[prepared_input_cache] mode`, and `[paths] prefix_cache`. Prepared-model acquisition and cache commands
 use `[paths] package_cache`. Flags override these defaults, including explicit
 zero limits and values equal to the built-in defaults. An empty `--api-key-file`
 disables configured authentication; API keys are never forwarded as arguments.
@@ -1159,6 +1159,7 @@ max_concurrency = 4
 reserve = "0"                     # GPU memory left for processes started later.
 
 [prefix_cache]
+reuse = "shared"                 # shared, request; request isolates generations and bypasses shared CPU inputs.
 memory = ""                      # Warm checkpoints and CPU inputs; empty or 0: no warm tier. Intake is additional.
 drain_on_shutdown = "off"         # Pooled DRAM persistence: on, off, or a duration.
 disk_limit = ""                  # Empty: 10% of free disk space when disk retention is enabled.
@@ -1175,6 +1176,27 @@ prefix_cache = ""                # Host checkpoint directory; empty: disk retent
 export_staging = ""               # Rank files an export assembles from; empty: beside the package.
 cuda = "/opt/cuda"                # Explicit CUDA toolkit directory for native builds.
 ```
+
+`--prefix-cache-reuse shared|request` overrides `[prefix_cache] reuse`.
+The default `shared` retains existing GPU and host prefix keys. `request`
+assigns each submitted generation an independent prefix namespace and bypasses
+shared CPU prepared-input stores unless explicitly overridden below. Identical audio/image/text in different
+generations cannot share prefix work, including text before the media tokens.
+Each choice and transcription child receives its own namespace. A generation
+keeps that namespace through preemption and readmission, so its complete
+checkpoint can still restore rather than losing state. GPU/host checkpoint
+publication, storage, eviction and fence retirement remain active; this mode
+isolates cross-request reuse, not checkpoint maintenance or allocation.
+After the runtime has no active, pending or parked generation, it reclaims
+unreachable request-scoped GPU checkpoints through ordinary fenced eviction.
+Queued work, inbound tickets, copy/export pins and outstanding executor work
+prevent that reclamation. Shared-mode checkpoints remain available to later
+requests. This idle reclamation does not clear host, disk or prepared-input
+stores; their separate retention limits still apply.
+The host memory/disk limits alone do not disable GPU prefix reuse. Frontend
+FFT/Mel plans and request-owned decoded inputs remain reusable within their
+existing lifetimes. Model identities, media identities, tokens and sampling seeds
+are unchanged; the new setting does not require package re-export.
 
 `[models.<alias>]` overrides `[defaults]`; flags override both.
 Both sections accept `speculative_token_capacity`, overridden during preparation
@@ -1237,7 +1259,8 @@ Configuration assigns each decision to one owner:
 | Speculation | Recipe default, overridden by `--no-mtp` and the advanced speculation flags |
 | Branch overlap | Recipe declaration, serialized by `--no-stream-overlap` |
 | Weight format, KV precision, page geometry, kernel plans | Checkpoint metadata and recipe preparation |
-| Queue, frontend workers, event capacity, body limit | Concurrency and recipe image limits |
+| Queue, frontend workers, event capacity | Concurrency and recipe image limits |
+| HTTP body limit | Explicit recipe byte capacity, otherwise derived from context tokens and image limits |
 | Compiler workers | Automatic memory-bounded sizing; `[preparation] compile_workers` or `--compile-workers` overrides |
 | Collective selection | `--collective-tuning`, then `[preparation] collective_tuning`, otherwise the recipe default (`static`) |
 | Kernel search effort | `--autotune-effort`, then `[preparation] autotune_effort`, otherwise `default` |
@@ -1252,6 +1275,22 @@ Explicit request values take precedence within the declared sampling bounds. Spe
 depends on native confidence or measured acceptance and execution cost. Reducing the draft limit at
 load time retains draft weights; freeing those weights requires preparation
 with `--no-mtp`.
+
+`--prepared-input-cache off|preprocessed|encoded|both` overrides
+`[prepared_input_cache] mode` independently of prefix KV reuse. Omission keeps
+the historical behavior: `shared` permits CPU prepared-input records and
+`request` bypasses them. Explicit `preprocessed` retains existing frontend
+records; `encoded` retains whole-input BF16 encoder features; `both` enables both
+tiers; `off` bypasses both. Explicit retention requires an existing host-cache
+budget. Encoded retention additionally requires declared feature storage and a
+single rank: no cross-rank feature replication contract is inferred from shapes.
+These settings do not change GPU or host prefix-checkpoint policy.
+
+`flare_graph_batch_submissions_total` reports each successful shared submission
+once, labeled by prepared graph index, physical request capacity and scheduled
+request count. `flare_graph_batch_catalog_entries` identifies coverage of the
+loaded catalog. These counters distinguish logical request occupancy from graph
+padding; they do not count per-request GPU time or completed requests.
 
 Host checkpoint and prepared-input retention share the memory and disk settings
 in the [host retention design](prefix-cache-offload.md). Both tiers remain
@@ -1287,7 +1326,8 @@ every rank and have no configuration-file key. See
 | Prefill chunk | The recipe's chunk, 4,096 tokens for Qwen, GLM, and DeepSeek; `--prefill-chunk-size` overrides |
 | Speculative catalog and draft counts | Recipe, overridden by `--no-mtp` and the `--mtp-*` flags; the draft count adapts from measured rounds unless fixed |
 | Kernel selections | Autotuned during preparation; cached by checkpoint revision, recipe version, GPU, and settings |
-| HTTP queue, workers, event capacity, body limit | `--max-concurrency` and the recipe's image limits |
+| HTTP queue, workers, event capacity | `--max-concurrency` and the recipe's image limits |
+| HTTP body limit | Explicit recipe byte capacity, otherwise derived from context tokens and image limits |
 | Compile workers | Automatic or explicit host process budget, divided among local ranks and bounded by host RAM and device memory |
 | Sampling defaults | Complete Ignition recipe declaration, manually verified against the model card and exported in typed Protobuf fields |
 | Template defaults | The checkpoint template's own defaults, pending the same mechanism |
@@ -1449,6 +1489,8 @@ can compile its sampling kernels; later launches reuse that installation's files
 Set `kernel_cache = "/data/flare-kernels"` in the configuration's `[paths]` table
 to move preparation caches together. Keep the default unless another storage
 location is needed.
+Ignition places cuTile's compiler cache in the `cutile` subdirectory of this
+configured root, including for rank and compiler processes.
 
 `ignition export` prints checkpoint resolution, selected GPUs, preparation settings, and
 each phase's counts and elapsed time. The phases include weight loading,

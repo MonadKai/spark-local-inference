@@ -39,6 +39,7 @@ class Routing:
         storage = PackageStorage.__new__(PackageStorage)
         storage.device = 0
         storage._allocator = self.pool()
+        storage._retention_scope = False
         storage._preparation_pools = set()
         storage.numeric_storage = contextlib.nullcontext()
         storage._scope = torch.cuda.use_mem_pool(self.pool(), device=0)

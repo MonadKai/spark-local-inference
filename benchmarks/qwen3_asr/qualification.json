@@ -1,0 +1,2620 @@
+{
+  "split": "qualification",
+  "excluded_without_reference": {
+    "zh": []
+  },
+  "selection": "labeled candidates only; first 16 numeric English/lexical Chinese speakers; 8 round(i*(n-1)/7) quantiles sorted by exact source samples then ID; i=0..7",
+  "utterances": [
+    {
+      "id": "en-61-70968-0058",
+      "language": "en",
+      "speaker": "00000061",
+      "text": "WILL YOU FORGIVE ME NOW",
+      "source_id": "61-70968-0058",
+      "samples": 29120,
+      "path": "pcm/en-61-70968-0058.wav",
+      "pcm_s16le_sha256": "2db91d34224e01ab65fdf70336014d8d0724a9e5dfd9a8d38376a06684abb7e8"
+    },
+    {
+      "id": "en-61-70968-0036",
+      "language": "en",
+      "speaker": "00000061",
+      "text": "GEORGE MONTFICHET WILL NEVER FORGET THIS DAY",
+      "source_id": "61-70968-0036",
+      "samples": 46959,
+      "path": "pcm/en-61-70968-0036.wav",
+      "pcm_s16le_sha256": "0f7cfcd7d296823636ecefab972f3e4c909b9ec93beec42b2e7cecbda66b1c97"
+    },
+    {
+      "id": "en-61-70968-0008",
+      "language": "en",
+      "speaker": "00000061",
+      "text": "TAKE YOUR PLACE AND LET US SEE WHAT THE CRYSTAL CAN SHOW TO YOU",
+      "source_id": "61-70968-0008",
+      "samples": 56560,
+      "path": "pcm/en-61-70968-0008.wav",
+      "pcm_s16le_sha256": "aded9abf4ec73f75f64ad4470fd5e5422d2538eaa930baab9ca682946d0ed068"
+    },
+    {
+      "id": "en-61-70970-0029",
+      "language": "en",
+      "speaker": "00000061",
+      "text": "FROM THE BLACKNESS BEHIND THE LIGHT THEY HEARD A VOICE WARRENTON'S",
+      "source_id": "61-70970-0029",
+      "samples": 64480,
+      "path": "pcm/en-61-70970-0029.wav",
+      "pcm_s16le_sha256": "de0efcd2449368822870e3bcc0e887968b84588b260cb5bf8d3c6c841499a1df"
+    },
+    {
+      "id": "en-61-70970-0018",
+      "language": "en",
+      "speaker": "00000061",
+      "text": "THE HOURS PASSED WEARILY BY AND MOVEMENT COULD YET BE HEARD ABOUT THE HALL",
+      "source_id": "61-70970-0018",
+      "samples": 73600,
+      "path": "pcm/en-61-70970-0018.wav",
+      "pcm_s16le_sha256": "60d38ec2a8f5c46abd375170a40b44099afeaa948478a7c4688752404fe9a9ff"
+    },
+    {
+      "id": "en-61-70970-0021",
+      "language": "en",
+      "speaker": "00000061",
+      "text": "THEY THEN RENEWED THEIR JOURNEY AND UNDER THE BETTER LIGHT MADE A SAFE CROSSING OF THE STABLE ROOFS",
+      "source_id": "61-70970-0021",
+      "samples": 86480,
+      "path": "pcm/en-61-70970-0021.wav",
+      "pcm_s16le_sha256": "78d7daf7e34883c4572409a6c53343686a6e5b7efb0023f2d25ccfb992166b9b"
+    },
+    {
+      "id": "en-61-70970-0039",
+      "language": "en",
+      "speaker": "00000061",
+      "text": "HE IMPLORES US TO BE DISCREET AS THE GRAVE IN THIS MATTER FOR IN SOOTH HIS LIFE IS IN THE HOLLOW OF OUR HANDS",
+      "source_id": "61-70970-0039",
+      "samples": 106640,
+      "path": "pcm/en-61-70970-0039.wav",
+      "pcm_s16le_sha256": "ca91273d3881f3b6d4ca0c491fba154ffc478ac743dd6a37f7899ea92c407989"
+    },
+    {
+      "id": "en-61-70970-0004",
+      "language": "en",
+      "speaker": "00000061",
+      "text": "BUT TAKE IT WHILST I LIVE AND WEAR MONTFICHET'S SHIELD IN THE DAYS WHEN MY EYES CAN BE REJOICED BY SO BRAVE A SIGHT FOR YOU WILL NE'ER DISGRACE OUR SCUTCHEON I WARRANT ME",
+      "source_id": "61-70970-0004",
+      "samples": 168240,
+      "path": "pcm/en-61-70970-0004.wav",
+      "pcm_s16le_sha256": "79a60d7dd97de4fd84b9294bcb769a91cbf4745da2b7c355fc66fdf48576ea93"
+    },
+    {
+      "id": "en-121-123852-0001",
+      "language": "en",
+      "speaker": "00000121",
+      "text": "AY ME",
+      "source_id": "121-123852-0001",
+      "samples": 29920,
+      "path": "pcm/en-121-123852-0001.wav",
+      "pcm_s16le_sha256": "e6c4be1f037d7b33d69eb7232be5e70da50c1b34523b9ef9a4acd115173b36cc"
+    },
+    {
+      "id": "en-121-127105-0017",
+      "language": "en",
+      "speaker": "00000121",
+      "text": "IT WAS ALMOST THE TONE OF HOPE EVERYBODY WILL STAY",
+      "source_id": "121-127105-0017",
+      "samples": 43120,
+      "path": "pcm/en-121-127105-0017.wav",
+      "pcm_s16le_sha256": "78ac9b01cb03e072256ea2527f177644fdd5ec435fa2b57dda48f1c8a533f00e"
+    },
+    {
+      "id": "en-121-127105-0019",
+      "language": "en",
+      "speaker": "00000121",
+      "text": "MISSUS GRIFFIN HOWEVER EXPRESSED THE NEED FOR A LITTLE MORE LIGHT",
+      "source_id": "121-127105-0019",
+      "samples": 56400,
+      "path": "pcm/en-121-127105-0019.wav",
+      "pcm_s16le_sha256": "6afc8ba6e910711de5bb77e3c83f40912b2d45cc384fdcf8a3cd5c7cf58d0b8a"
+    },
+    {
+      "id": "en-121-121726-0008",
+      "language": "en",
+      "speaker": "00000121",
+      "text": "HOSE MAN'S EXCUSE FOR WETTING THE WALK",
+      "source_id": "121-121726-0008",
+      "samples": 79840,
+      "path": "pcm/en-121-121726-0008.wav",
+      "pcm_s16le_sha256": "89096b96fc149652873d03c577f2801f3b9d65c732b157a351dc98f677e3a4b5"
+    },
+    {
+      "id": "en-121-127105-0028",
+      "language": "en",
+      "speaker": "00000121",
+      "text": "THE AWKWARD THING WAS THAT THEY HAD PRACTICALLY NO OTHER RELATIONS AND THAT HIS OWN AFFAIRS TOOK UP ALL HIS TIME",
+      "source_id": "121-127105-0028",
+      "samples": 108000,
+      "path": "pcm/en-121-127105-0028.wav",
+      "pcm_s16le_sha256": "fcf02c8807ae9b644e486c7fbadb51b00b564d7eb6655b60c265b2ce93157c67"
+    },
+    {
+      "id": "en-121-123859-0004",
+      "language": "en",
+      "speaker": "00000121",
+      "text": "SO I RETURN REBUK'D TO MY CONTENT AND GAIN BY ILL THRICE MORE THAN I HAVE SPENT",
+      "source_id": "121-123859-0004",
+      "samples": 152080,
+      "path": "pcm/en-121-123859-0004.wav",
+      "pcm_s16le_sha256": "da706b5f20399d21d6d9e3d9ad92e6185e26ee63fe4a327817b9b860f94ec734"
+    },
+    {
+      "id": "en-121-127105-0020",
+      "language": "en",
+      "speaker": "00000121",
+      "text": "WHO WAS IT SHE WAS IN LOVE WITH THE STORY WILL TELL I TOOK UPON MYSELF TO REPLY OH I CAN'T WAIT FOR THE STORY THE STORY WON'T TELL SAID DOUGLAS NOT IN ANY LITERAL VULGAR WAY MORE'S THE PITY THEN",
+      "source_id": "121-127105-0020",
+      "samples": 229680,
+      "path": "pcm/en-121-127105-0020.wav",
+      "pcm_s16le_sha256": "3472bec8e4510b5635331d8b473444e749adc1272c0fe19783ecda635dd91d0b"
+    },
+    {
+      "id": "en-121-123859-0002",
+      "language": "en",
+      "speaker": "00000121",
+      "text": "BUT RECKONING TIME WHOSE MILLION'D ACCIDENTS CREEP IN TWIXT VOWS AND CHANGE DECREES OF KINGS TAN SACRED BEAUTY BLUNT THE SHARP'ST INTENTS DIVERT STRONG MINDS TO THE COURSE OF ALTERING THINGS ALAS WHY FEARING OF TIME'S TYRANNY MIGHT I NOT THEN SAY NOW I LOVE YOU BEST WHEN I WAS CERTAIN O'ER INCERTAINTY CROWNING THE PRESENT DOUBTING OF THE REST",
+      "source_id": "121-123859-0002",
+      "samples": 480640,
+      "path": "pcm/en-121-123859-0002.wav",
+      "pcm_s16le_sha256": "300ffaa864b6a1d61f2eb0f91bbb130c533e618e00c6a125c4ba921ea79bdcc4"
+    },
+    {
+      "id": "en-237-134500-0025",
+      "language": "en",
+      "speaker": "00000237",
+      "text": "OH EMIL",
+      "source_id": "237-134500-0025",
+      "samples": 26080,
+      "path": "pcm/en-237-134500-0025.wav",
+      "pcm_s16le_sha256": "7e78a78003f0748815a4e15963ce06507b34b4c411882d152b423633782bc337"
+    },
+    {
+      "id": "en-237-134500-0038",
+      "language": "en",
+      "speaker": "00000237",
+      "text": "AND ANYHOW THERE'S NOTHING TO UNDERSTAND",
+      "source_id": "237-134500-0038",
+      "samples": 38960,
+      "path": "pcm/en-237-134500-0038.wav",
+      "pcm_s16le_sha256": "90f09ab5813e47d1df8eb5767fbdec900b751b9d0e1811297ccd0662163638ad"
+    },
+    {
+      "id": "en-237-126133-0004",
+      "language": "en",
+      "speaker": "00000237",
+      "text": "IF SHE COULD ONLY SEE PHRONSIE FOR JUST ONE MOMENT",
+      "source_id": "237-126133-0004",
+      "samples": 52720,
+      "path": "pcm/en-237-126133-0004.wav",
+      "pcm_s16le_sha256": "4315436c0b98f401c36bae4b2dcc74ade912c3be5fc987fb4bdfd7c94393c795"
+    },
+    {
+      "id": "en-237-134493-0000",
+      "language": "en",
+      "speaker": "00000237",
+      "text": "IT IS SIXTEEN YEARS SINCE JOHN BERGSON DIED",
+      "source_id": "237-134493-0000",
+      "samples": 65680,
+      "path": "pcm/en-237-134493-0000.wav",
+      "pcm_s16le_sha256": "e6dfafbaaa3cf9a9d91fcb3dddf57507f3545e6c0a7d3682a06e4c8a005ac4a6"
+    },
+    {
+      "id": "en-237-126133-0022",
+      "language": "en",
+      "speaker": "00000237",
+      "text": "I DIDN'T HAVE ANY FEARS IF I WORKED IT RIGHTLY SAID THE OLD GENTLEMAN COMPLACENTLY",
+      "source_id": "237-126133-0022",
+      "samples": 80640,
+      "path": "pcm/en-237-126133-0022.wav",
+      "pcm_s16le_sha256": "40ce80a0eb491e51b26718983cfac6789de47aecc99988f417fb8e004981c384"
+    },
+    {
+      "id": "en-237-134500-0036",
+      "language": "en",
+      "speaker": "00000237",
+      "text": "I CAN'T PLAY WITH YOU LIKE A LITTLE BOY ANY MORE HE SAID SLOWLY THAT'S WHAT YOU MISS MARIE",
+      "source_id": "237-134500-0036",
+      "samples": 105600,
+      "path": "pcm/en-237-134500-0036.wav",
+      "pcm_s16le_sha256": "27bdfc877af685e4cbf32e0dc419799e0af842eea093955db6bca9425209a28c"
+    },
+    {
+      "id": "en-237-126133-0015",
+      "language": "en",
+      "speaker": "00000237",
+      "text": "YES ALL ALONE BY HIMSELF ASSERTED JASPER VEHEMENTLY AND WINKING FURIOUSLY TO THE OTHERS TO STOP THEIR LAUGHING HE DID NOW TRULY PHRONSIE",
+      "source_id": "237-126133-0015",
+      "samples": 149440,
+      "path": "pcm/en-237-126133-0015.wav",
+      "pcm_s16le_sha256": "d4f9d31f59eb747a709cd55db1c3130834bad0dbe214f89eb1014f406a3a9fa7"
+    },
+    {
+      "id": "en-237-126133-0000",
+      "language": "en",
+      "speaker": "00000237",
+      "text": "HERE SHE WOULD STAY COMFORTED AND SOOTHED AMONG THE LOVELY PLANTS AND RICH EXOTICS REJOICING THE HEART OF OLD TURNER THE GARDENER WHO SINCE POLLY'S FIRST RAPTUROUS ENTRANCE HAD TAKEN HER INTO HIS GOOD GRACES FOR ALL TIME",
+      "source_id": "237-126133-0000",
+      "samples": 212640,
+      "path": "pcm/en-237-126133-0000.wav",
+      "pcm_s16le_sha256": "33fce5fa108deeeafd3c1cd9a8d091e82a991468e2e93f6d794f867b873cba48"
+    },
+    {
+      "id": "en-260-123440-0001",
+      "language": "en",
+      "speaker": "00000260",
+      "text": "POOR ALICE",
+      "source_id": "260-123440-0001",
+      "samples": 27840,
+      "path": "pcm/en-260-123440-0001.wav",
+      "pcm_s16le_sha256": "59b3a1ce7b0d5125be152e086f5e626b8999af5ec585b57ef56f0b4b8c1b5002"
+    },
+    {
+      "id": "en-260-123286-0014",
+      "language": "en",
+      "speaker": "00000260",
+      "text": "TRULY THIS SEA IS OF INFINITE WIDTH",
+      "source_id": "260-123286-0014",
+      "samples": 47680,
+      "path": "pcm/en-260-123286-0014.wav",
+      "pcm_s16le_sha256": "2c93661f945449c7e9eb954713b7e19bc650409b4faa36b4697553305f54439f"
+    },
+    {
+      "id": "en-260-123288-0009",
+      "language": "en",
+      "speaker": "00000260",
+      "text": "THOSE CLOUDS SEEM AS IF THEY WERE GOING TO CRUSH THE SEA",
+      "source_id": "260-123288-0009",
+      "samples": 54960,
+      "path": "pcm/en-260-123288-0009.wav",
+      "pcm_s16le_sha256": "fb75ca9f9d4cf79a18c4b13a46e4ddfe583ed053671ddffd3feda6e817e3b4e5"
+    },
+    {
+      "id": "en-260-123288-0004",
+      "language": "en",
+      "speaker": "00000260",
+      "text": "THE AIR IS HEAVY THE SEA IS CALM",
+      "source_id": "260-123288-0004",
+      "samples": 68960,
+      "path": "pcm/en-260-123288-0004.wav",
+      "pcm_s16le_sha256": "ad7208fbb4dee05e28d26187ece6ff74d9ff92b484a89d4650787e58ca1073c5"
+    },
+    {
+      "id": "en-260-123288-0001",
+      "language": "en",
+      "speaker": "00000260",
+      "text": "THE WEATHER IF WE MAY USE THAT TERM WILL CHANGE BEFORE LONG",
+      "source_id": "260-123288-0001",
+      "samples": 81280,
+      "path": "pcm/en-260-123288-0001.wav",
+      "pcm_s16le_sha256": "dd9846d0d763b1d8c36044af5b3816577b3ba9bb72e06c261d01f4cabec7b6ef"
+    },
+    {
+      "id": "en-260-123286-0016",
+      "language": "en",
+      "speaker": "00000260",
+      "text": "THESE THOUGHTS AGITATED ME ALL DAY AND MY IMAGINATION SCARCELY CALMED DOWN AFTER SEVERAL HOURS SLEEP",
+      "source_id": "260-123286-0016",
+      "samples": 112000,
+      "path": "pcm/en-260-123286-0016.wav",
+      "pcm_s16le_sha256": "9ca334a14d05e2aca9e3e631a1d6dea3426f5d0f254c040a14cdaa833ad65a00"
+    },
+    {
+      "id": "en-260-123286-0025",
+      "language": "en",
+      "speaker": "00000260",
+      "text": "FLIGHT WAS OUT OF THE QUESTION NOW THE REPTILES ROSE THEY WHEELED AROUND OUR LITTLE RAFT WITH A RAPIDITY GREATER THAN THAT OF EXPRESS TRAINS",
+      "source_id": "260-123286-0025",
+      "samples": 147280,
+      "path": "pcm/en-260-123286-0025.wav",
+      "pcm_s16le_sha256": "330f5d0683b96f9943d7a81d2f1001922f4ced4a2eb8c83410664b3f9a5316d9"
+    },
+    {
+      "id": "en-260-123288-0015",
+      "language": "en",
+      "speaker": "00000260",
+      "text": "FROM THE UNDER SURFACE OF THE CLOUDS THERE ARE CONTINUAL EMISSIONS OF LURID LIGHT ELECTRIC MATTER IS IN CONTINUAL EVOLUTION FROM THEIR COMPONENT MOLECULES THE GASEOUS ELEMENTS OF THE AIR NEED TO BE SLAKED WITH MOISTURE FOR INNUMERABLE COLUMNS OF WATER RUSH UPWARDS INTO THE AIR AND FALL BACK AGAIN IN WHITE FOAM",
+      "source_id": "260-123288-0015",
+      "samples": 338960,
+      "path": "pcm/en-260-123288-0015.wav",
+      "pcm_s16le_sha256": "39888362cefeedfd06fd4d6ac9022e9138cca880679ebc3b8e00d7e903a26c62"
+    },
+    {
+      "id": "en-672-122797-0033",
+      "language": "en",
+      "speaker": "00000672",
+      "text": "A STORY",
+      "source_id": "672-122797-0033",
+      "samples": 20560,
+      "path": "pcm/en-672-122797-0033.wav",
+      "pcm_s16le_sha256": "451605f6d6e624c0aec3aec2e029e477298b4d18f61a056831254f9b414334fc"
+    },
+    {
+      "id": "en-672-122797-0029",
+      "language": "en",
+      "speaker": "00000672",
+      "text": "HOW IT WILL SHINE THIS EVENING",
+      "source_id": "672-122797-0029",
+      "samples": 48800,
+      "path": "pcm/en-672-122797-0029.wav",
+      "pcm_s16le_sha256": "15d2b11bfc67a95d4cc01a47acfb4e7281417422f9ce463e38878a861430427d"
+    },
+    {
+      "id": "en-672-122797-0032",
+      "language": "en",
+      "speaker": "00000672",
+      "text": "CRIED THE YOUNG LADIES AND THEY QUICKLY PUT OUT THE FIRE",
+      "source_id": "672-122797-0032",
+      "samples": 64000,
+      "path": "pcm/en-672-122797-0032.wav",
+      "pcm_s16le_sha256": "c65d55f0763d12e52a07bc6f7dbb6335b35c818155eb3862aab826b727ef7b82"
+    },
+    {
+      "id": "en-672-122797-0030",
+      "language": "en",
+      "speaker": "00000672",
+      "text": "PERHAPS THE OTHER TREES FROM THE FOREST WILL COME TO LOOK AT ME",
+      "source_id": "672-122797-0030",
+      "samples": 73200,
+      "path": "pcm/en-672-122797-0030.wav",
+      "pcm_s16le_sha256": "f239ab9b5c439c173b256bb159b39941426231688a83c1e7951e4cc250c33f19"
+    },
+    {
+      "id": "en-672-122797-0063",
+      "language": "en",
+      "speaker": "00000672",
+      "text": "THEN GOOD BYE SAID THE RATS AND THEY WENT HOME",
+      "source_id": "672-122797-0063",
+      "samples": 81200,
+      "path": "pcm/en-672-122797-0063.wav",
+      "pcm_s16le_sha256": "a3dd4b972083003117bb5ee1c0005f2ef24395b6fa0ef4106e55826f81c578f9"
+    },
+    {
+      "id": "en-672-122797-0072",
+      "language": "en",
+      "speaker": "00000672",
+      "text": "AND THE GARDENER'S BOY CHOPPED THE TREE INTO SMALL PIECES THERE WAS A WHOLE HEAP LYING THERE",
+      "source_id": "672-122797-0072",
+      "samples": 127040,
+      "path": "pcm/en-672-122797-0072.wav",
+      "pcm_s16le_sha256": "3bfeb4d05da42bcb00d1875e6dfe66e57ac1068afd957ab1851e74ad202becbc"
+    },
+    {
+      "id": "en-672-122797-0004",
+      "language": "en",
+      "speaker": "00000672",
+      "text": "IN WINTER WHEN THE SNOW LAY GLITTERING ON THE GROUND A HARE WOULD OFTEN COME LEAPING ALONG AND JUMP RIGHT OVER THE LITTLE TREE",
+      "source_id": "672-122797-0004",
+      "samples": 164000,
+      "path": "pcm/en-672-122797-0004.wav",
+      "pcm_s16le_sha256": "4b1284cfe1b0b36df3f73e22380288b16aae676dec9912d2cb09ab24bc0dfaa3"
+    },
+    {
+      "id": "en-672-122797-0008",
+      "language": "en",
+      "speaker": "00000672",
+      "text": "THIS HAPPENED EVERY YEAR AND THE YOUNG FIR TREE THAT HAD NOW GROWN TO A VERY COMELY SIZE TREMBLED AT THE SIGHT FOR THE MAGNIFICENT GREAT TREES FELL TO THE EARTH WITH NOISE AND CRACKING THE BRANCHES WERE LOPPED OFF AND THE TREES LOOKED LONG AND BARE THEY WERE HARDLY TO BE RECOGNISED AND THEN THEY WERE LAID IN CARTS AND THE HORSES DRAGGED THEM OUT OF THE WOOD",
+      "source_id": "672-122797-0008",
+      "samples": 492960,
+      "path": "pcm/en-672-122797-0008.wav",
+      "pcm_s16le_sha256": "939f5413144f689234c5be92f72e51a6e08088018a214b5c1840ccf646bb2452"
+    },
+    {
+      "id": "en-908-31957-0000",
+      "language": "en",
+      "speaker": "00000908",
+      "text": "ALL IS SAID WITHOUT A WORD",
+      "source_id": "908-31957-0000",
+      "samples": 34000,
+      "path": "pcm/en-908-31957-0000.wav",
+      "pcm_s16le_sha256": "bf499d0cb1ee52d445965a2dc8eca63197e5ad6b4b47abfbb30de7959db6c603"
+    },
+    {
+      "id": "en-908-31957-0018",
+      "language": "en",
+      "speaker": "00000908",
+      "text": "BUT THOU ART NOT SUCH A LOVER MY BELOVED",
+      "source_id": "908-31957-0018",
+      "samples": 62640,
+      "path": "pcm/en-908-31957-0018.wav",
+      "pcm_s16le_sha256": "03cd4c1724fcbfb9f252571aa3a3c97b0bd9c46f75d0392675ff87f705c8103a"
+    },
+    {
+      "id": "en-908-31957-0002",
+      "language": "en",
+      "speaker": "00000908",
+      "text": "I DID NOT WRONG MYSELF SO BUT I PLACED A WRONG ON THEE",
+      "source_id": "908-31957-0002",
+      "samples": 76640,
+      "path": "pcm/en-908-31957-0002.wav",
+      "pcm_s16le_sha256": "5e0a5e522c82eea67f456aec58b62300d4c743b9610bb9f4f869f3b8bd8e7f17"
+    },
+    {
+      "id": "en-908-31957-0013",
+      "language": "en",
+      "speaker": "00000908",
+      "text": "SLOW TO WORLD GREETINGS QUICK WITH ITS O LIST WHEN THE ANGELS SPEAK",
+      "source_id": "908-31957-0013",
+      "samples": 98880,
+      "path": "pcm/en-908-31957-0013.wav",
+      "pcm_s16le_sha256": "aa3044c7bcd60a93498c12b8f511f9102a448d4769e158fdde435a04fa7e9ea9"
+    },
+    {
+      "id": "en-908-31957-0009",
+      "language": "en",
+      "speaker": "00000908",
+      "text": "AND THOUGH I HAVE GROWN SERENE AND STRONG SINCE THEN I THINK THAT GOD HAS WILLED A STILL RENEWABLE FEAR",
+      "source_id": "908-31957-0009",
+      "samples": 123280,
+      "path": "pcm/en-908-31957-0009.wav",
+      "pcm_s16le_sha256": "a39816e75aacd3d749e097297a2c67e0e7a48e5317566075cf16fa81c558bdae"
+    },
+    {
+      "id": "en-908-157963-0020",
+      "language": "en",
+      "speaker": "00000908",
+      "text": "TILL WE ARISE LINK'D IN A GOLDEN BAND AND NEVER PART BUT WALK UNITED BEARING FOOD TO ALL OUR TENDER FLOWERS",
+      "source_id": "908-157963-0020",
+      "samples": 156800,
+      "path": "pcm/en-908-157963-0020.wav",
+      "pcm_s16le_sha256": "a13cd5d1245cffa64c35be5f636f882c0e295cd6b5d4306585af10410152d0c1"
+    },
+    {
+      "id": "en-908-157963-0004",
+      "language": "en",
+      "speaker": "00000908",
+      "text": "THEL IS LIKE A WATRY BOW AND LIKE A PARTING CLOUD LIKE A REFLECTION IN A GLASS LIKE SHADOWS IN THE WATER LIKE DREAMS OF INFANTS LIKE A SMILE UPON AN INFANTS FACE",
+      "source_id": "908-157963-0004",
+      "samples": 223840,
+      "path": "pcm/en-908-157963-0004.wav",
+      "pcm_s16le_sha256": "cdc7e9c5b7dc1181b08dca893abfe813d0ff7be5da92c90c6a309f7118f32c4c"
+    },
+    {
+      "id": "en-908-157963-0007",
+      "language": "en",
+      "speaker": "00000908",
+      "text": "THE LILLY OF THE VALLEY BREATHING IN THE HUMBLE GRASS ANSWERD THE LOVELY MAID AND SAID I AM A WATRY WEED AND I AM VERY SMALL AND LOVE TO DWELL IN LOWLY VALES SO WEAK THE GILDED BUTTERFLY SCARCE PERCHES ON MY HEAD YET I AM VISITED FROM HEAVEN AND HE THAT SMILES ON ALL WALKS IN THE VALLEY AND EACH MORN OVER ME SPREADS HIS HAND SAYING REJOICE THOU HUMBLE GRASS THOU NEW BORN LILY FLOWER",
+      "source_id": "908-157963-0007",
+      "samples": 524320,
+      "path": "pcm/en-908-157963-0007.wav",
+      "pcm_s16le_sha256": "36c2a01f17205455fc8a7f2e610a594a5ac63c7490b7cb8697bc4235b240cbb2"
+    },
+    {
+      "id": "en-1089-134691-0000",
+      "language": "en",
+      "speaker": "00001089",
+      "text": "HE COULD WAIT NO LONGER",
+      "source_id": "1089-134691-0000",
+      "samples": 33360,
+      "path": "pcm/en-1089-134691-0000.wav",
+      "pcm_s16le_sha256": "8765bbf3602482c6bd83271c49ea0090c233ba387c0b4e369a75d62e1007a261"
+    },
+    {
+      "id": "en-1089-134691-0010",
+      "language": "en",
+      "speaker": "00001089",
+      "text": "BROTHER MAC ARDLE BROTHER KEOGH",
+      "source_id": "1089-134691-0010",
+      "samples": 51120,
+      "path": "pcm/en-1089-134691-0010.wav",
+      "pcm_s16le_sha256": "8da0dda3a5ff569dbfb8ba6201109789a8db1b9c8468dfc83b605eb0cf6618bc"
+    },
+    {
+      "id": "en-1089-134686-0026",
+      "language": "en",
+      "speaker": "00001089",
+      "text": "THE RECTOR DID NOT ASK FOR A CATECHISM TO HEAR THE LESSON FROM",
+      "source_id": "1089-134686-0026",
+      "samples": 64160,
+      "path": "pcm/en-1089-134686-0026.wav",
+      "pcm_s16le_sha256": "f62ff2002332dd247b392f5e560119f94e8fc787a74a3893e7455ed231133af8"
+    },
+    {
+      "id": "en-1089-134691-0005",
+      "language": "en",
+      "speaker": "00001089",
+      "text": "WHOSE FEET ARE AS THE FEET OF HARTS AND UNDERNEATH THE EVERLASTING ARMS",
+      "source_id": "1089-134691-0005",
+      "samples": 85760,
+      "path": "pcm/en-1089-134691-0005.wav",
+      "pcm_s16le_sha256": "1b1bd7651f5563510a2eb0947d0a159f93ca460d317a6811e7b0477ca2a50458"
+    },
+    {
+      "id": "en-1089-134686-0002",
+      "language": "en",
+      "speaker": "00001089",
+      "text": "AFTER EARLY NIGHTFALL THE YELLOW LAMPS WOULD LIGHT UP HERE AND THERE THE SQUALID QUARTER OF THE BROTHELS",
+      "source_id": "1089-134686-0002",
+      "samples": 106000,
+      "path": "pcm/en-1089-134686-0002.wav",
+      "pcm_s16le_sha256": "2aa0a48c7e229970380a3b20853b34373fbd3067f1135a12fbbfadeddb003b9e"
+    },
+    {
+      "id": "en-1089-134686-0000",
+      "language": "en",
+      "speaker": "00001089",
+      "text": "HE HOPED THERE WOULD BE STEW FOR DINNER TURNIPS AND CARROTS AND BRUISED POTATOES AND FAT MUTTON PIECES TO BE LADLED OUT IN THICK PEPPERED FLOUR FATTENED SAUCE",
+      "source_id": "1089-134686-0000",
+      "samples": 166960,
+      "path": "pcm/en-1089-134686-0000.wav",
+      "pcm_s16le_sha256": "06b3e22db20760452d503a01d24cd7a7a23ddbeab07919c58e22eccb68cc03fb"
+    },
+    {
+      "id": "en-1089-134686-0023",
+      "language": "en",
+      "speaker": "00001089",
+      "text": "WHY WAS THE SACRAMENT OF THE EUCHARIST INSTITUTED UNDER THE TWO SPECIES OF BREAD AND WINE IF JESUS CHRIST BE PRESENT BODY AND BLOOD SOUL AND DIVINITY IN THE BREAD ALONE AND IN THE WINE ALONE",
+      "source_id": "1089-134686-0023",
+      "samples": 212400,
+      "path": "pcm/en-1089-134686-0023.wav",
+      "pcm_s16le_sha256": "a5cdef3de8740213c8cffaadb88470c09d87946fb950bf33e1a8a87f436532b6"
+    },
+    {
+      "id": "en-1089-134691-0009",
+      "language": "en",
+      "speaker": "00001089",
+      "text": "ANGRY WITH HIMSELF HE TRIED TO HIDE HIS FACE FROM THEIR EYES BY GAZING DOWN SIDEWAYS INTO THE SHALLOW SWIRLING WATER UNDER THE BRIDGE BUT HE STILL SAW A REFLECTION THEREIN OF THEIR TOP HEAVY SILK HATS AND HUMBLE TAPE LIKE COLLARS AND LOOSELY HANGING CLERICAL CLOTHES BROTHER HICKEY",
+      "source_id": "1089-134691-0009",
+      "samples": 320880,
+      "path": "pcm/en-1089-134691-0009.wav",
+      "pcm_s16le_sha256": "decaf32b8eb43a99a4c32fb3a0d369ed9fd432991e738a60e35376d78c7ec1f5"
+    },
+    {
+      "id": "en-1188-133604-0030",
+      "language": "en",
+      "speaker": "00001188",
+      "text": "HE KNOWS THEM BOTH",
+      "source_id": "1188-133604-0030",
+      "samples": 30640,
+      "path": "pcm/en-1188-133604-0030.wav",
+      "pcm_s16le_sha256": "3a918bbe543f6e7daad204e03469610034343a6a906b6de7f5dc1b6abf1745b5"
+    },
+    {
+      "id": "en-1188-133604-0029",
+      "language": "en",
+      "speaker": "00001188",
+      "text": "ONLY THERE ARE TWO SORTS OF CLOUD AND FIRE",
+      "source_id": "1188-133604-0029",
+      "samples": 59280,
+      "path": "pcm/en-1188-133604-0029.wav",
+      "pcm_s16le_sha256": "1b71fb003c7426d7d8e3f1cc673cde2f59b862d18c56c91102819463ee911baf"
+    },
+    {
+      "id": "en-1188-133604-0033",
+      "language": "en",
+      "speaker": "00001188",
+      "text": "EVERY PLANT IN THE GRASS IS SET FORMALLY GROWS PERFECTLY AND MAY BE REALIZED COMPLETELY",
+      "source_id": "1188-133604-0033",
+      "samples": 106000,
+      "path": "pcm/en-1188-133604-0033.wav",
+      "pcm_s16le_sha256": "6f01d02dfeefb2cdd65b12fcbf187b7cc963eafc22a187655e5c85ae3a413c0a"
+    },
+    {
+      "id": "en-1188-133604-0022",
+      "language": "en",
+      "speaker": "00001188",
+      "text": "YOU MUST LOOK AT HIM IN THE FACE FIGHT HIM CONQUER HIM WITH WHAT SCATHE YOU MAY YOU NEED NOT THINK TO KEEP OUT OF THE WAY OF HIM",
+      "source_id": "1188-133604-0022",
+      "samples": 154080,
+      "path": "pcm/en-1188-133604-0022.wav",
+      "pcm_s16le_sha256": "e9b7a3ca0bbac77443a3ea95ec7af9ec23958ef3bf0d81a9606158ffbc1a4c9c"
+    },
+    {
+      "id": "en-1188-133604-0027",
+      "language": "en",
+      "speaker": "00001188",
+      "text": "NOW HERE IS RAPHAEL EXACTLY BETWEEN THE TWO TREES STILL DRAWN LEAF BY LEAF WHOLLY FORMAL BUT BEAUTIFUL MIST COMING GRADUALLY INTO THE DISTANCE",
+      "source_id": "1188-133604-0027",
+      "samples": 179920,
+      "path": "pcm/en-1188-133604-0027.wav",
+      "pcm_s16le_sha256": "b2e24aa5f2bfb86a2e6e665976915177bb2a1595f5470ba2834492d17df4e326"
+    },
+    {
+      "id": "en-1188-133604-0037",
+      "language": "en",
+      "speaker": "00001188",
+      "text": "EVERY LINE IN WHICH THE MASTER TRACES IT EVEN WHERE SEEMINGLY NEGLIGENT IS LOVELY AND SET DOWN WITH A MEDITATIVE CALMNESS WHICH MAKES THESE TWO ETCHINGS CAPABLE OF BEING PLACED BESIDE THE MOST TRANQUIL WORK OF HOLBEIN OR DUERER",
+      "source_id": "1188-133604-0037",
+      "samples": 232160,
+      "path": "pcm/en-1188-133604-0037.wav",
+      "pcm_s16le_sha256": "55ff59cb08cac135da664331bc418f7f430ca702cefbb6986e7121d9fe94ca8b"
+    },
+    {
+      "id": "en-1188-133604-0044",
+      "language": "en",
+      "speaker": "00001188",
+      "text": "IT WILL BE WELL FOR YOU IF YOU JOIN NOT WITH THOSE WHO INSTEAD OF KITES FLY FALCONS WHO INSTEAD OF OBEYING THE LAST WORDS OF THE GREAT CLOUD SHEPHERD TO FEED HIS SHEEP LIVE THE LIVES HOW MUCH LESS THAN VANITY OF THE WAR WOLF AND THE GIER EAGLE",
+      "source_id": "1188-133604-0044",
+      "samples": 296720,
+      "path": "pcm/en-1188-133604-0044.wav",
+      "pcm_s16le_sha256": "c30a7492fbc5e0fef05fd8a4f2ce201b59a0db188843f09aa969b08d0898c45d"
+    },
+    {
+      "id": "en-1188-133604-0023",
+      "language": "en",
+      "speaker": "00001188",
+      "text": "THE COLORIST SAYS FIRST OF ALL AS MY DELICIOUS PAROQUET WAS RUBY SO THIS NASTY VIPER SHALL BE BLACK AND THEN IS THE QUESTION CAN I ROUND HIM OFF EVEN THOUGH HE IS BLACK AND MAKE HIM SLIMY AND YET SPRINGY AND CLOSE DOWN CLOTTED LIKE A POOL OF BLACK BLOOD ON THE EARTH ALL THE SAME",
+      "source_id": "1188-133604-0023",
+      "samples": 378720,
+      "path": "pcm/en-1188-133604-0023.wav",
+      "pcm_s16le_sha256": "8910bd345d17e892575cd4d73ab1973440003b7e1d761618536f3d6efbf2597d"
+    },
+    {
+      "id": "en-1221-135766-0015",
+      "language": "en",
+      "speaker": "00001221",
+      "text": "IF SPOKEN TO SHE WOULD NOT SPEAK AGAIN",
+      "source_id": "1221-135766-0015",
+      "samples": 42080,
+      "path": "pcm/en-1221-135766-0015.wav",
+      "pcm_s16le_sha256": "8ee5092e5aaa470e391541774bcb827c151e9d5d0b5ce61846a0e0bdf35f9c22"
+    },
+    {
+      "id": "en-1221-135766-0014",
+      "language": "en",
+      "speaker": "00001221",
+      "text": "PEARL SAW AND GAZED INTENTLY BUT NEVER SOUGHT TO MAKE ACQUAINTANCE",
+      "source_id": "1221-135766-0014",
+      "samples": 76000,
+      "path": "pcm/en-1221-135766-0014.wav",
+      "pcm_s16le_sha256": "ecbe95c221eee281f939c36d5fe35ac8ec6668caee4c1cf10740b57eb17fae08"
+    },
+    {
+      "id": "en-1221-135766-0004",
+      "language": "en",
+      "speaker": "00001221",
+      "text": "THIS OUTWARD MUTABILITY INDICATED AND DID NOT MORE THAN FAIRLY EXPRESS THE VARIOUS PROPERTIES OF HER INNER LIFE",
+      "source_id": "1221-135766-0004",
+      "samples": 119040,
+      "path": "pcm/en-1221-135766-0004.wav",
+      "pcm_s16le_sha256": "77283c814bcd1aac646409f438a83ae9bea8dfbfab41eef22f1f82ea7650c737"
+    },
+    {
+      "id": "en-1221-135766-0006",
+      "language": "en",
+      "speaker": "00001221",
+      "text": "THEY WERE NOW ILLUMINATED BY THE MORNING RADIANCE OF A YOUNG CHILD'S DISPOSITION BUT LATER IN THE DAY OF EARTHLY EXISTENCE MIGHT BE PROLIFIC OF THE STORM AND WHIRLWIND",
+      "source_id": "1221-135766-0006",
+      "samples": 182640,
+      "path": "pcm/en-1221-135766-0006.wav",
+      "pcm_s16le_sha256": "0a4a64f084933f93a91bf96e80a07392e98b4ff0e766d3578f13d56bda70279b"
+    },
+    {
+      "id": "en-1221-135767-0001",
+      "language": "en",
+      "speaker": "00001221",
+      "text": "ANOTHER AND FAR MORE IMPORTANT REASON THAN THE DELIVERY OF A PAIR OF EMBROIDERED GLOVES IMPELLED HESTER AT THIS TIME TO SEEK AN INTERVIEW WITH A PERSONAGE OF SO MUCH POWER AND ACTIVITY IN THE AFFAIRS OF THE SETTLEMENT",
+      "source_id": "1221-135767-0001",
+      "samples": 214880,
+      "path": "pcm/en-1221-135767-0001.wav",
+      "pcm_s16le_sha256": "26100b54091462532366733c70259fc3efe661de77fc46a698da9ee51eaadbde"
+    },
+    {
+      "id": "en-1221-135767-0002",
+      "language": "en",
+      "speaker": "00001221",
+      "text": "AT THAT EPOCH OF PRISTINE SIMPLICITY HOWEVER MATTERS OF EVEN SLIGHTER PUBLIC INTEREST AND OF FAR LESS INTRINSIC WEIGHT THAN THE WELFARE OF HESTER AND HER CHILD WERE STRANGELY MIXED UP WITH THE DELIBERATIONS OF LEGISLATORS AND ACTS OF STATE",
+      "source_id": "1221-135767-0002",
+      "samples": 257920,
+      "path": "pcm/en-1221-135767-0002.wav",
+      "pcm_s16le_sha256": "d39537dad78d534428c10fc409c965161bd2d6e6a0d20880757f5fef0454cae0"
+    },
+    {
+      "id": "en-1221-135766-0001",
+      "language": "en",
+      "speaker": "00001221",
+      "text": "GOD AS A DIRECT CONSEQUENCE OF THE SIN WHICH MAN THUS PUNISHED HAD GIVEN HER A LOVELY CHILD WHOSE PLACE WAS ON THAT SAME DISHONOURED BOSOM TO CONNECT HER PARENT FOR EVER WITH THE RACE AND DESCENT OF MORTALS AND TO BE FINALLY A BLESSED SOUL IN HEAVEN",
+      "source_id": "1221-135766-0001",
+      "samples": 267440,
+      "path": "pcm/en-1221-135766-0001.wav",
+      "pcm_s16le_sha256": "662b170e0a2bae386343249aa9c35d5e32c931e6edef15af0ecd179c5e2ee526"
+    },
+    {
+      "id": "en-1221-135767-0000",
+      "language": "en",
+      "speaker": "00001221",
+      "text": "HESTER PRYNNE WENT ONE DAY TO THE MANSION OF GOVERNOR BELLINGHAM WITH A PAIR OF GLOVES WHICH SHE HAD FRINGED AND EMBROIDERED TO HIS ORDER AND WHICH WERE TO BE WORN ON SOME GREAT OCCASION OF STATE FOR THOUGH THE CHANCES OF A POPULAR ELECTION HAD CAUSED THIS FORMER RULER TO DESCEND A STEP OR TWO FROM THE HIGHEST RANK HE STILL HELD AN HONOURABLE AND INFLUENTIAL PLACE AMONG THE COLONIAL MAGISTRACY",
+      "source_id": "1221-135767-0000",
+      "samples": 397600,
+      "path": "pcm/en-1221-135767-0000.wav",
+      "pcm_s16le_sha256": "77cb6a15469c3a6bad11794631e1d8b6a808a221608ac35cf5cccbdd60ad36d6"
+    },
+    {
+      "id": "en-1284-1180-0016",
+      "language": "en",
+      "speaker": "00001284",
+      "text": "THE WOMAN SEEMED THOUGHTFUL",
+      "source_id": "1284-1180-0016",
+      "samples": 34080,
+      "path": "pcm/en-1284-1180-0016.wav",
+      "pcm_s16le_sha256": "317bebaa96b7ddb761be6fc5176036a13f00b3ce10317f5afa55bd9c2820f915"
+    },
+    {
+      "id": "en-1284-1181-0005",
+      "language": "en",
+      "speaker": "00001284",
+      "text": "NO I FORGOT ALL ABOUT THE BRAINS EXCLAIMED THE WOMAN",
+      "source_id": "1284-1181-0005",
+      "samples": 61680,
+      "path": "pcm/en-1284-1181-0005.wav",
+      "pcm_s16le_sha256": "0877d5cfe113817722cfa08cb11649d83af881caa248061ff6aa5d4e00dd3f75"
+    },
+    {
+      "id": "en-1284-1181-0015",
+      "language": "en",
+      "speaker": "00001284",
+      "text": "MOST PEOPLE TALK TOO MUCH SO IT IS A RELIEF TO FIND ONE WHO TALKS TOO LITTLE",
+      "source_id": "1284-1181-0015",
+      "samples": 81840,
+      "path": "pcm/en-1284-1181-0015.wav",
+      "pcm_s16le_sha256": "52e76cc204aab06b3b502e5f1fd45fdde27042a81eeac31ef9466859814bd0af"
+    },
+    {
+      "id": "en-1284-1181-0008",
+      "language": "en",
+      "speaker": "00001284",
+      "text": "I THINK THAT WILL DO SHE CONTINUED FOR THE OTHER QUALITIES ARE NOT NEEDED IN A SERVANT",
+      "source_id": "1284-1181-0008",
+      "samples": 97280,
+      "path": "pcm/en-1284-1181-0008.wav",
+      "pcm_s16le_sha256": "eca06b11c12dab29bca695956755ca32f1effb6be5b3d9a68d8f511451431d03"
+    },
+    {
+      "id": "en-1284-1180-0002",
+      "language": "en",
+      "speaker": "00001284",
+      "text": "INSTEAD OF SHOES THE OLD MAN WORE BOOTS WITH TURNOVER TOPS AND HIS BLUE COAT HAD WIDE CUFFS OF GOLD BRAID",
+      "source_id": "1284-1180-0002",
+      "samples": 122880,
+      "path": "pcm/en-1284-1180-0002.wav",
+      "pcm_s16le_sha256": "376940be9009ca4fecb0c6f697ac0e316fb7a33668b1de631979439f1f006389"
+    },
+    {
+      "id": "en-1284-1180-0025",
+      "language": "en",
+      "speaker": "00001284",
+      "text": "I THINK I MUST SHOW YOU MY PATCHWORK GIRL SAID MARGOLOTTE LAUGHING AT THE BOY'S ASTONISHMENT FOR SHE IS RATHER DIFFICULT TO EXPLAIN",
+      "source_id": "1284-1180-0025",
+      "samples": 139280,
+      "path": "pcm/en-1284-1180-0025.wav",
+      "pcm_s16le_sha256": "6ff7855f592be5f1dbb60b829c8ce6a1d24c6832a3759df0707f93d3875bd3c0"
+    },
+    {
+      "id": "en-1284-1181-0017",
+      "language": "en",
+      "speaker": "00001284",
+      "text": "THE WIZARD OF OZ WHO USED TO BE A HUMBUG AND KNEW NO MAGIC AT ALL HAS BEEN TAKING LESSONS OF GLINDA AND I'M TOLD HE IS GETTING TO BE A PRETTY GOOD WIZARD BUT HE IS MERELY THE ASSISTANT OF THE GREAT SORCERESS",
+      "source_id": "1284-1181-0017",
+      "samples": 188400,
+      "path": "pcm/en-1284-1181-0017.wav",
+      "pcm_s16le_sha256": "ae1b3c34338229a022bc04aa8d9401254655f7e32531fe4be5c3c52df4a4d69f"
+    },
+    {
+      "id": "en-1284-134647-0005",
+      "language": "en",
+      "speaker": "00001284",
+      "text": "THEY ASSERTED WITH CONFIDENCE AND ALMOST WITH EXULTATION THAT THE APOSTOLICAL SUCCESSION WAS INTERRUPTED THAT ALL THE BISHOPS OF EUROPE AND ASIA WERE INFECTED BY THE CONTAGION OF GUILT AND SCHISM AND THAT THE PREROGATIVES OF THE CATHOLIC CHURCH WERE CONFINED TO THE CHOSEN PORTION OF THE AFRICAN BELIEVERS WHO ALONE HAD PRESERVED INVIOLATE THE INTEGRITY OF THEIR FAITH AND DISCIPLINE",
+      "source_id": "1284-134647-0005",
+      "samples": 373361,
+      "path": "pcm/en-1284-134647-0005.wav",
+      "pcm_s16le_sha256": "728e83c2272d5c630639967501ca78246f6300eb9d433b37f9e391b7a306e7c5"
+    },
+    {
+      "id": "en-1320-122617-0038",
+      "language": "en",
+      "speaker": "00001320",
+      "text": "WILL THE HURONS HEAR HIS GROANS",
+      "source_id": "1320-122617-0038",
+      "samples": 35840,
+      "path": "pcm/en-1320-122617-0038.wav",
+      "pcm_s16le_sha256": "d074401bd14146ab19dc41d40f4236afbca274b91ad2ba1d1a8997d89b0d2598"
+    },
+    {
+      "id": "en-1320-122617-0005",
+      "language": "en",
+      "speaker": "00001320",
+      "text": "THE BEAR SHOOK HIS SHAGGY SIDES AND THEN A WELL KNOWN VOICE REPLIED",
+      "source_id": "1320-122617-0005",
+      "samples": 70400,
+      "path": "pcm/en-1320-122617-0005.wav",
+      "pcm_s16le_sha256": "0b17f8ce32c09b30c467aeaaba6974b24af4ff97b0c1a4ab99e085ab886d7335"
+    },
+    {
+      "id": "en-1320-122617-0027",
+      "language": "en",
+      "speaker": "00001320",
+      "text": "AS SOON AS THESE DISPOSITIONS WERE MADE THE SCOUT TURNED TO DAVID AND GAVE HIM HIS PARTING INSTRUCTIONS",
+      "source_id": "1320-122617-0027",
+      "samples": 91039,
+      "path": "pcm/en-1320-122617-0027.wav",
+      "pcm_s16le_sha256": "18007081d9dc759db47820771224f4ac84a56d7baf8fb1c03dc8ebb8ac5326d8"
+    },
+    {
+      "id": "en-1320-122617-0039",
+      "language": "en",
+      "speaker": "00001320",
+      "text": "THE MOHICAN STARTED ON HIS FEET AND SHOOK HIS SHAGGY COVERING AS THOUGH THE ANIMAL HE COUNTERFEITED WAS ABOUT TO MAKE SOME DESPERATE EFFORT",
+      "source_id": "1320-122617-0039",
+      "samples": 112880,
+      "path": "pcm/en-1320-122617-0039.wav",
+      "pcm_s16le_sha256": "9cf3ed8985625af93ca84569280377a536aa4892a8aefbabb265fc0a052a863c"
+    },
+    {
+      "id": "en-1320-122612-0008",
+      "language": "en",
+      "speaker": "00001320",
+      "text": "THE EYES OF THE WHOLE PARTY FOLLOWED THE UNEXPECTED MOVEMENT AND READ THEIR SUCCESS IN THE AIR OF TRIUMPH THAT THE YOUTH ASSUMED",
+      "source_id": "1320-122612-0008",
+      "samples": 126000,
+      "path": "pcm/en-1320-122612-0008.wav",
+      "pcm_s16le_sha256": "27c3eeeffa39cbed150b4f72702b9e7e4d02bb23ae1350186357ef5cee5c7648"
+    },
+    {
+      "id": "en-1320-122617-0011",
+      "language": "en",
+      "speaker": "00001320",
+      "text": "THE LODGE IN WHICH UNCAS WAS CONFINED WAS IN THE VERY CENTER OF THE VILLAGE AND IN A SITUATION PERHAPS MORE DIFFICULT THAN ANY OTHER TO APPROACH OR LEAVE WITHOUT OBSERVATION",
+      "source_id": "1320-122617-0011",
+      "samples": 156160,
+      "path": "pcm/en-1320-122617-0011.wav",
+      "pcm_s16le_sha256": "3169bd6e4daeec682bad02abd55b939f343a7a01f013b326ce5585c1758b300e"
+    },
+    {
+      "id": "en-1320-122617-0004",
+      "language": "en",
+      "speaker": "00001320",
+      "text": "THE INGENIOUS HAWKEYE WHO RECALLED THE HASTY MANNER IN WHICH THE OTHER HAD ABANDONED HIS POST AT THE BEDSIDE OF THE SICK WOMAN WAS NOT WITHOUT HIS SUSPICIONS CONCERNING THE SUBJECT OF SO MUCH SOLEMN DELIBERATION",
+      "source_id": "1320-122617-0004",
+      "samples": 196160,
+      "path": "pcm/en-1320-122617-0004.wav",
+      "pcm_s16le_sha256": "38d9f6dc9e64eb76ae373ed543ef9828e16dbc11aba7bfd1fcd2fab29d767f6f"
+    },
+    {
+      "id": "en-1320-122617-0007",
+      "language": "en",
+      "speaker": "00001320",
+      "text": "COME COME RETURNED HAWKEYE UNCASING HIS HONEST COUNTENANCE THE BETTER TO ASSURE THE WAVERING CONFIDENCE OF HIS COMPANION YOU MAY SEE A SKIN WHICH IF IT BE NOT AS WHITE AS ONE OF THE GENTLE ONES HAS NO TINGE OF RED TO IT THAT THE WINDS OF THE HEAVEN AND THE SUN HAVE NOT BESTOWED NOW LET US TO BUSINESS",
+      "source_id": "1320-122617-0007",
+      "samples": 296400,
+      "path": "pcm/en-1320-122617-0007.wav",
+      "pcm_s16le_sha256": "a766d7269441926e2cb542c821514403c5b004a0e056580f02c89ad19c359081"
+    },
+    {
+      "id": "en-1580-141083-0051",
+      "language": "en",
+      "speaker": "00001580",
+      "text": "ONLY FOR A MINUTE OR SO",
+      "source_id": "1580-141083-0051",
+      "samples": 31680,
+      "path": "pcm/en-1580-141083-0051.wav",
+      "pcm_s16le_sha256": "f8f3fe34e1b477bf2fc6fc565727ee8fd13c774bab41e87ac47ad2c73a1128cf"
+    },
+    {
+      "id": "en-1580-141083-0047",
+      "language": "en",
+      "speaker": "00001580",
+      "text": "DID YOU LOOK AT THESE PAPERS ON THE TABLE",
+      "source_id": "1580-141083-0047",
+      "samples": 41680,
+      "path": "pcm/en-1580-141083-0047.wav",
+      "pcm_s16le_sha256": "67445ac282065c0e51ca979d41af0283d29646b4e589031634b406fbc5ab038d"
+    },
+    {
+      "id": "en-1580-141083-0050",
+      "language": "en",
+      "speaker": "00001580",
+      "text": "I REALLY DON'T THINK HE KNEW MUCH ABOUT IT MISTER HOLMES",
+      "source_id": "1580-141083-0050",
+      "samples": 49360,
+      "path": "pcm/en-1580-141083-0050.wav",
+      "pcm_s16le_sha256": "b5179a89a31d1897c51c4039c2a9717ea0f1aa270f56519b11391ad38b29d5b6"
+    },
+    {
+      "id": "en-1580-141083-0040",
+      "language": "en",
+      "speaker": "00001580",
+      "text": "ONE HARDLY LIKES TO THROW SUSPICION WHERE THERE ARE NO PROOFS",
+      "source_id": "1580-141083-0040",
+      "samples": 60000,
+      "path": "pcm/en-1580-141083-0040.wav",
+      "pcm_s16le_sha256": "dc9f454a9410f9884d6a1373f79955902376882b5229b878bff3cdb6354c2137"
+    },
+    {
+      "id": "en-1580-141083-0024",
+      "language": "en",
+      "speaker": "00001580",
+      "text": "YOU LEFT HIM IN A CHAIR YOU SAY WHICH CHAIR BY THE WINDOW THERE",
+      "source_id": "1580-141083-0024",
+      "samples": 71680,
+      "path": "pcm/en-1580-141083-0024.wav",
+      "pcm_s16le_sha256": "2b248a756247afe56b5c77352c21e878c2111b724daffb509662561d8f2ef9ef"
+    },
+    {
+      "id": "en-1580-141084-0047",
+      "language": "en",
+      "speaker": "00001580",
+      "text": "I HAVE A LETTER HERE MISTER SOAMES WHICH I WROTE TO YOU EARLY THIS MORNING IN THE MIDDLE OF A RESTLESS NIGHT",
+      "source_id": "1580-141084-0047",
+      "samples": 84000,
+      "path": "pcm/en-1580-141084-0047.wav",
+      "pcm_s16le_sha256": "ca185084384947ca6386941bb27f596abb096a46a774b4716da42a2e461e4cab"
+    },
+    {
+      "id": "en-1580-141084-0033",
+      "language": "en",
+      "speaker": "00001580",
+      "text": "COME COME SAID HOLMES KINDLY IT IS HUMAN TO ERR AND AT LEAST NO ONE CAN ACCUSE YOU OF BEING A CALLOUS CRIMINAL",
+      "source_id": "1580-141084-0033",
+      "samples": 112000,
+      "path": "pcm/en-1580-141084-0033.wav",
+      "pcm_s16le_sha256": "e2a302596f91e1c2eb9c51a2c226ecaa7ec812723131d0659442e994fb040c93"
+    },
+    {
+      "id": "en-1580-141083-0006",
+      "language": "en",
+      "speaker": "00001580",
+      "text": "THE ONLY DUPLICATE WHICH EXISTED SO FAR AS I KNEW WAS THAT WHICH BELONGED TO MY SERVANT BANNISTER A MAN WHO HAS LOOKED AFTER MY ROOM FOR TEN YEARS AND WHOSE HONESTY IS ABSOLUTELY ABOVE SUSPICION",
+      "source_id": "1580-141083-0006",
+      "samples": 173600,
+      "path": "pcm/en-1580-141083-0006.wav",
+      "pcm_s16le_sha256": "89d5b488e314ffac55c5b5f886407e22e4f21bab54ffdda9049332861c7e1556"
+    },
+    {
+      "id": "en-1995-1837-0008",
+      "language": "en",
+      "speaker": "00001995",
+      "text": "WHERE WAS THE USE OF IMAGINING",
+      "source_id": "1995-1837-0008",
+      "samples": 31280,
+      "path": "pcm/en-1995-1837-0008.wav",
+      "pcm_s16le_sha256": "1b7abcf272bafa5f9996d4cc53a5dcac951e12a186f0ab8f0525f8ace74333ef"
+    },
+    {
+      "id": "en-1995-1826-0004",
+      "language": "en",
+      "speaker": "00001995",
+      "text": "MIGHT LEARN SOMETHING USEFUL DOWN THERE",
+      "source_id": "1995-1826-0004",
+      "samples": 48560,
+      "path": "pcm/en-1995-1826-0004.wav",
+      "pcm_s16le_sha256": "1347eea6a391eabab1cf39f490857366ae5f76750e86b19216fce780cff3944f"
+    },
+    {
+      "id": "en-1995-1837-0010",
+      "language": "en",
+      "speaker": "00001995",
+      "text": "PERHAPS SHE TOO MIGHT BE THERE WAITING WEEPING",
+      "source_id": "1995-1837-0010",
+      "samples": 55680,
+      "path": "pcm/en-1995-1837-0010.wav",
+      "pcm_s16le_sha256": "6e3e091e401737ba44e53042691f6453f8fec599c47df8d5427631deff7437b9"
+    },
+    {
+      "id": "en-1995-1826-0024",
+      "language": "en",
+      "speaker": "00001995",
+      "text": "THE GOLDEN FLEECE IT'S THE SILVER FLEECE HE HARKENED",
+      "source_id": "1995-1826-0024",
+      "samples": 81520,
+      "path": "pcm/en-1995-1826-0024.wav",
+      "pcm_s16le_sha256": "508afe1d1d1c30905996db3a67b97524e7c569590e4801df993b5fa76b566793"
+    },
+    {
+      "id": "en-1995-1826-0012",
+      "language": "en",
+      "speaker": "00001995",
+      "text": "SHE WANTED A GLANCE OF THE NEW BOOKS AND PERIODICALS AND TALK OF GREAT PHILANTHROPIES AND REFORMS",
+      "source_id": "1995-1826-0012",
+      "samples": 98880,
+      "path": "pcm/en-1995-1826-0012.wav",
+      "pcm_s16le_sha256": "ef22b252b4f6d97e52efb956c026e9ec7e965ea1a2c7c7955ff3278cc947a107"
+    },
+    {
+      "id": "en-1995-1836-0003",
+      "language": "en",
+      "speaker": "00001995",
+      "text": "SHE WAS NOT HERSELF A NOTABLY INTELLIGENT WOMAN SHE GREATLY ADMIRED INTELLIGENCE OR WHATEVER LOOKED TO HER LIKE INTELLIGENCE IN OTHERS",
+      "source_id": "1995-1836-0003",
+      "samples": 127440,
+      "path": "pcm/en-1995-1836-0003.wav",
+      "pcm_s16le_sha256": "0bd08b8db7fa49c5e0443bf1d47ee7c32dc4cd12b403f2797255e43795118dac"
+    },
+    {
+      "id": "en-1995-1826-0000",
+      "language": "en",
+      "speaker": "00001995",
+      "text": "IN THE DEBATE BETWEEN THE SENIOR SOCIETIES HER DEFENCE OF THE FIFTEENTH AMENDMENT HAD BEEN NOT ONLY A NOTABLE BIT OF REASONING BUT DELIVERED WITH REAL ENTHUSIASM",
+      "source_id": "1995-1826-0000",
+      "samples": 151760,
+      "path": "pcm/en-1995-1826-0000.wav",
+      "pcm_s16le_sha256": "a593c3e40220b88e14ab08b3a35e59077eda57123448339f27cac6c15f442937"
+    },
+    {
+      "id": "en-1995-1836-0004",
+      "language": "en",
+      "speaker": "00001995",
+      "text": "AS SHE AWAITED HER GUESTS SHE SURVEYED THE TABLE WITH BOTH SATISFACTION AND DISQUIETUDE FOR HER SOCIAL FUNCTIONS WERE FEW TONIGHT THERE WERE SHE CHECKED THEM OFF ON HER FINGERS SIR JAMES CREIGHTON THE RICH ENGLISH MANUFACTURER AND LADY CREIGHTON MISTER AND MISSUS VANDERPOOL MISTER HARRY CRESSWELL AND HIS SISTER JOHN TAYLOR AND HIS SISTER AND MISTER CHARLES SMITH WHOM THE EVENING PAPERS MENTIONED AS LIKELY TO BE UNITED STATES SENATOR FROM NEW JERSEY A SELECTION OF GUESTS THAT HAD BEEN DETERMINED UNKNOWN TO THE HOSTESS BY THE MEETING OF COTTON INTERESTS EARLIER IN THE DAY",
+      "source_id": "1995-1836-0004",
+      "samples": 542560,
+      "path": "pcm/en-1995-1836-0004.wav",
+      "pcm_s16le_sha256": "d62ad932a3a0c8d842e9c6f6bec26a53ed522af3417f7d8d633d9be0972648d1"
+    },
+    {
+      "id": "en-2094-142345-0041",
+      "language": "en",
+      "speaker": "00002094",
+      "text": "DIRECTION",
+      "source_id": "2094-142345-0041",
+      "samples": 22720,
+      "path": "pcm/en-2094-142345-0041.wav",
+      "pcm_s16le_sha256": "76b822cab58e87de25955cebd30a73375e03600f84ad843690e9f8e617afb3f8"
+    },
+    {
+      "id": "en-2094-142345-0055",
+      "language": "en",
+      "speaker": "00002094",
+      "text": "BUT YOU KNOW MORE ABOUT THAT THAN I DO SIR",
+      "source_id": "2094-142345-0055",
+      "samples": 42480,
+      "path": "pcm/en-2094-142345-0055.wav",
+      "pcm_s16le_sha256": "0c0fcab67eb9fd41080c5a6df8e2d71dcdd349a2a9f1a1065218fc5967602b55"
+    },
+    {
+      "id": "en-2094-142345-0018",
+      "language": "en",
+      "speaker": "00002094",
+      "text": "WHO TAUGHT YOU TO SCRUB A FLOOR I SHOULD LIKE TO KNOW",
+      "source_id": "2094-142345-0018",
+      "samples": 50480,
+      "path": "pcm/en-2094-142345-0018.wav",
+      "pcm_s16le_sha256": "5138bacef8d0fa46481d775e68755cacae3180627bf300ba0da8a0fb5cfefc63"
+    },
+    {
+      "id": "en-2094-142345-0023",
+      "language": "en",
+      "speaker": "00002094",
+      "text": "YOU'RE A RARE UN FOR SITTING DOWN TO YOUR WORK A LITTLE WHILE AFTER IT'S TIME TO PUT BY",
+      "source_id": "2094-142345-0023",
+      "samples": 82880,
+      "path": "pcm/en-2094-142345-0023.wav",
+      "pcm_s16le_sha256": "82712ad1c4041b041051f6ec8b42bec476402f735ae04dabc5275ea64b95dd43"
+    },
+    {
+      "id": "en-2094-142345-0048",
+      "language": "en",
+      "speaker": "00002094",
+      "text": "SAID CAPTAIN DONNITHORNE SEATING HIMSELF WHERE HE COULD SEE ALONG THE SHORT PASSAGE TO THE OPEN DAIRY DOOR",
+      "source_id": "2094-142345-0048",
+      "samples": 102240,
+      "path": "pcm/en-2094-142345-0048.wav",
+      "pcm_s16le_sha256": "97cee470caa0ffb36af212e6109031d96ae269a79ded39370a3f9babef6b526c"
+    },
+    {
+      "id": "en-2094-142345-0059",
+      "language": "en",
+      "speaker": "00002094",
+      "text": "THIS MISSUS POYSER SAID BLUSHING AND BELIEVING THAT THE CAPTAIN WAS REALLY INTERESTED IN HER MILK PANS AND WOULD ADJUST HIS OPINION OF HER TO THE APPEARANCE OF HER DAIRY",
+      "source_id": "2094-142345-0059",
+      "samples": 160160,
+      "path": "pcm/en-2094-142345-0059.wav",
+      "pcm_s16le_sha256": "eacee1add099d658329d3bf8c58e5a274dabf0e4f31acfc7f252f344946f27cd"
+    },
+    {
+      "id": "en-2094-142345-0003",
+      "language": "en",
+      "speaker": "00002094",
+      "text": "A LARGE OPEN FIREPLACE WITH RUSTY DOGS IN IT AND A BARE BOARDED FLOOR AT THE FAR END FLEECES OF WOOL STACKED UP IN THE MIDDLE OF THE FLOOR SOME EMPTY CORN BAGS",
+      "source_id": "2094-142345-0003",
+      "samples": 234800,
+      "path": "pcm/en-2094-142345-0003.wav",
+      "pcm_s16le_sha256": "6d0e1eaec711cea9679c8393c95c72383088e753a6c5c5e339b857af2373b049"
+    },
+    {
+      "id": "en-2094-142345-0008",
+      "language": "en",
+      "speaker": "00002094",
+      "text": "BUT THERE IS ALWAYS A STRONGER SENSE OF LIFE WHEN THE SUN IS BRILLIANT AFTER RAIN AND NOW HE IS POURING DOWN HIS BEAMS AND MAKING SPARKLES AMONG THE WET STRAW AND LIGHTING UP EVERY PATCH OF VIVID GREEN MOSS ON THE RED TILES OF THE COW SHED AND TURNING EVEN THE MUDDY WATER THAT IS HURRYING ALONG THE CHANNEL TO THE DRAIN INTO A MIRROR FOR THE YELLOW BILLED DUCKS WHO ARE SEIZING THE OPPORTUNITY OF GETTING A DRINK WITH AS MUCH BODY IN IT AS POSSIBLE",
+      "source_id": "2094-142345-0008",
+      "samples": 506400,
+      "path": "pcm/en-2094-142345-0008.wav",
+      "pcm_s16le_sha256": "4f41bff0d533ecf083ac72d030142e4edb14cee94f8639a4f7d7c9366a96b6ba"
+    },
+    {
+      "id": "en-2300-131720-0039",
+      "language": "en",
+      "speaker": "00002300",
+      "text": "THE PROBLEM WAS SOLVED",
+      "source_id": "2300-131720-0039",
+      "samples": 38160,
+      "path": "pcm/en-2300-131720-0039.wav",
+      "pcm_s16le_sha256": "b063b4aa83eeab94e58d10bd2535a0c1ed481f6a9a794c63ceffb1c461adfacf"
+    },
+    {
+      "id": "en-2300-131720-0040",
+      "language": "en",
+      "speaker": "00002300",
+      "text": "WE WERE MORE INTERESTED IN THE TECHNICAL CONDITION OF THE STATION THAN IN THE COMMERCIAL PART",
+      "source_id": "2300-131720-0040",
+      "samples": 87280,
+      "path": "pcm/en-2300-131720-0040.wav",
+      "pcm_s16le_sha256": "8fff47651d01594b85a9b60bb70e092069115a6db3fd1d62e092706bfb48809f"
+    },
+    {
+      "id": "en-2300-131720-0034",
+      "language": "en",
+      "speaker": "00002300",
+      "text": "THE OTHERS HAVING BEEN IN OPERATION TOO SHORT A TIME TO SHOW DEFINITE RESULTS ALTHOUGH THEY ALSO WENT QUICKLY TO A DIVIDEND BASIS",
+      "source_id": "2300-131720-0034",
+      "samples": 137680,
+      "path": "pcm/en-2300-131720-0034.wav",
+      "pcm_s16le_sha256": "b16dce4e59cd79eb4092b0b107f6dddd5239b8b67ed3a5fd116014a609dc67c7"
+    },
+    {
+      "id": "en-2300-131720-0020",
+      "language": "en",
+      "speaker": "00002300",
+      "text": "IT WAS SPECIALLY SUITED FOR A TRIAL PLANT ALSO IN THE EARLY DAYS WHEN A YIELD OF SIX OR EIGHT LAMPS TO THE HORSE POWER WAS CONSIDERED SUBJECT FOR CONGRATULATION",
+      "source_id": "2300-131720-0020",
+      "samples": 165600,
+      "path": "pcm/en-2300-131720-0020.wav",
+      "pcm_s16le_sha256": "a411c9a58687c4af9309503393ea809bcdbfbb2ee278d21d521294fe11c13247"
+    },
+    {
+      "id": "en-2300-131720-0032",
+      "language": "en",
+      "speaker": "00002300",
+      "text": "THE STANDARD EDISON METER PRACTICE WAS TO REMOVE THE CELLS ONCE A MONTH TO THE METER ROOM OF THE CENTRAL STATION COMPANY FOR EXAMINATION ANOTHER SET BEING SUBSTITUTED",
+      "source_id": "2300-131720-0032",
+      "samples": 187040,
+      "path": "pcm/en-2300-131720-0032.wav",
+      "pcm_s16le_sha256": "9562000e0e7836c3fea2b822894b9a52246978cec20ed6063117d2d7a6231122"
+    },
+    {
+      "id": "en-2300-131720-0001",
+      "language": "en",
+      "speaker": "00002300",
+      "text": "THE LONDON PLANT WAS LESS TEMPORARY BUT NOT PERMANENT SUPPLYING BEFORE IT WAS TORN OUT NO FEWER THAN THREE THOUSAND LAMPS IN HOTELS CHURCHES STORES AND DWELLINGS IN THE VICINITY OF HOLBORN VIADUCT",
+      "source_id": "2300-131720-0001",
+      "samples": 234080,
+      "path": "pcm/en-2300-131720-0001.wav",
+      "pcm_s16le_sha256": "bbcc3ac9532bb9d0a52fab21312bd73e536002c1ae079d999fe25f17f3ef894c"
+    },
+    {
+      "id": "en-2300-131720-0026",
+      "language": "en",
+      "speaker": "00002300",
+      "text": "THE ARC LAMP INSTALLED OUTSIDE A CUSTOMER'S PREMISES OR IN A CIRCUIT FOR PUBLIC STREET LIGHTING BURNED SO MANY HOURS NIGHTLY SO MANY NIGHTS IN THE MONTH AND WAS PAID FOR AT THAT RATE SUBJECT TO REBATE FOR HOURS WHEN THE LAMP MIGHT BE OUT THROUGH ACCIDENT",
+      "source_id": "2300-131720-0026",
+      "samples": 281520,
+      "path": "pcm/en-2300-131720-0026.wav",
+      "pcm_s16le_sha256": "4ccf8d71d86e075fc65e385da8370f52b8b71495d2ee2545317fd4104c3f9bee"
+    },
+    {
+      "id": "en-2300-131720-0028",
+      "language": "en",
+      "speaker": "00002300",
+      "text": "THERE WAS INFINITE SCEPTICISM AROUND HIM ON THE SUBJECT AND WHILE OTHER INVENTORS WERE ALSO GIVING THE SUBJECT THEIR THOUGHT THE PUBLIC TOOK IT FOR GRANTED THAT ANYTHING SO UTTERLY INTANGIBLE AS ELECTRICITY THAT COULD NOT BE SEEN OR WEIGHED AND ONLY GAVE SECONDARY EVIDENCE OF ITSELF AT THE EXACT POINT OF USE COULD NOT BE BROUGHT TO ACCURATE REGISTRATION",
+      "source_id": "2300-131720-0028",
+      "samples": 415040,
+      "path": "pcm/en-2300-131720-0028.wav",
+      "pcm_s16le_sha256": "9eaf55b481a213cff53140518cebb83838d1187d3e2187282fcf13a3699505c4"
+    },
+    {
+      "id": "en-2830-3980-0026",
+      "language": "en",
+      "speaker": "00002830",
+      "text": "VERSE TWO",
+      "source_id": "2830-3980-0026",
+      "samples": 23760,
+      "path": "pcm/en-2830-3980-0026.wav",
+      "pcm_s16le_sha256": "e069df28352d5a0023247c6f5eb5d663d2e056f3da9e96d1ed20339fb5823ff7"
+    },
+    {
+      "id": "en-2830-3980-0058",
+      "language": "en",
+      "speaker": "00002830",
+      "text": "MOHAMMED ALSO SPEAKS HIGHLY OF CHRIST",
+      "source_id": "2830-3980-0058",
+      "samples": 43040,
+      "path": "pcm/en-2830-3980-0058.wav",
+      "pcm_s16le_sha256": "0c320b8477f59dbc09388738fb9af6997af11d93d4d2773fafd20753a692d040"
+    },
+    {
+      "id": "en-2830-3980-0049",
+      "language": "en",
+      "speaker": "00002830",
+      "text": "EMBRACE HIM AND FORGET ABOUT THE NATURE OF GOD",
+      "source_id": "2830-3980-0049",
+      "samples": 54720,
+      "path": "pcm/en-2830-3980-0049.wav",
+      "pcm_s16le_sha256": "1c687992a6460af130acc789bf685d5e4f640698b379c25c6bc157688700c670"
+    },
+    {
+      "id": "en-2830-3980-0071",
+      "language": "en",
+      "speaker": "00002830",
+      "text": "WE THINK THAT BY SOME LITTLE WORK OR MERIT WE CAN DISMISS SIN",
+      "source_id": "2830-3980-0071",
+      "samples": 63360,
+      "path": "pcm/en-2830-3980-0071.wav",
+      "pcm_s16le_sha256": "de22060403cb3eaf4ca6d52cd5cb3a0dcff4c1821719ae85347711ec65f8ca42"
+    },
+    {
+      "id": "en-2830-3980-0056",
+      "language": "en",
+      "speaker": "00002830",
+      "text": "OTHERWISE PAUL SHOULD HAVE WRITTEN GRACE FROM GOD THE FATHER AND PEACE FROM OUR LORD JESUS CHRIST",
+      "source_id": "2830-3980-0056",
+      "samples": 85600,
+      "path": "pcm/en-2830-3980-0056.wav",
+      "pcm_s16le_sha256": "bef1c8b82aebc84cee31cb0c27351f39ec68d00c25ba284419490bd6015a2aa6"
+    },
+    {
+      "id": "en-2830-3980-0037",
+      "language": "en",
+      "speaker": "00002830",
+      "text": "SO MUCH FOR THE TITLE OF THE EPISTLE NOW FOLLOWS THE GREETING OF THE APOSTLE VERSE THREE",
+      "source_id": "2830-3980-0037",
+      "samples": 102720,
+      "path": "pcm/en-2830-3980-0037.wav",
+      "pcm_s16le_sha256": "0160b55da37f8900ce98f658861119eddd7e41a7adc616e987b1b123960b3af3"
+    },
+    {
+      "id": "en-2830-3979-0003",
+      "language": "en",
+      "speaker": "00002830",
+      "text": "THE UNDERTAKING WHICH SEEMED SO ATTRACTIVE WHEN VIEWED AS A LITERARY TASK PROVED A MOST DIFFICULT ONE AND AT TIMES BECAME OPPRESSIVE",
+      "source_id": "2830-3979-0003",
+      "samples": 129360,
+      "path": "pcm/en-2830-3979-0003.wav",
+      "pcm_s16le_sha256": "364a36f0bfd69ae639ef6edc1a8b8e3259805a7f970fce5c67e7ab3d4664e6a0"
+    },
+    {
+      "id": "en-2830-3980-0073",
+      "language": "en",
+      "speaker": "00002830",
+      "text": "THIS ATTITUDE SPRINGS FROM A FALSE CONCEPTION OF SIN THE CONCEPTION THAT SIN IS A SMALL MATTER EASILY TAKEN CARE OF BY GOOD WORKS THAT WE MUST PRESENT OURSELVES UNTO GOD WITH A GOOD CONSCIENCE THAT WE MUST FEEL NO SIN BEFORE WE MAY FEEL THAT CHRIST WAS GIVEN FOR OUR SINS",
+      "source_id": "2830-3980-0073",
+      "samples": 264960,
+      "path": "pcm/en-2830-3980-0073.wav",
+      "pcm_s16le_sha256": "95cda7e8f2386d94506caa33fb10850ff18345d45abbdf98ff55e2e0d5061eca"
+    },
+    {
+      "id": "zh-BAC009S0764W0166",
+      "language": "zh",
+      "speaker": "S0764",
+      "text": "去  行政  化  ",
+      "source_id": "BAC009S0764W0166",
+      "samples": 33376,
+      "path": "pcm/zh-BAC009S0764W0166.wav",
+      "pcm_s16le_sha256": "6fbeaecd3de6d8f93f7b603eef7281b851f1afdfe1a3d927f99f434a1e1bb355"
+    },
+    {
+      "id": "zh-BAC009S0764W0150",
+      "language": "zh",
+      "speaker": "S0764",
+      "text": "同比  涨幅  达到  百分  之  四  ",
+      "source_id": "BAC009S0764W0150",
+      "samples": 54176,
+      "path": "pcm/zh-BAC009S0764W0150.wav",
+      "pcm_s16le_sha256": "54f426018e219c17c4f746356ab6d9a0f1b0e1a5c1fb5716f384552ad666f4e6"
+    },
+    {
+      "id": "zh-BAC009S0764W0471",
+      "language": "zh",
+      "speaker": "S0764",
+      "text": "女神  机器  人  在  火锅  店  内  工作  ",
+      "source_id": "BAC009S0764W0471",
+      "samples": 59711,
+      "path": "pcm/zh-BAC009S0764W0471.wav",
+      "pcm_s16le_sha256": "87e28f1110f7e8305c71008d45b4aa22ee4fc9e1387e946ed37bea40268b6565"
+    },
+    {
+      "id": "zh-BAC009S0764W0293",
+      "language": "zh",
+      "speaker": "S0764",
+      "text": "如今  则  猛增  到  一两  亿美  元  ",
+      "source_id": "BAC009S0764W0293",
+      "samples": 67586,
+      "path": "pcm/zh-BAC009S0764W0293.wav",
+      "pcm_s16le_sha256": "44ed3e0e02fc30f54251450e537a6a93d240588948184a0929d2851d1524c40c"
+    },
+    {
+      "id": "zh-BAC009S0764W0449",
+      "language": "zh",
+      "speaker": "S0764",
+      "text": "中科院  紫金  山  天文  台  公布  了  一零  月天  象  ",
+      "source_id": "BAC009S0764W0449",
+      "samples": 76461,
+      "path": "pcm/zh-BAC009S0764W0449.wav",
+      "pcm_s16le_sha256": "81f31f05d5734735e771150b2012cc31303191d5ba37b17e4099f469528578b5"
+    },
+    {
+      "id": "zh-BAC009S0764W0372",
+      "language": "zh",
+      "speaker": "S0764",
+      "text": "但  德维  塔  觉得  归根  到底  还是  小腿  肌肉  的  问题  ",
+      "source_id": "BAC009S0764W0372",
+      "samples": 85535,
+      "path": "pcm/zh-BAC009S0764W0372.wav",
+      "pcm_s16le_sha256": "93e2982e4cd82af569d275fe3742ac168751765a7b9fd9d39c1609f93f281f48"
+    },
+    {
+      "id": "zh-BAC009S0764W0479",
+      "language": "zh",
+      "speaker": "S0764",
+      "text": "依法  对  一名  藏匿  打火  机  过  检  的  旅客  进行  了  行政  处罚  ",
+      "source_id": "BAC009S0764W0479",
+      "samples": 96000,
+      "path": "pcm/zh-BAC009S0764W0479.wav",
+      "pcm_s16le_sha256": "451db6ff3227c3afd7608676c13feee8cccb5514c05548d0dd2f20bd14af0168"
+    },
+    {
+      "id": "zh-BAC009S0764W0402",
+      "language": "zh",
+      "speaker": "S0764",
+      "text": "北京  和  张家口  两地  的  生产  总值  是  二万  二千七百  三十  点  八亿  元  ",
+      "source_id": "BAC009S0764W0402",
+      "samples": 132387,
+      "path": "pcm/zh-BAC009S0764W0402.wav",
+      "pcm_s16le_sha256": "ad35a18c87a2808b167f81c1e9371ade3b5447c684b590b7d5c0bf6e1cba8e02"
+    },
+    {
+      "id": "zh-BAC009S0765W0422",
+      "language": "zh",
+      "speaker": "S0765",
+      "text": "没  想  竟然  惨败  ",
+      "source_id": "BAC009S0765W0422",
+      "samples": 39504,
+      "path": "pcm/zh-BAC009S0765W0422.wav",
+      "pcm_s16le_sha256": "53d22d96fecd04bafffd447f92fd8ca5b871dd4bcdd7dfcd91ed5cbdb91a0822"
+    },
+    {
+      "id": "zh-BAC009S0765W0150",
+      "language": "zh",
+      "speaker": "S0765",
+      "text": "未来  子女  出现  姻缘  风险  ",
+      "source_id": "BAC009S0765W0150",
+      "samples": 53376,
+      "path": "pcm/zh-BAC009S0765W0150.wav",
+      "pcm_s16le_sha256": "65791e45dcff2dadd106a1eb8629efd740ea2ddffc16ca82848260eb09ef855c"
+    },
+    {
+      "id": "zh-BAC009S0765W0393",
+      "language": "zh",
+      "speaker": "S0765",
+      "text": "而  哈萨克斯坦  则  是第  十六  位  ",
+      "source_id": "BAC009S0765W0393",
+      "samples": 60563,
+      "path": "pcm/zh-BAC009S0765W0393.wav",
+      "pcm_s16le_sha256": "ff71be5ad4a6cf3d4b99fa6c75b714a9b3e0fd0a0ec98c530a81c5ef7a08f828"
+    },
+    {
+      "id": "zh-BAC009S0765W0221",
+      "language": "zh",
+      "speaker": "S0765",
+      "text": "政府  举债  建设  形成  了  大量  资产  ",
+      "source_id": "BAC009S0765W0221",
+      "samples": 69439,
+      "path": "pcm/zh-BAC009S0765W0221.wav",
+      "pcm_s16le_sha256": "904b159e5dbf1ccc02cfa5492a8abeff58aabbbb74af4185716ac468fd0f933d"
+    },
+    {
+      "id": "zh-BAC009S0765W0198",
+      "language": "zh",
+      "speaker": "S0765",
+      "text": "如何  为  企业  提供  信息  避免  海外  投资  风险  ",
+      "source_id": "BAC009S0765W0198",
+      "samples": 76785,
+      "path": "pcm/zh-BAC009S0765W0198.wav",
+      "pcm_s16le_sha256": "db73d5cc1cf45859d9a8823571a5021fe023339098f88cf962d39e92f2f5c179"
+    },
+    {
+      "id": "zh-BAC009S0765W0144",
+      "language": "zh",
+      "speaker": "S0765",
+      "text": "之后  由  该  信托  对  宋  芳  指定  的  房产  发出  购买  要约  ",
+      "source_id": "BAC009S0765W0144",
+      "samples": 85744,
+      "path": "pcm/zh-BAC009S0765W0144.wav",
+      "pcm_s16le_sha256": "1cbf19f9ec009be0e906ba59c372b3970b59d91ac4b8662a6e3a8a3901a7cefb"
+    },
+    {
+      "id": "zh-BAC009S0765W0481",
+      "language": "zh",
+      "speaker": "S0765",
+      "text": "凶手  到  岳池  县  石  垭镇  指认  骗走  孩子  的  现场  ",
+      "source_id": "BAC009S0765W0481",
+      "samples": 98015,
+      "path": "pcm/zh-BAC009S0765W0481.wav",
+      "pcm_s16le_sha256": "06e4cc2480c049733a9fba6718539c712d041c50fe28ec0a08c88c7d008ae26c"
+    },
+    {
+      "id": "zh-BAC009S0765W0330",
+      "language": "zh",
+      "speaker": "S0765",
+      "text": "每日  经济  新闻  记者  杨  建江  南嘉  捷  六万  一千一百三十一  三  ",
+      "source_id": "BAC009S0765W0330",
+      "samples": 142496,
+      "path": "pcm/zh-BAC009S0765W0330.wav",
+      "pcm_s16le_sha256": "d1f896deb2267bc8b68803502ea31f7d7ac4883c5bf6bfc2fb6d715fe8f52296"
+    },
+    {
+      "id": "zh-BAC009S0766W0128",
+      "language": "zh",
+      "speaker": "S0766",
+      "text": "自成  立  以来  ",
+      "source_id": "BAC009S0766W0128",
+      "samples": 34177,
+      "path": "pcm/zh-BAC009S0766W0128.wav",
+      "pcm_s16le_sha256": "22a9e3a12b080cdc29816e52460db045e58a5058be7ab376bda27d1a549ac532"
+    },
+    {
+      "id": "zh-BAC009S0766W0370",
+      "language": "zh",
+      "speaker": "S0766",
+      "text": "不  少  粉丝  都  表达  了  谴责  ",
+      "source_id": "BAC009S0766W0370",
+      "samples": 49121,
+      "path": "pcm/zh-BAC009S0766W0370.wav",
+      "pcm_s16le_sha256": "619a2c6c7d90a5736d173978704673fbdf0199b016a235ad5ad7ed828c1bfc69"
+    },
+    {
+      "id": "zh-BAC009S0766W0212",
+      "language": "zh",
+      "speaker": "S0766",
+      "text": "从  已发  行  的  城  投  债券  用途  看  ",
+      "source_id": "BAC009S0766W0212",
+      "samples": 55984,
+      "path": "pcm/zh-BAC009S0766W0212.wav",
+      "pcm_s16le_sha256": "e2a74bada6779e305178bbfa9a6b3bfb7efed08ddab736e3f87d2b6594d6529d"
+    },
+    {
+      "id": "zh-BAC009S0766W0145",
+      "language": "zh",
+      "speaker": "S0766",
+      "text": "这样  也  为  开发  商  节省  了  运营  成本  ",
+      "source_id": "BAC009S0766W0145",
+      "samples": 62080,
+      "path": "pcm/zh-BAC009S0766W0145.wav",
+      "pcm_s16le_sha256": "14d805439912f22cab7daeaed161a9267caa557b7c8c74d8bafd02d7bfeb5825"
+    },
+    {
+      "id": "zh-BAC009S0766W0457",
+      "language": "zh",
+      "speaker": "S0766",
+      "text": "长江  商报  消息  本报  记者  张  萌  昨日  ",
+      "source_id": "BAC009S0766W0457",
+      "samples": 69695,
+      "path": "pcm/zh-BAC009S0766W0457.wav",
+      "pcm_s16le_sha256": "f79e6fecde9856b9b136fd870afb57849e748e28350f57ef3f45a15e00ee0fd5"
+    },
+    {
+      "id": "zh-BAC009S0766W0335",
+      "language": "zh",
+      "speaker": "S0766",
+      "text": "一方面  是  由于  上  半年  模具  的  比较  基数  较  低  ",
+      "source_id": "BAC009S0766W0335",
+      "samples": 77344,
+      "path": "pcm/zh-BAC009S0766W0335.wav",
+      "pcm_s16le_sha256": "186dc9aab7729732199cd316943ac9cdbff52ac106d9d3fb8577f2e674b917bd"
+    },
+    {
+      "id": "zh-BAC009S0766W0492",
+      "language": "zh",
+      "speaker": "S0766",
+      "text": "李  玉刚  饰演  的  杨  贵妃  被  指  芳华  绝代  说到  神曲  ",
+      "source_id": "BAC009S0766W0492",
+      "samples": 87855,
+      "path": "pcm/zh-BAC009S0766W0492.wav",
+      "pcm_s16le_sha256": "a83d86ef30f70b942071cb41c2e0b17d167f482c1a57f899556a7aafa03ec3ee"
+    },
+    {
+      "id": "zh-BAC009S0766W0437",
+      "language": "zh",
+      "speaker": "S0766",
+      "text": "其中  内地  由  两年  前  的  一三零零  间  增至  今天  的  二三零  零  间  ",
+      "source_id": "BAC009S0766W0437",
+      "samples": 118063,
+      "path": "pcm/zh-BAC009S0766W0437.wav",
+      "pcm_s16le_sha256": "d0d98fafaf57788d0f45fc284dd44e5e6b12025e13631e533c308ffab82c0830"
+    },
+    {
+      "id": "zh-BAC009S0767W0409",
+      "language": "zh",
+      "speaker": "S0767",
+      "text": "演艺  事业  受挫  ",
+      "source_id": "BAC009S0767W0409",
+      "samples": 38512,
+      "path": "pcm/zh-BAC009S0767W0409.wav",
+      "pcm_s16le_sha256": "c56458a23e519b66170d3dc161327068acd121b1fa368b7f94d95996984fc459"
+    },
+    {
+      "id": "zh-BAC009S0767W0425",
+      "language": "zh",
+      "speaker": "S0767",
+      "text": "现在  有  点  怕  要见  他  ",
+      "source_id": "BAC009S0767W0425",
+      "samples": 55055,
+      "path": "pcm/zh-BAC009S0767W0425.wav",
+      "pcm_s16le_sha256": "f1f405dfca05ddb5c7de189c39e4f107a6f12e9495b5889ba2638f1f92d1b466"
+    },
+    {
+      "id": "zh-BAC009S0767W0432",
+      "language": "zh",
+      "speaker": "S0767",
+      "text": "蒙面  歌王  迎来  初赛  的  收官  之战  ",
+      "source_id": "BAC009S0767W0432",
+      "samples": 62961,
+      "path": "pcm/zh-BAC009S0767W0432.wav",
+      "pcm_s16le_sha256": "4a8eddd1dbf92355cb560da1686f05bcd9f00de88020178731e6ea12c53e9b47"
+    },
+    {
+      "id": "zh-BAC009S0767W0348",
+      "language": "zh",
+      "speaker": "S0767",
+      "text": "在  比赛  中  展示  出  更多  击败  对手  的  手段  ",
+      "source_id": "BAC009S0767W0348",
+      "samples": 69985,
+      "path": "pcm/zh-BAC009S0767W0348.wav",
+      "pcm_s16le_sha256": "c456388882f1549ded681f4f62f441bce1b465759a2e46c47c620a67fc71684b"
+    },
+    {
+      "id": "zh-BAC009S0767W0235",
+      "language": "zh",
+      "speaker": "S0767",
+      "text": "远  低于  发生  债务  危机  的  欧美  国家  ",
+      "source_id": "BAC009S0767W0235",
+      "samples": 79873,
+      "path": "pcm/zh-BAC009S0767W0235.wav",
+      "pcm_s16le_sha256": "efe1042cb4a018645cfeb260de12a5f56c2cbde7b3fce4e52fc3d623bc604a63"
+    },
+    {
+      "id": "zh-BAC009S0767W0466",
+      "language": "zh",
+      "speaker": "S0767",
+      "text": "手腕  上  还  戴  着  一  块  与  之  呼应  的  白色  塑料  腕表  ",
+      "source_id": "BAC009S0767W0466",
+      "samples": 87969,
+      "path": "pcm/zh-BAC009S0767W0466.wav",
+      "pcm_s16le_sha256": "ace6ecea44b3c8e2759d4a559644d4937cbbb43bf107569e7676eeffaf4bff2f"
+    },
+    {
+      "id": "zh-BAC009S0767W0208",
+      "language": "zh",
+      "speaker": "S0767",
+      "text": "城市  化  快速  发展  期  的  重要  特征  就  是  基础  设施  投资  需求  大  ",
+      "source_id": "BAC009S0767W0208",
+      "samples": 100385,
+      "path": "pcm/zh-BAC009S0767W0208.wav",
+      "pcm_s16le_sha256": "863141e5cad74173d50211de8473ed2ce7ec541dd68d798b4050865db1fe7591"
+    },
+    {
+      "id": "zh-BAC009S0767W0486",
+      "language": "zh",
+      "speaker": "S0767",
+      "text": "村  主任  向  开发  商  索贿  五二零  万村  组  干部  几乎  全  参与  分赃  ",
+      "source_id": "BAC009S0767W0486",
+      "samples": 157426,
+      "path": "pcm/zh-BAC009S0767W0486.wav",
+      "pcm_s16le_sha256": "5cf1f86fb146278eb28c66088652adb0ec1767c2f3e270b05c1fdd4ef461ad2a"
+    },
+    {
+      "id": "zh-BAC009S0768W0420",
+      "language": "zh",
+      "speaker": "S0768",
+      "text": "她  回应  是  么  ",
+      "source_id": "BAC009S0768W0420",
+      "samples": 40192,
+      "path": "pcm/zh-BAC009S0768W0420.wav",
+      "pcm_s16le_sha256": "e516969b274beba96260ef8c984db530106bd51c04d588a57dc6875ffa9c3973"
+    },
+    {
+      "id": "zh-BAC009S0768W0186",
+      "language": "zh",
+      "speaker": "S0768",
+      "text": "据  记者  从  多  个  渠道  了解  ",
+      "source_id": "BAC009S0768W0186",
+      "samples": 64000,
+      "path": "pcm/zh-BAC009S0768W0186.wav",
+      "pcm_s16le_sha256": "01430ee07e3647547ee313c766f081fa1fa634a4e6bcd13bb3b6c6fa4f6c33d6"
+    },
+    {
+      "id": "zh-BAC009S0768W0139",
+      "language": "zh",
+      "speaker": "S0768",
+      "text": "预计  不  会  在  短期  内  迅速  回暖  ",
+      "source_id": "BAC009S0768W0139",
+      "samples": 74145,
+      "path": "pcm/zh-BAC009S0768W0139.wav",
+      "pcm_s16le_sha256": "280f33fad17b93d35234eac237ff1e0114887c64202360cc0421fc05d92fa4ed"
+    },
+    {
+      "id": "zh-BAC009S0768W0214",
+      "language": "zh",
+      "speaker": "S0768",
+      "text": "也  要  看到  我  国  与  欧美  国家  的  不  同  之  处  ",
+      "source_id": "BAC009S0768W0214",
+      "samples": 83809,
+      "path": "pcm/zh-BAC009S0768W0214.wav",
+      "pcm_s16le_sha256": "fafa34ea27ac417324ecc0a128ac13823dd704adfa0d3d6f01dcb6f38c125d4d"
+    },
+    {
+      "id": "zh-BAC009S0768W0485",
+      "language": "zh",
+      "speaker": "S0768",
+      "text": "按照  中央  纪委  宣传  部  的  统一  部署  ",
+      "source_id": "BAC009S0768W0485",
+      "samples": 95613,
+      "path": "pcm/zh-BAC009S0768W0485.wav",
+      "pcm_s16le_sha256": "bec0654a97a5247b8beef7138104f581064c17e6dd05b95aeafeed3d591c5aa6"
+    },
+    {
+      "id": "zh-BAC009S0768W0277",
+      "language": "zh",
+      "speaker": "S0768",
+      "text": "根据  美国  商务  部  去年  十二  月份  终裁  确定  的  幅度  ",
+      "source_id": "BAC009S0768W0277",
+      "samples": 107230,
+      "path": "pcm/zh-BAC009S0768W0277.wav",
+      "pcm_s16le_sha256": "3534b054fef034e51f74f96588760594884c8fda8790442054317891c37d326f"
+    },
+    {
+      "id": "zh-BAC009S0768W0238",
+      "language": "zh",
+      "speaker": "S0768",
+      "text": "我  国地  方政  府  的  累积  债务  相对  于  偿付  能力  来看  ",
+      "source_id": "BAC009S0768W0238",
+      "samples": 128271,
+      "path": "pcm/zh-BAC009S0768W0238.wav",
+      "pcm_s16le_sha256": "f57a5875e12c7facfe054fd765e5bea6357ecc4cfac30d18f0ebaff4b76d428f"
+    },
+    {
+      "id": "zh-BAC009S0768W0452",
+      "language": "zh",
+      "speaker": "S0768",
+      "text": "白云  区  钟  落  潭  竹  一村  民  白云  区  钟  落  潭  竹  一村  的  村民  跟  记者  报  料  ",
+      "source_id": "BAC009S0768W0452",
+      "samples": 235199,
+      "path": "pcm/zh-BAC009S0768W0452.wav",
+      "pcm_s16le_sha256": "28b1dfc3517663de68be92e5e14072f0b75e9579fc3999464670b6c6a85c0baf"
+    },
+    {
+      "id": "zh-BAC009S0769W0411",
+      "language": "zh",
+      "speaker": "S0769",
+      "text": "他  是一  个  大人  ",
+      "source_id": "BAC009S0769W0411",
+      "samples": 36414,
+      "path": "pcm/zh-BAC009S0769W0411.wav",
+      "pcm_s16le_sha256": "91dc30e6c8e77c654395b83dc464863f5c9c4dc434e554c7795de124f91d7ba3"
+    },
+    {
+      "id": "zh-BAC009S0769W0347",
+      "language": "zh",
+      "speaker": "S0769",
+      "text": "标枪  克里斯丁  胡  宋  ",
+      "source_id": "BAC009S0769W0347",
+      "samples": 58031,
+      "path": "pcm/zh-BAC009S0769W0347.wav",
+      "pcm_s16le_sha256": "ef5b39047d7c9e92cfbf8aa01912ec51fbc4cfceff1b4ec59f9bd9d826a1825a"
+    },
+    {
+      "id": "zh-BAC009S0769W0395",
+      "language": "zh",
+      "speaker": "S0769",
+      "text": "他们  最  大  的  特点  就  是  九零  后  占  主角  ",
+      "source_id": "BAC009S0769W0395",
+      "samples": 66192,
+      "path": "pcm/zh-BAC009S0769W0395.wav",
+      "pcm_s16le_sha256": "adc174c9d64aad13ab94fe79ee1fa9eadad705fa81237aa43ebfbf5cc0998d7b"
+    },
+    {
+      "id": "zh-BAC009S0769W0349",
+      "language": "zh",
+      "speaker": "S0769",
+      "text": "全能  詹妮弗  奥赛尔  ",
+      "source_id": "BAC009S0769W0349",
+      "samples": 72672,
+      "path": "pcm/zh-BAC009S0769W0349.wav",
+      "pcm_s16le_sha256": "3d8edf461043b58454381d8c112f7c42db78822ce294b43ca6f3141e5f4bc28c"
+    },
+    {
+      "id": "zh-BAC009S0769W0145",
+      "language": "zh",
+      "speaker": "S0769",
+      "text": "确保  完成  今年  六万  户  棚户  区  改造  任务  ",
+      "source_id": "BAC009S0769W0145",
+      "samples": 80496,
+      "path": "pcm/zh-BAC009S0769W0145.wav",
+      "pcm_s16le_sha256": "d2f9fae3082de1bc29a5499da32fa6582e1ce75345a46cb912ac0fcf2c2d1f32"
+    },
+    {
+      "id": "zh-BAC009S0769W0161",
+      "language": "zh",
+      "speaker": "S0769",
+      "text": "继前  年  和  去年  连续  两年  突破  四万亿  元  后  ",
+      "source_id": "BAC009S0769W0161",
+      "samples": 89312,
+      "path": "pcm/zh-BAC009S0769W0161.wav",
+      "pcm_s16le_sha256": "f70f31f60527ac701dd8da9ed6080da4c0eee93a33baf3c3d9aeb035871b1e07"
+    },
+    {
+      "id": "zh-BAC009S0769W0400",
+      "language": "zh",
+      "speaker": "S0769",
+      "text": "还要  求  具备  大型  赛会  或  日常  从事  社会  志愿  服务  的  经验  ",
+      "source_id": "BAC009S0769W0400",
+      "samples": 100285,
+      "path": "pcm/zh-BAC009S0769W0400.wav",
+      "pcm_s16le_sha256": "3826db95d0eca36af615bad8d757d938eb72b67d83199dec3754388c9530f778"
+    },
+    {
+      "id": "zh-BAC009S0769W0440",
+      "language": "zh",
+      "speaker": "S0769",
+      "text": "村  小老  师  自  掏  腰包  八零零  零  元  为  贫困  生  设奖  学金  ",
+      "source_id": "BAC009S0769W0440",
+      "samples": 162496,
+      "path": "pcm/zh-BAC009S0769W0440.wav",
+      "pcm_s16le_sha256": "02a165feb6e18c240de82cf6510e2382b55eaf70183dd9016f5681a3b877ae82"
+    },
+    {
+      "id": "zh-BAC009S0770W0422",
+      "language": "zh",
+      "speaker": "S0770",
+      "text": "只有  他们  才知  道  ",
+      "source_id": "BAC009S0770W0422",
+      "samples": 39711,
+      "path": "pcm/zh-BAC009S0770W0422.wav",
+      "pcm_s16le_sha256": "6b5d89af59d1aa4e7b5f9e9a0dc653060646d213e8a1c15baa7a520b5c707a40"
+    },
+    {
+      "id": "zh-BAC009S0770W0483",
+      "language": "zh",
+      "speaker": "S0770",
+      "text": "他  的  义举  感动  了  四  里  八  乡  ",
+      "source_id": "BAC009S0770W0483",
+      "samples": 65457,
+      "path": "pcm/zh-BAC009S0770W0483.wav",
+      "pcm_s16le_sha256": "ba56e183c7281e1ca09955be7f063457227661da42dadc10a5cd604e82cd9809"
+    },
+    {
+      "id": "zh-BAC009S0770W0216",
+      "language": "zh",
+      "speaker": "S0770",
+      "text": "但是  还  需要  进一步  改进  ",
+      "source_id": "BAC009S0770W0216",
+      "samples": 77775,
+      "path": "pcm/zh-BAC009S0770W0216.wav",
+      "pcm_s16le_sha256": "01e722fe8544ef6318e68703a0301360e831d12b32b59d7579760e734222f3cb"
+    },
+    {
+      "id": "zh-BAC009S0770W0308",
+      "language": "zh",
+      "speaker": "S0770",
+      "text": "在  确保  系统  顺利  运行  的  情况  下  ",
+      "source_id": "BAC009S0770W0308",
+      "samples": 88176,
+      "path": "pcm/zh-BAC009S0770W0308.wav",
+      "pcm_s16le_sha256": "86cbffb336331ba311c00b1f9420e012a875698ca3665f615240ecc21df5d75a"
+    },
+    {
+      "id": "zh-BAC009S0770W0232",
+      "language": "zh",
+      "speaker": "S0770",
+      "text": "并  对  地方  政府  债务  进行  监控  和风  险  防范  等  ",
+      "source_id": "BAC009S0770W0232",
+      "samples": 99905,
+      "path": "pcm/zh-BAC009S0770W0232.wav",
+      "pcm_s16le_sha256": "a244902c1e126699e5c016d9506bb68a64e44677902b2575c827544210d3ad38"
+    },
+    {
+      "id": "zh-BAC009S0770W0265",
+      "language": "zh",
+      "speaker": "S0770",
+      "text": "谷歌  不仅  会  以  优厚  薪酬  招募  顶尖  人才  ",
+      "source_id": "BAC009S0770W0265",
+      "samples": 117199,
+      "path": "pcm/zh-BAC009S0770W0265.wav",
+      "pcm_s16le_sha256": "0e0abda73c05b464005054b1b1889b9f1b00d2b15e8a80f6b42a9da7637888a5"
+    },
+    {
+      "id": "zh-BAC009S0770W0251",
+      "language": "zh",
+      "speaker": "S0770",
+      "text": "鼓励  优先  类  支持  允许  类天  然  气  利用  项目  发展  ",
+      "source_id": "BAC009S0770W0251",
+      "samples": 136977,
+      "path": "pcm/zh-BAC009S0770W0251.wav",
+      "pcm_s16le_sha256": "9188fd684876a1acd30769c4275268d47510bc507742850606a61319c797a5de"
+    },
+    {
+      "id": "zh-BAC009S0770W0210",
+      "language": "zh",
+      "speaker": "S0770",
+      "text": "城市  化  快速  发展  期  的  重要  特征  就  是  基础  设施  投资  需求  量  大  ",
+      "source_id": "BAC009S0770W0210",
+      "samples": 192000,
+      "path": "pcm/zh-BAC009S0770W0210.wav",
+      "pcm_s16le_sha256": "dc4c376581edc28a2df73f822505b406c24926854105308707c83c5affe5c92a"
+    },
+    {
+      "id": "zh-BAC009S0901W0407",
+      "language": "zh",
+      "speaker": "S0901",
+      "text": "值得  一  提  的  是  ",
+      "source_id": "BAC009S0901W0407",
+      "samples": 31230,
+      "path": "pcm/zh-BAC009S0901W0407.wav",
+      "pcm_s16le_sha256": "9eae7820c6dd87bfae85976aef939031e486cbe2b244ddc2bf5fa2781c46c77b"
+    },
+    {
+      "id": "zh-BAC009S0901W0429",
+      "language": "zh",
+      "speaker": "S0901",
+      "text": "一  度  让  外界  以为  两人  复合  ",
+      "source_id": "BAC009S0901W0429",
+      "samples": 51504,
+      "path": "pcm/zh-BAC009S0901W0429.wav",
+      "pcm_s16le_sha256": "8000261bc4d936823e8fda2046b04284d3330dafdbdedebc992b003552416e25"
+    },
+    {
+      "id": "zh-BAC009S0901W0427",
+      "language": "zh",
+      "speaker": "S0901",
+      "text": "事后  解释  是生  活  观  不  同  才分  开  ",
+      "source_id": "BAC009S0901W0427",
+      "samples": 58590,
+      "path": "pcm/zh-BAC009S0901W0427.wav",
+      "pcm_s16le_sha256": "5d273ee89ebc310e68cfdb1048014669601e6b7b2c8ab27eaf3b4a68b49efd14"
+    },
+    {
+      "id": "zh-BAC009S0901W0181",
+      "language": "zh",
+      "speaker": "S0901",
+      "text": "从  申请  到  最后  的  拨放  款  ",
+      "source_id": "BAC009S0901W0181",
+      "samples": 65695,
+      "path": "pcm/zh-BAC009S0901W0181.wav",
+      "pcm_s16le_sha256": "7c1d9f9fdb7d0defc74749513a70628ffdbc8f8833eb72309f46f25c48392eb4"
+    },
+    {
+      "id": "zh-BAC009S0901W0380",
+      "language": "zh",
+      "speaker": "S0901",
+      "text": "计划  在  那里  进行  三  个  月  的  封闭  训练  ",
+      "source_id": "BAC009S0901W0380",
+      "samples": 74125,
+      "path": "pcm/zh-BAC009S0901W0380.wav",
+      "pcm_s16le_sha256": "0535346376f5b477cd853f23e6d39fc543db1fe53061956a941f864079d50b71"
+    },
+    {
+      "id": "zh-BAC009S0901W0338",
+      "language": "zh",
+      "speaker": "S0901",
+      "text": "医生  此次  将  对  惠若琪  的  心脏  进行  微创  手术  ",
+      "source_id": "BAC009S0901W0338",
+      "samples": 85824,
+      "path": "pcm/zh-BAC009S0901W0338.wav",
+      "pcm_s16le_sha256": "873533ed33c97d5bd1cb23d07543204ead058665c4173b380f744b8fe2865700"
+    },
+    {
+      "id": "zh-BAC009S0901W0197",
+      "language": "zh",
+      "speaker": "S0901",
+      "text": "支持  现代  农业  发展  的  物质  基础  更加  牢固  ",
+      "source_id": "BAC009S0901W0197",
+      "samples": 101504,
+      "path": "pcm/zh-BAC009S0901W0197.wav",
+      "pcm_s16le_sha256": "5d1d4d45e0308c5b1a87577ec8264e80a8bc688d224ea2569905fc9af703922f"
+    },
+    {
+      "id": "zh-BAC009S0901W0288",
+      "language": "zh",
+      "speaker": "S0901",
+      "text": "苹果  股价  下跌  百分  之  五分  析  师出  现  重大  分歧  搜狐  科技  ",
+      "source_id": "BAC009S0901W0288",
+      "samples": 177711,
+      "path": "pcm/zh-BAC009S0901W0288.wav",
+      "pcm_s16le_sha256": "7724684b1db699083221cc1d68b941cd1ffe9a4d14065bc25217384be85ad107"
+    },
+    {
+      "id": "zh-BAC009S0902W0419",
+      "language": "zh",
+      "speaker": "S0902",
+      "text": "现场  气氛  火爆  ",
+      "source_id": "BAC009S0902W0419",
+      "samples": 36703,
+      "path": "pcm/zh-BAC009S0902W0419.wav",
+      "pcm_s16le_sha256": "904690d95949e5b7517dd71adb2b42896720270b5fe4024110df170d1c43d734"
+    },
+    {
+      "id": "zh-BAC009S0902W0475",
+      "language": "zh",
+      "speaker": "S0902",
+      "text": "导致  唐山  一  渔船  沉没  ",
+      "source_id": "BAC009S0902W0475",
+      "samples": 52270,
+      "path": "pcm/zh-BAC009S0902W0475.wav",
+      "pcm_s16le_sha256": "f8cb333dd9e41b16201bc6740cb3e6bb1fdf5dbc7dad347911ab7790458360d5"
+    },
+    {
+      "id": "zh-BAC009S0902W0491",
+      "language": "zh",
+      "speaker": "S0902",
+      "text": "涉  事  两  企业  负责  人均  已  被控  制  ",
+      "source_id": "BAC009S0902W0491",
+      "samples": 60816,
+      "path": "pcm/zh-BAC009S0902W0491.wav",
+      "pcm_s16le_sha256": "85e576b011dd3b9da2a599984c9c21f7c6829e4c27c4a097d1e2e05df933201d"
+    },
+    {
+      "id": "zh-BAC009S0902W0386",
+      "language": "zh",
+      "speaker": "S0902",
+      "text": "一些  参赛  选手  赛后  感到  胃部  不  适  ",
+      "source_id": "BAC009S0902W0386",
+      "samples": 67121,
+      "path": "pcm/zh-BAC009S0902W0386.wav",
+      "pcm_s16le_sha256": "c0940eba6dca0ed640c16522f101bc8092011816b512f8b708b968c18a8ee5f2"
+    },
+    {
+      "id": "zh-BAC009S0902W0205",
+      "language": "zh",
+      "speaker": "S0902",
+      "text": "耕种  收  综合  机械  化  水平  百分  之  五  ",
+      "source_id": "BAC009S0902W0205",
+      "samples": 75953,
+      "path": "pcm/zh-BAC009S0902W0205.wav",
+      "pcm_s16le_sha256": "9e162065498609869a3f8c1a061e4bee0cc1e24d1afc6418065c010bc93823fe"
+    },
+    {
+      "id": "zh-BAC009S0902W0171",
+      "language": "zh",
+      "speaker": "S0902",
+      "text": "而  申请  公积金  贷款  方面  还是  需要  走  严格  的  流程  ",
+      "source_id": "BAC009S0902W0171",
+      "samples": 85760,
+      "path": "pcm/zh-BAC009S0902W0171.wav",
+      "pcm_s16le_sha256": "d30028acdd070da79508856aa703e36282f996876c06d20f2cd61d76c70bb81c"
+    },
+    {
+      "id": "zh-BAC009S0902W0395",
+      "language": "zh",
+      "speaker": "S0902",
+      "text": "赛艇  比赛  所在  湖区  的  水  污染  问题  近年  来得  到  改善  ",
+      "source_id": "BAC009S0902W0395",
+      "samples": 99488,
+      "path": "pcm/zh-BAC009S0902W0395.wav",
+      "pcm_s16le_sha256": "28cb830f8cd811e4cf75fe071cc5cdee1415aaf5c222b981f3191a4bc482138a"
+    },
+    {
+      "id": "zh-BAC009S0902W0431",
+      "language": "zh",
+      "speaker": "S0902",
+      "text": "渔船  凶  案  嫌疑  借  发动机  声  将  同船  同事  依次  杀害  ",
+      "source_id": "BAC009S0902W0431",
+      "samples": 144066,
+      "path": "pcm/zh-BAC009S0902W0431.wav",
+      "pcm_s16le_sha256": "f6ad94aec6dbd800c762bdcdd3ee6cc65424021d3b846787b4c3e75dd9d4006e"
+    },
+    {
+      "id": "zh-BAC009S0903W0142",
+      "language": "zh",
+      "speaker": "S0903",
+      "text": "与  新政  相比  ",
+      "source_id": "BAC009S0903W0142",
+      "samples": 37552,
+      "path": "pcm/zh-BAC009S0903W0142.wav",
+      "pcm_s16le_sha256": "ac4b4f69badfdff2f995c6d1b3015973f6f39f32502dd09d3860277a35518bb8"
+    },
+    {
+      "id": "zh-BAC009S0903W0331",
+      "language": "zh",
+      "speaker": "S0903",
+      "text": "并  将  成为  新兴  的  销售  热点  ",
+      "source_id": "BAC009S0903W0331",
+      "samples": 56848,
+      "path": "pcm/zh-BAC009S0903W0331.wav",
+      "pcm_s16le_sha256": "c34face4b460b8d477e6e17349b692cf3595da021f10902be417a863fcc91f04"
+    },
+    {
+      "id": "zh-BAC009S0903W0452",
+      "language": "zh",
+      "speaker": "S0903",
+      "text": "两  车  损失  高  达  三四十万  元  ",
+      "source_id": "BAC009S0903W0452",
+      "samples": 63312,
+      "path": "pcm/zh-BAC009S0903W0452.wav",
+      "pcm_s16le_sha256": "6fa6332daa0ff158f6d310937af4fddfe7af93d9b6cef8a8eae48af868a55e6a"
+    },
+    {
+      "id": "zh-BAC009S0903W0332",
+      "language": "zh",
+      "speaker": "S0903",
+      "text": "科技  创新  带动  了  电话  手表  行业  ",
+      "source_id": "BAC009S0903W0332",
+      "samples": 72688,
+      "path": "pcm/zh-BAC009S0903W0332.wav",
+      "pcm_s16le_sha256": "0486f341edf12c0038f0ba382a2949566dfa3c0a006b8442d840a7ed506e624f"
+    },
+    {
+      "id": "zh-BAC009S0903W0178",
+      "language": "zh",
+      "speaker": "S0903",
+      "text": "也  在于  全面  落实  分类  调控  因  城  施  策  ",
+      "source_id": "BAC009S0903W0178",
+      "samples": 83183,
+      "path": "pcm/zh-BAC009S0903W0178.wav",
+      "pcm_s16le_sha256": "69698f149a54a1d3e0c5148c24306f8d189eb06067f7d5edf34dbc39cb1c595b"
+    },
+    {
+      "id": "zh-BAC009S0903W0377",
+      "language": "zh",
+      "speaker": "S0903",
+      "text": "并  制作  了  精美  的  秩序  册  发给  媒体  及  参赛  队  ",
+      "source_id": "BAC009S0903W0377",
+      "samples": 100031,
+      "path": "pcm/zh-BAC009S0903W0377.wav",
+      "pcm_s16le_sha256": "e05cc2991946025fa3b91846e616321b020957f4ed62055d1c793aeb7ecc46df"
+    },
+    {
+      "id": "zh-BAC009S0903W0216",
+      "language": "zh",
+      "speaker": "S0903",
+      "text": "按照  统筹  规划  分工  协作  集中  投入  连片  推进  的  思想  ",
+      "source_id": "BAC009S0903W0216",
+      "samples": 116144,
+      "path": "pcm/zh-BAC009S0903W0216.wav",
+      "pcm_s16le_sha256": "6c993bf217b3c008e22d1657883c3689aedabd1885ba04769aed86b5c2066867"
+    },
+    {
+      "id": "zh-BAC009S0903W0453",
+      "language": "zh",
+      "speaker": "S0903",
+      "text": "温州  七人  涉嫌  百倍  抬杠  非法  经营  期货  三二  亿  被  批  货  ",
+      "source_id": "BAC009S0903W0453",
+      "samples": 174016,
+      "path": "pcm/zh-BAC009S0903W0453.wav",
+      "pcm_s16le_sha256": "39fc91faa2d8ba1949e0db4398f7acce4421c027eb6df1aae382d8ab8bc1f102"
+    },
+    {
+      "id": "zh-BAC009S0904W0416",
+      "language": "zh",
+      "speaker": "S0904",
+      "text": "这个  程度  是美  的  ",
+      "source_id": "BAC009S0904W0416",
+      "samples": 31664,
+      "path": "pcm/zh-BAC009S0904W0416.wav",
+      "pcm_s16le_sha256": "0214eba00e91ecc6bdf6dc54ed214039759d251df3b0db1bda0613705afc7702"
+    },
+    {
+      "id": "zh-BAC009S0904W0282",
+      "language": "zh",
+      "speaker": "S0904",
+      "text": "就  是  在  创新  驱动  上下  功夫  ",
+      "source_id": "BAC009S0904W0282",
+      "samples": 44816,
+      "path": "pcm/zh-BAC009S0904W0282.wav",
+      "pcm_s16le_sha256": "e1a214887387b3a4453d50e3fcb8fff8ca9cde2714c25dc28f02c50dd8145315"
+    },
+    {
+      "id": "zh-BAC009S0904W0150",
+      "language": "zh",
+      "speaker": "S0904",
+      "text": "据  中新  网  房产  频道  梳理  ",
+      "source_id": "BAC009S0904W0150",
+      "samples": 49265,
+      "path": "pcm/zh-BAC009S0904W0150.wav",
+      "pcm_s16le_sha256": "6acd8be8e8c2d3c02bc47e718b4f8aa283491cf0ff8c0aa13975d0c50d5525df"
+    },
+    {
+      "id": "zh-BAC009S0904W0404",
+      "language": "zh",
+      "speaker": "S0904",
+      "text": "不仅  在全  球  收回  十亿  美元  票房  ",
+      "source_id": "BAC009S0904W0404",
+      "samples": 54414,
+      "path": "pcm/zh-BAC009S0904W0404.wav",
+      "pcm_s16le_sha256": "81d6c03c59cd70ece6318b7df914a70e202c4e1244ba247210fe7cbde8165615"
+    },
+    {
+      "id": "zh-BAC009S0904W0319",
+      "language": "zh",
+      "speaker": "S0904",
+      "text": "投入  巨资  研究  经费  攻关  ",
+      "source_id": "BAC009S0904W0319",
+      "samples": 59935,
+      "path": "pcm/zh-BAC009S0904W0319.wav",
+      "pcm_s16le_sha256": "33b166368a23f2c15ce9edc338b1012d4fd4aff2ab9f2034bbb6cad34a47fac1"
+    },
+    {
+      "id": "zh-BAC009S0904W0349",
+      "language": "zh",
+      "speaker": "S0904",
+      "text": "时隔  一二  年  重夺  世界  杯  冠军  的  中国  女排  ",
+      "source_id": "BAC009S0904W0349",
+      "samples": 66690,
+      "path": "pcm/zh-BAC009S0904W0349.wav",
+      "pcm_s16le_sha256": "d115cbd94d6dd5c0f47a5ca83b9fbb61183527b046fe438a9f8eb6d7c50a32bd"
+    },
+    {
+      "id": "zh-BAC009S0904W0267",
+      "language": "zh",
+      "speaker": "S0904",
+      "text": "上一  次  工业  革命  我们  落  在  了  西方  发达  国家  后面  很远  ",
+      "source_id": "BAC009S0904W0267",
+      "samples": 79486,
+      "path": "pcm/zh-BAC009S0904W0267.wav",
+      "pcm_s16le_sha256": "40eea728808ed02b6e62887d53152b9fa049ecdb2311db6e3d73abec5244b2eb"
+    },
+    {
+      "id": "zh-BAC009S0904W0449",
+      "language": "zh",
+      "speaker": "S0904",
+      "text": "此前  温州  政协  委员  连续  两  届  提出  要求  整治  垃圾  污染  问题  ",
+      "source_id": "BAC009S0904W0449",
+      "samples": 109199,
+      "path": "pcm/zh-BAC009S0904W0449.wav",
+      "pcm_s16le_sha256": "6823cff6e1e74062ba8949f954183568b276bbd109b797d91afb76266af765b1"
+    },
+    {
+      "id": "zh-BAC009S0905W0413",
+      "language": "zh",
+      "speaker": "S0905",
+      "text": "据  香港  媒体  报导  ",
+      "source_id": "BAC009S0905W0413",
+      "samples": 43121,
+      "path": "pcm/zh-BAC009S0905W0413.wav",
+      "pcm_s16le_sha256": "e17a959102bafea70dd2e716324fab01f2cf7c77bf0f79ec7fe0cc847520186d"
+    },
+    {
+      "id": "zh-BAC009S0905W0190",
+      "language": "zh",
+      "speaker": "S0905",
+      "text": "加大  示范  区  建设  力度  ",
+      "source_id": "BAC009S0905W0190",
+      "samples": 56768,
+      "path": "pcm/zh-BAC009S0905W0190.wav",
+      "pcm_s16le_sha256": "f40dbf3cb0ea998dbde05cab67cd51005b9979d6acd274cfcf3fbc5f8e02f268"
+    },
+    {
+      "id": "zh-BAC009S0905W0127",
+      "language": "zh",
+      "speaker": "S0905",
+      "text": "有  些  要  与  房企  具体  项目  挂钩  ",
+      "source_id": "BAC009S0905W0127",
+      "samples": 67584,
+      "path": "pcm/zh-BAC009S0905W0127.wav",
+      "pcm_s16le_sha256": "99a78e2bc1d1b9f3d0420057dc9b02522a62fadad9572cf017084c15234175f0"
+    },
+    {
+      "id": "zh-BAC009S0905W0487",
+      "language": "zh",
+      "speaker": "S0905",
+      "text": "国内  两地  出现  注  胶  虾  踪迹  ",
+      "source_id": "BAC009S0905W0487",
+      "samples": 75410,
+      "path": "pcm/zh-BAC009S0905W0487.wav",
+      "pcm_s16le_sha256": "fdb411b1f990626728e5645474c43290219e0b521b4f5fb2b5ed6dd07dc4f025"
+    },
+    {
+      "id": "zh-BAC009S0905W0134",
+      "language": "zh",
+      "speaker": "S0905",
+      "text": "降  准  降息  或  再  掀  收益  率  的  下降  潮  ",
+      "source_id": "BAC009S0905W0134",
+      "samples": 86352,
+      "path": "pcm/zh-BAC009S0905W0134.wav",
+      "pcm_s16le_sha256": "cd5394857625bc410da1f30f4df053bc8208c5342be88920422493e8b52d9330"
+    },
+    {
+      "id": "zh-BAC009S0905W0425",
+      "language": "zh",
+      "speaker": "S0905",
+      "text": "陈凯  琳  的  心  被  郑  嘉颖  成功  俘虏  ",
+      "source_id": "BAC009S0905W0425",
+      "samples": 96977,
+      "path": "pcm/zh-BAC009S0905W0425.wav",
+      "pcm_s16le_sha256": "aff8d5a8d484cbcd5f1619aaa4bde833234eab7c65da7f8779be04600c20c861"
+    },
+    {
+      "id": "zh-BAC009S0905W0420",
+      "language": "zh",
+      "speaker": "S0905",
+      "text": "两人  被  传媒  追问  恋情  时  都  要求  给予  空间  ",
+      "source_id": "BAC009S0905W0420",
+      "samples": 113859,
+      "path": "pcm/zh-BAC009S0905W0420.wav",
+      "pcm_s16le_sha256": "fb3cfaa4bc512dc18d31eb7d9a98917c83f11009a00e76e038162c07ae82f1fc"
+    },
+    {
+      "id": "zh-BAC009S0905W0458",
+      "language": "zh",
+      "speaker": "S0905",
+      "text": "温州  少年  峡谷  失踪  续  二零  万  馀  元  赔偿  款  执行  到位  ",
+      "source_id": "BAC009S0905W0458",
+      "samples": 165008,
+      "path": "pcm/zh-BAC009S0905W0458.wav",
+      "pcm_s16le_sha256": "964fd93f15705212fe4163b53941b2a290eabf21eab3ee01238a3697bece3c9a"
+    },
+    {
+      "id": "zh-BAC009S0906W0189",
+      "language": "zh",
+      "speaker": "S0906",
+      "text": "稳步  发展  区域  ",
+      "source_id": "BAC009S0906W0189",
+      "samples": 38191,
+      "path": "pcm/zh-BAC009S0906W0189.wav",
+      "pcm_s16le_sha256": "3c3f747881768d5e3c7d780858c405386e7998d977753349d8bec88fb7cfd159"
+    },
+    {
+      "id": "zh-BAC009S0906W0153",
+      "language": "zh",
+      "speaker": "S0906",
+      "text": "对  需求  拉动  作用  比较  大  ",
+      "source_id": "BAC009S0906W0153",
+      "samples": 54688,
+      "path": "pcm/zh-BAC009S0906W0153.wav",
+      "pcm_s16le_sha256": "a6637a217883500f839bcc7c5c1f7fe1b2ecfd56819235592d7bd58d66192048"
+    },
+    {
+      "id": "zh-BAC009S0906W0307",
+      "language": "zh",
+      "speaker": "S0906",
+      "text": "该  公司  内部  相关  人士  回应  称  ",
+      "source_id": "BAC009S0906W0307",
+      "samples": 63856,
+      "path": "pcm/zh-BAC009S0906W0307.wav",
+      "pcm_s16le_sha256": "9f53b2f6ee5af7fa92e0b7e68666675404c1992cb0a208f2bc62efbcaa869657"
+    },
+    {
+      "id": "zh-BAC009S0906W0294",
+      "language": "zh",
+      "speaker": "S0906",
+      "text": "老  毕  对此  说  甚  有保  留  ",
+      "source_id": "BAC009S0906W0294",
+      "samples": 74609,
+      "path": "pcm/zh-BAC009S0906W0294.wav",
+      "pcm_s16le_sha256": "f508cd7c141fba3f7413ffee6f7f0e9b809866c2e17bde20d9a1a565d7157e94"
+    },
+    {
+      "id": "zh-BAC009S0906W0319",
+      "language": "zh",
+      "speaker": "S0906",
+      "text": "没  有  交付  信息  安全  公司  进行  评估  ",
+      "source_id": "BAC009S0906W0319",
+      "samples": 85805,
+      "path": "pcm/zh-BAC009S0906W0319.wav",
+      "pcm_s16le_sha256": "a5fea47b9ceccf06e27d86dc1a9ef300c07a9041d384df7b1f602df0e3856430"
+    },
+    {
+      "id": "zh-BAC009S0906W0447",
+      "language": "zh",
+      "speaker": "S0906",
+      "text": "温州  美女  学  霸  将  赴  非洲  支教  教  当地  小学  生汉  语  ",
+      "source_id": "BAC009S0906W0447",
+      "samples": 97617,
+      "path": "pcm/zh-BAC009S0906W0447.wav",
+      "pcm_s16le_sha256": "9d296d506a7f5c507763ba67e6eebe6c1a5d52fb31f8bbd5482af35609fac70c"
+    },
+    {
+      "id": "zh-BAC009S0906W0126",
+      "language": "zh",
+      "speaker": "S0906",
+      "text": "上海  南昌  等  城市  近期  继续  松绑  了  公积金  贷款  政策  ",
+      "source_id": "BAC009S0906W0126",
+      "samples": 114384,
+      "path": "pcm/zh-BAC009S0906W0126.wav",
+      "pcm_s16le_sha256": "8af1da71feb9f51b3f219392a181a54664172cf4fdaf63587feaa9ef100ea9b0"
+    },
+    {
+      "id": "zh-BAC009S0906W0219",
+      "language": "zh",
+      "speaker": "S0906",
+      "text": "健全  农作  物种  质  资源  和  畜禽  遗传  资源  保存  体系  ",
+      "source_id": "BAC009S0906W0219",
+      "samples": 222832,
+      "path": "pcm/zh-BAC009S0906W0219.wav",
+      "pcm_s16le_sha256": "4b80ca6ce5bd91a75e721187758a5ee23d1eb6343f72dbae806aa8c1a60331d4"
+    },
+    {
+      "id": "zh-BAC009S0907W0423",
+      "language": "zh",
+      "speaker": "S0907",
+      "text": "我  便  会  到  那里  ",
+      "source_id": "BAC009S0907W0423",
+      "samples": 38914,
+      "path": "pcm/zh-BAC009S0907W0423.wav",
+      "pcm_s16le_sha256": "12005f275b3ad921c402b50e65da4d914fa1a171c0914a8e591ee54ea75b5d2f"
+    },
+    {
+      "id": "zh-BAC009S0907W0259",
+      "language": "zh",
+      "speaker": "S0907",
+      "text": "它  是  软件  集成  的  一  种  方式  ",
+      "source_id": "BAC009S0907W0259",
+      "samples": 58176,
+      "path": "pcm/zh-BAC009S0907W0259.wav",
+      "pcm_s16le_sha256": "3f99dffcff71ee3d00b6f6f437c534897d6759887165c0c38bf837059e9b83e3"
+    },
+    {
+      "id": "zh-BAC009S0907W0384",
+      "language": "zh",
+      "speaker": "S0907",
+      "text": "这  就  是  竞技  体育  的  魅力  ",
+      "source_id": "BAC009S0907W0384",
+      "samples": 65758,
+      "path": "pcm/zh-BAC009S0907W0384.wav",
+      "pcm_s16le_sha256": "699178850ece6a52975249a9b155ea594aed6fb1cd78486a5dcc406a9bfdbf35"
+    },
+    {
+      "id": "zh-BAC009S0907W0437",
+      "language": "zh",
+      "speaker": "S0907",
+      "text": "六名  内地  乘客  与  地勤  发生  肢体  冲突  ",
+      "source_id": "BAC009S0907W0437",
+      "samples": 74707,
+      "path": "pcm/zh-BAC009S0907W0437.wav",
+      "pcm_s16le_sha256": "b905918f84adddfdebcee97fca65311405e8b2f2946e0be53f5bf27582257387"
+    },
+    {
+      "id": "zh-BAC009S0907W0183",
+      "language": "zh",
+      "speaker": "S0907",
+      "text": "贷款  最  高额  度  由  五万  元升  至  七万  元  ",
+      "source_id": "BAC009S0907W0183",
+      "samples": 83664,
+      "path": "pcm/zh-BAC009S0907W0183.wav",
+      "pcm_s16le_sha256": "a763094b6d163cf0f19a9c9ceff6f0bb00fcdbdc15a5e62f8290ddd5bc276c83"
+    },
+    {
+      "id": "zh-BAC009S0907W0446",
+      "language": "zh",
+      "speaker": "S0907",
+      "text": "遭  追讨  欠款  和  抚养  费  共  四零  万元  人民  币  ",
+      "source_id": "BAC009S0907W0446",
+      "samples": 94687,
+      "path": "pcm/zh-BAC009S0907W0446.wav",
+      "pcm_s16le_sha256": "35549ce6591c6dc7b58769bfbc50bf8da49f8451c194c44c4af83abe7ac4ad10"
+    },
+    {
+      "id": "zh-BAC009S0907W0224",
+      "language": "zh",
+      "speaker": "S0907",
+      "text": "逐步  完善  农业  生产  关键  技术  应用  与  服务  支持  政策  ",
+      "source_id": "BAC009S0907W0224",
+      "samples": 111889,
+      "path": "pcm/zh-BAC009S0907W0224.wav",
+      "pcm_s16le_sha256": "18a92891c122831a89c6de136f52f72204bcd96e5c4ce65c589b253838690afe"
+    },
+    {
+      "id": "zh-BAC009S0907W0469",
+      "language": "zh",
+      "speaker": "S0907",
+      "text": "港媒  关注  重  雾霾  重回  华北  罕见  蓝天  只  持续  两  周  ",
+      "source_id": "BAC009S0907W0469",
+      "samples": 157699,
+      "path": "pcm/zh-BAC009S0907W0469.wav",
+      "pcm_s16le_sha256": "123c443ea6e0f4a401e8df6a9f74fbdd1807241417d0c70f80a1c7b57002eba4"
+    },
+    {
+      "id": "zh-BAC009S0908W0124",
+      "language": "zh",
+      "speaker": "S0908",
+      "text": "并  已  实施  ",
+      "source_id": "BAC009S0908W0124",
+      "samples": 35599,
+      "path": "pcm/zh-BAC009S0908W0124.wav",
+      "pcm_s16le_sha256": "23d31c3159c041c41a1d5caa08d4b218f5eb7813b86039c3d0a11ca306b6be0e"
+    },
+    {
+      "id": "zh-BAC009S0908W0376",
+      "language": "zh",
+      "speaker": "S0908",
+      "text": "瞬间  成为  各国  媒体  的  焦点  ",
+      "source_id": "BAC009S0908W0376",
+      "samples": 60961,
+      "path": "pcm/zh-BAC009S0908W0376.wav",
+      "pcm_s16le_sha256": "1f7d9291f8d089d0b6ce978dbd4df2fa1dd0554bd7211ee4fde68aefc5910ce9"
+    },
+    {
+      "id": "zh-BAC009S0908W0186",
+      "language": "zh",
+      "speaker": "S0908",
+      "text": "美丽  北京  大型  绿色  公益  品牌  项目  ",
+      "source_id": "BAC009S0908W0186",
+      "samples": 71201,
+      "path": "pcm/zh-BAC009S0908W0186.wav",
+      "pcm_s16le_sha256": "02bf1b73120031eef1ef8365c99406d3df146da4735e06362520f7a1cccce7c2"
+    },
+    {
+      "id": "zh-BAC009S0908W0482",
+      "language": "zh",
+      "speaker": "S0908",
+      "text": "访日  外国  游客  突破  千万  ",
+      "source_id": "BAC009S0908W0482",
+      "samples": 78672,
+      "path": "pcm/zh-BAC009S0908W0482.wav",
+      "pcm_s16le_sha256": "f76600b196c86878ec2ae36323167bfb7c1d4b7e7e2f43a6e9b9d69c6ca54bd3"
+    },
+    {
+      "id": "zh-BAC009S0908W0281",
+      "language": "zh",
+      "speaker": "S0908",
+      "text": "苹果  通过  发布  不必  要  的  软件  升级  包  ",
+      "source_id": "BAC009S0908W0281",
+      "samples": 88928,
+      "path": "pcm/zh-BAC009S0908W0281.wav",
+      "pcm_s16le_sha256": "be92df79a7eb2e16ddb18f820b1d1a6afee9d89acdf15fee0ece2be2e5e45fff"
+    },
+    {
+      "id": "zh-BAC009S0908W0126",
+      "language": "zh",
+      "speaker": "S0908",
+      "text": "购买  一百  平方  米  以上  非  政策  性  住房  或  第  二  套住  房  ",
+      "source_id": "BAC009S0908W0126",
+      "samples": 102512,
+      "path": "pcm/zh-BAC009S0908W0126.wav",
+      "pcm_s16le_sha256": "72924a2556c9996cf0348c16629cade99e423170e1d107926036b531acfdb15d"
+    },
+    {
+      "id": "zh-BAC009S0908W0351",
+      "language": "zh",
+      "speaker": "S0908",
+      "text": "中国  最  帅  的  竞走  冠军  陈  定  将  亮相  苏州  吴中  ",
+      "source_id": "BAC009S0908W0351",
+      "samples": 121473,
+      "path": "pcm/zh-BAC009S0908W0351.wav",
+      "pcm_s16le_sha256": "08dde46d8132ec58c2a63115e26d0226db0cf1633720c2ea39ea53cab3e42643"
+    },
+    {
+      "id": "zh-BAC009S0908W0362",
+      "language": "zh",
+      "speaker": "S0908",
+      "text": "欧米茄  计时  管理  委员  会成  员  彼得  许  尔泽  勒  介绍  说  ",
+      "source_id": "BAC009S0908W0362",
+      "samples": 177246,
+      "path": "pcm/zh-BAC009S0908W0362.wav",
+      "pcm_s16le_sha256": "e48444e8cd69f6173284da1765f432da551ad66fb1abcc7231d27ecdc44443f9"
+    },
+    {
+      "id": "zh-BAC009S0912W0428",
+      "language": "zh",
+      "speaker": "S0912",
+      "text": "十九  点  二十六  分  ",
+      "source_id": "BAC009S0912W0428",
+      "samples": 45824,
+      "path": "pcm/zh-BAC009S0912W0428.wav",
+      "pcm_s16le_sha256": "b46c5c238b76db6afd6649528036fc237c4435e3c52e8cd8398aa5b4f37b7693"
+    },
+    {
+      "id": "zh-BAC009S0912W0395",
+      "language": "zh",
+      "speaker": "S0912",
+      "text": "共同  享受  奔跑  带来  的  乐趣  ",
+      "source_id": "BAC009S0912W0395",
+      "samples": 58223,
+      "path": "pcm/zh-BAC009S0912W0395.wav",
+      "pcm_s16le_sha256": "d1151240da6a7bbd1fa045b27073a3aa3a7ad849d10932c29e46eec905874457"
+    },
+    {
+      "id": "zh-BAC009S0912W0461",
+      "language": "zh",
+      "speaker": "S0912",
+      "text": "但  赏月  人群  还是  乱扔  垃圾  ",
+      "source_id": "BAC009S0912W0461",
+      "samples": 66832,
+      "path": "pcm/zh-BAC009S0912W0461.wav",
+      "pcm_s16le_sha256": "db8cf8fc9dfeb3fb1e1be09f34ce53c560bcb6df9d87941ab53dc42cba460248"
+    },
+    {
+      "id": "zh-BAC009S0912W0450",
+      "language": "zh",
+      "speaker": "S0912",
+      "text": "其人  工岛  被  指  移动  六七  米  ",
+      "source_id": "BAC009S0912W0450",
+      "samples": 74754,
+      "path": "pcm/zh-BAC009S0912W0450.wav",
+      "pcm_s16le_sha256": "e41ebb041d43aabff56c7cec637b3211c405ad9076f830ff9c432b793f463da8"
+    },
+    {
+      "id": "zh-BAC009S0912W0251",
+      "language": "zh",
+      "speaker": "S0912",
+      "text": "针对  近期  各种  环境  事件  暴露  出  的  问题  ",
+      "source_id": "BAC009S0912W0251",
+      "samples": 83041,
+      "path": "pcm/zh-BAC009S0912W0251.wav",
+      "pcm_s16le_sha256": "0e707aaacb7663ff5ff9a61355ad8749c84946aeda3731b49fc75fe36b28102f"
+    },
+    {
+      "id": "zh-BAC009S0912W0186",
+      "language": "zh",
+      "speaker": "S0912",
+      "text": "楼市  政策  也  深刻  影响  着  房地  产  行业  的  走向  ",
+      "source_id": "BAC009S0912W0186",
+      "samples": 91009,
+      "path": "pcm/zh-BAC009S0912W0186.wav",
+      "pcm_s16le_sha256": "1d1b6d6060256c02058d71e17fc73681a67a6184dead8b7b3f53f503b70a493e"
+    },
+    {
+      "id": "zh-BAC009S0912W0122",
+      "language": "zh",
+      "speaker": "S0912",
+      "text": "东  地产  财经  周刊  新  一年  度  审计  工作  报告  出炉  ",
+      "source_id": "BAC009S0912W0122",
+      "samples": 104000,
+      "path": "pcm/zh-BAC009S0912W0122.wav",
+      "pcm_s16le_sha256": "9cf6b907ba0f2abf952cf6e16a8a6f692ae386b784bb010f9a62122501af6827"
+    },
+    {
+      "id": "zh-BAC009S0912W0434",
+      "language": "zh",
+      "speaker": "S0912",
+      "text": "二十七  日  深夜  终于  在云  林  县  一  家  废弃  空屋  中  救出  了  黄  立  坤  ",
+      "source_id": "BAC009S0912W0434",
+      "samples": 144000,
+      "path": "pcm/zh-BAC009S0912W0434.wav",
+      "pcm_s16le_sha256": "54f484341ce57804755b6d206c1307cbe4f218f3c3b71a876c47e5585eb0cd41"
+    }
+  ],
+  "sources": {
+    "en": {
+      "dataset": "OpenSLR/12 LibriSpeech",
+      "split": "test-clean",
+      "publisher_expected_archive_md5": "32fa31d27d2e1cad72775fee3f4849a9",
+      "license": "CC BY 4.0",
+      "source": "https://www.openslr.org/12/",
+      "acquisition": {
+        "archive_md5_verified": true,
+        "archive_verification": "publisher full-object MD5 before extraction",
+        "audio_source": "https://www.openslr.org/resources/12/",
+        "annotations": "official LibriSpeech per-chapter transcript files",
+        "candidates": "complete first 16 numeric speakers of the requested split"
+      }
+    },
+    "zh": {
+      "dataset": "OpenSLR/33 AISHELL-1",
+      "split": "test",
+      "publisher_expected_archive_md5": "2f494334227864a8a8fec932999db9d8",
+      "license": "Apache-2.0",
+      "source": "https://www.openslr.org/33/",
+      "acquisition": {
+        "audio_source": "https://www.openslr.org/resources/33/data_aishell.tgz",
+        "acquisition": "complete selected inner speaker gzip members from the first 3300000000 bytes of the official outer object",
+        "outer_object_size": 15582913665,
+        "outer_object_etag": "\"3a0d06481-55aad06529d07\"",
+        "selected_inner_gzip_crc_verified": true,
+        "whole_outer_archive_md5_verified": false,
+        "whole_outer_gzip_crc_verified": false,
+        "annotation_repository": "shenyunhang/AISHELL-1",
+        "annotation_revision": "2724409d538167445e43ebf846990319f12a1cbf",
+        "annotation_path": "data_aishell/transcript/aishell_transcript_v0.8.txt",
+        "annotation_git_blob": "05217b79e3df3f9ea07f667bf028e7b1a4e39d2a",
+        "annotation_blob_verified": true,
+        "annotation_equivalence_to_full_official_outer_archive_verified": false,
+        "candidates": "complete first 16 lexical speakers of requested split; missing labels declared before ranking"
+      }
+    }
+  },
+  "decode": {
+    "program": "ffmpeg version 6.1.1-3ubuntu5+esm13 Copyright (c) 2000-2023 the FFmpeg developers",
+    "format": "mono 16000 Hz PCM16 WAV; source has same channels/rate; no duration trimming"
+  },
+  "request": {
+    "temperature": 0,
+    "seed": 0,
+    "max_model_len": 8192,
+    "context": "",
+    "language": "utterance.language",
+    "max_completion_tokens": 1024
+  }
+}

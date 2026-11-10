@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 import torch
 
-from ignition.components.vision_delivery import PreparedFeaturePublication
+from ignition.components.feature_delivery import PreparedFeaturePublication
 
 FEATURES = 8192
 PATCH_CAPACITIES = (64, 256, 1024, 4096, 16384, 32768)
@@ -42,7 +42,9 @@ class PreparedVisionGeneration:
     def __init__(self, encoder, inputs, state, completion, frame, sequence):
         self.encoder, self.inputs, self.state = encoder, inputs, state
         self.errors = torch.zeros(1, dtype=torch.int32, device=completion.records.device)
-        self.publish = PreparedFeaturePublication(state, inputs, completion, frame, sequence)
+        self.publish = PreparedFeaturePublication(state, completion, frame, sequence,
+            request_slot=inputs.vision_slot, generation=inputs.vision_generation,
+            offset=inputs.vision_feature_offset)
 
     def __call__(self):
         e, i, s = self.encoder, self.inputs, self.state

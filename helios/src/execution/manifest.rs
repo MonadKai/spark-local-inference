@@ -79,6 +79,7 @@ pub enum GraphKind {
     Mixed,
     Resume,
     Vision,
+    AudioEncode,
 }
 
 impl GraphKind {
@@ -132,6 +133,7 @@ impl TryFrom<&str> for GraphKind {
             "mixed" => Ok(Self::Mixed),
             "resume" => Ok(Self::Resume),
             "vision" => Ok(Self::Vision),
+            "audio_encode" => Ok(Self::AudioEncode),
             _ => Err(Error::execution(
                 ExecutionError::Manifest,
                 format!("unsupported graph kind {value:?}"),
@@ -181,6 +183,8 @@ pub struct TuningGraphDescriptor {
 
 #[derive(Clone, Debug)]
 pub struct GraphDescriptor {
+    /// Fixed initial-prompt arithmetic extent; zero preserves legacy selection.
+    pub initial_prompt_capacity: usize,
     /// Confidence prefixes produced per request in the completion frame.
     pub confidence_width: usize,
     /// Proposal depth of a complete speculative round.
@@ -559,6 +563,11 @@ impl ExecutionManifest {
         let mut names = HashSet::new();
         let mut host_spans = HashMap::<&str, (usize, usize)>::new();
         for graph in &self.graphs {
+            if graph.initial_prompt_capacity != 0
+                && (!matches!(graph.kind, GraphKind::Prefill | GraphKind::ScoredPrefill)
+                    || graph.initial_prompt_capacity > i32::MAX as usize) {
+                return Err("initial prompt extent requires bounded prefill geometry".into());
+            }
             if graph.kind == GraphKind::Speculative {
                 if graph.packed_token_capacity < graph.batch_capacity
                     || graph.packed_token_capacity > graph.batch_capacity.saturating_mul(graph.token_capacity)
@@ -613,6 +622,7 @@ impl ExecutionManifest {
                                 && graph.token_capacity.is_multiple_of(64)))
                 }
                 GraphKind::Vision => graph.batch_capacity == 1 && graph.token_capacity > 0,
+                GraphKind::AudioEncode => graph.batch_capacity == 1 && graph.token_capacity > 0,
                 _ => {
                     BATCH_CAPACITIES.contains(&graph.batch_capacity)
                         && graph.batch_capacity <= self.request_capacity()

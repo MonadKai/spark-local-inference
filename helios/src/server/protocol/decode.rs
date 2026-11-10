@@ -92,6 +92,13 @@ fn plain_parts(value: &Value, protocol: Protocol) -> Result<Vec<Part>> {
         .iter()
         .map(|part| match field(part, "type")? {
             "text" | "input_text" | "output_text" => Ok(Part::Text(field(part, "text")?.into())),
+            "input_audio" if protocol == Protocol::Chat => {
+                let audio = &part["input_audio"];
+                Ok(Part::Audio(AudioSource::Base64 { data: field(audio, "data")?.into(),
+                    format: field(audio, "format")?.into() }))
+            }
+            "audio_url" if protocol == Protocol::Chat =>
+                Ok(Part::Audio(AudioSource::Url(field(&part["audio_url"], "url")?.into()))),
             "image_url" => Ok(Part::Image(field(&part["image_url"], "url")?.into())),
             "input_image" => Ok(Part::Image(field(part, "image_url")?.into())),
             "image" if protocol == Protocol::Messages => {

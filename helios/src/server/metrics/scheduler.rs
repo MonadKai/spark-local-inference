@@ -89,6 +89,7 @@ struct TraceBuffer {
 #[derive(Default)]
 pub(in crate::server) struct SchedulerMetrics {
     pub catalog: OnceLock<Vec<GraphLabel>>,
+    pub batches: OnceLock<Vec<[AtomicU64; REQUEST_LANES + 1]>>,
     buffer: OnceLock<Mutex<TraceBuffer>>,
     enabled: AtomicBool,
     pub detail_requested: AtomicBool,
@@ -99,6 +100,8 @@ pub(in crate::server) struct SchedulerMetrics {
 
 impl SchedulerMetrics {
     pub fn configure(&self, graphs: &[GraphDescriptor]) {
+        let _ = self.batches.set(graphs.iter()
+            .map(|_| std::array::from_fn(|_| AtomicU64::new(0))).collect());
         let _ = self.catalog.set(
             graphs
                 .iter()
@@ -146,6 +149,11 @@ impl SchedulerMetrics {
     }
 
     pub fn submitted(&self, at_ns: u64, graph: usize, plan: &ScheduledPlan, feedback: bool) {
+        if let Some(count) = self.batches.get().and_then(|rows| rows.get(graph))
+            .and_then(|counts| counts.get(plan.lanes.len()))
+        {
+            count.fetch_add(1, Ordering::Relaxed);
+        }
         self.write(|trace| {
             trace.dispatch = Some(Dispatch {
                 at_ns,
@@ -235,8 +243,41 @@ impl SchedulerMetrics {
 mod tests {
     use super::*;
 
+    #[test]
+    fn batch_counters_keep_logical_requests_separate_from_physical_padding_without_trace() {
+        let metrics = crate::server::metrics::Metrics::new(0, 0, 0, 16);
+        let graphs = crate::scheduler::tests::duration_graphs(8);
+        metrics.scheduler_trace.configure(&graphs);
+        let mut scheduler = crate::scheduler::tests::scheduler(8, 64, 64);
+        let mut admitted = 0;
+        for requests in [3, 5] {
+            while admitted < requests {
+                scheduler.admit(crate::scheduler::RequestSpec {
+                    prefix_scope: None, message_boundaries: vec![], initial_prompt_tokens: 1, prompt: vec![admitted as u32 + 1],
+                    conditioning: vec![], max_new_tokens: 2, grammar_constrained: false,
+                    host_stops: false, prompt_logprobs: false, growable_output: false,
+                }).unwrap();
+                admitted += 1;
+            }
+            let plan = scheduler.phase_plan(GraphKind::Init, None);
+            assert_eq!(plan.lanes.len(), requests);
+            assert_eq!(plan.batch_capacity, requests.next_power_of_two());
+            let index = graphs.iter().position(|graph|
+                graph.kind == plan.kind && graph.batch_capacity == plan.batch_capacity
+                    && graph.token_capacity == plan.token_capacity).unwrap();
+            metrics.scheduler_trace.submitted(10, index, &plan, false);
+            let counts = &metrics.scheduler_trace.batches.get().unwrap()[index];
+            assert_eq!(counts[requests].load(Ordering::Relaxed), 1);
+            assert_eq!(counts.iter().map(|count| count.load(Ordering::Relaxed)).sum::<u64>(), 1);
+            assert!(metrics.scheduler_trace.buffer.get().is_none());
+            assert!(metrics.render().contains(&format!(
+                "flare_graph_batch_submissions_total{{graph_index=\"{index}\",capacity=\"{}\",requests=\"{requests}\"}} 1\n",
+                plan.batch_capacity)));
+        }
+    }
+
     fn step() -> ScheduledStep {
-        ScheduledStep { draft_tokens: 0, packed_token_capacity: 0,
+        ScheduledStep { initial_prompt_capacity: 0, draft_tokens: 0, packed_token_capacity: 0,
             kind: GraphKind::Decode,
             batch_capacity: 1,
             token_capacity: 1,

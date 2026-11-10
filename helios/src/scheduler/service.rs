@@ -143,9 +143,11 @@ impl RequestScheduler {
         let mut token_rate = 0.0f64;
         let mut delivery_rate = 0.0f64;
         let prefill = request.consumed_tokens < request.prompt_tokens as u64;
-        let mut consider = |kind, batch, capacity, tokens: f64, delivery: bool| {
+        let mut consider = |kind: GraphKind, batch, capacity, tokens: f64, delivery: bool| {
             let ns = if kind == GraphKind::Speculative {
                 self.speculative_duration(request, batch, capacity)
+            } else if kind.is_prefill() {
+                self.costs.prefill_duration(kind, capacity, request.initial_prompt_capacity)
             } else { self.costs.duration(kind, batch, capacity) };
             if let Some(ns) = ns.filter(|n| *n > 0)
             {

@@ -43,7 +43,18 @@ def downloaded_template_asset(patch_path: Path, *, cache_dir=None):
     source = json.loads(patch_path.read_text())["source"]
     path = hf_hub_download(source["repository"], source["filename"],
                            revision=source["revision"], cache_dir=cache_dir)
-    return annotated_template_asset(Path(path).read_bytes(), patch_path)
+    return annotated_template_asset(template_source(Path(path), source), patch_path)
+
+
+def template_source(path: Path, source):
+    """Read a pinned template file or its declared JSON string field."""
+    contents = path.read_bytes()
+    if "json_key" in source:
+        value = json.loads(contents)[source["json_key"]]
+        if not isinstance(value, str):
+            raise ValueError("checkpoint chat template JSON field must be text")
+        contents = value.encode("utf-8")
+    return contents
 
 
 def _token(value):

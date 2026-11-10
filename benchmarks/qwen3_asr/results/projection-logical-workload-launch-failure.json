@@ -1,0 +1,57 @@
+{
+  "scope": "Compare full-eight-row and logical-live-row preparation on real ASR matrices.\n\nBoth use the same legal fixed-reduction candidates and physical eight-row\nstorage. All compilation/tuning/capture finishes before randomized timings.\nThis measures selected projection plans, not a complete ASR serving workload.\nPacked QKV/gate-up and reduction LM head are diagnostics, not released recipe\ncomposition. In particular this does not replace the production BF16 LM head.",
+  "status": "failed_or_interrupted",
+  "errors": [
+    {
+      "type": "FileNotFoundError",
+      "message": "No such file or directory: CANONICAL_BOUNDARIES/en-422-122949-0013-first-2f-prefill.safetensors",
+      "active_cell": null
+    }
+  ],
+  "candidates": [],
+  "source_case": "en-422-122949-0013-first-2f",
+  "physical_rows": 8,
+  "logical_rows": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "planned_operations": [
+    "qkv",
+    "attention_output",
+    "gate_up",
+    "down",
+    "head",
+    "query",
+    "key",
+    "value",
+    "gate",
+    "up"
+  ],
+  "planned_preparations": [
+    "legacy-eight",
+    "logical1",
+    "logical2",
+    "logical4",
+    "logical8"
+  ],
+  "expected_checkpoint_revision": "7278e1e70fe206f11671096ffdd38061171dd6e5",
+  "checkpoint_content_identity_verified_by_this_tool": false,
+  "timing_blocks": 9,
+  "graph_replays_per_sample": 10,
+  "order_seed": 20261106,
+  "component_interval": "paired block log-ratio Student t, df8/tcrit2.306004135204166, two-sided95%; separate from formal service statistics",
+  "torch": "2.14.1+cu132",
+  "cuda_runtime": "13.2",
+  "numerical_control": "all bytes versus legacy selected fixed-reduction plan on identical real weights/operands, all layers; independent arithmetic and whole-model gates remain separate",
+  "uses_standard_preparation_autotuning": true,
+  "legal_candidate_set_unchanged": true,
+  "production_selection_qualified": false,
+  "activation_scope": "Same eight frozen layer-zero represented inputs for every rotated layer weight; not each layer actual activation or full-network precision",
+  "rotated_outputs": "Distinct per-layer guarded matrices for both variants, all actual captured outputs checked",
+  "full_model_numerical_qualification": false,
+  "service_performance_qualified": false,
+  "active_cell": null,
+  "public_redaction": "Only the local absolute reference-directory prefix in the exception is replaced. All planned-cell metadata, failures and zero completed candidate/timing cells remain."
+}

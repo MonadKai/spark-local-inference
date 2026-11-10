@@ -15,9 +15,28 @@ use crate::{
 use sha2::{Digest, Sha256};
 use std::ops::ControlFlow;
 use std::sync::atomic::AtomicUsize;
+use std::time::Duration;
 
 #[path = "response_lifecycle_tests.rs"]
 mod response_lifecycle_tests;
+
+#[path = "admission_waiter_tests.rs"]
+mod admission_waiter_tests;
+
+#[path = "request_cache_tests.rs"]
+mod request_cache_tests;
+
+#[cfg(feature = "audio")]
+#[path = "transcription_tests.rs"]
+mod transcription_tests;
+
+#[cfg(all(feature = "audio", feature = "runtime-package"))]
+#[path = "encoded_cuda_tests.rs"]
+mod encoded_cuda_tests;
+
+#[cfg(all(feature = "audio", feature = "runtime-package"))]
+#[path = "native_logits_cuda_tests.rs"]
+mod native_logits_cuda_tests;
 
 struct Fixture {
     config: ModelConfig,
@@ -69,6 +88,11 @@ impl Fixture {
     }
 
     fn with_template(template: &[u8], special_tokens: &[&str], text_tokens: &[&str]) -> Self {
+        Self::with_template_settings(template, special_tokens, text_tokens, None)
+    }
+
+    fn with_template_settings(template: &[u8], special_tokens: &[&str], text_tokens: &[&str],
+        settings: Option<&crate::frontend::FrontendSettings>) -> Self {
         static SERIAL: AtomicUsize = AtomicUsize::new(0);
         let directory = std::env::temp_dir().join(format!(
             "flare-worker-phase-{}-{}",
@@ -106,18 +130,18 @@ impl Fixture {
                 sha256: format!("{:x}", Sha256::digest(bytes)),
             }
         };
-        let frontend = Frontend::load(
-            FrontendAssets {
+        let assets = FrontendAssets {
                 tokenizer: asset(
                     "tokenizer.json",
                     tokenizer.to_string(false).unwrap().as_bytes(),
                 ),
                 tokens: Default::default(),
                 chat_template: Some(asset("chat.jinja", template)),
-            },
-            Default::default(),
-        )
-        .unwrap();
+            };
+        let frontend = match settings {
+            Some(settings) => Frontend::load_with_settings(assets, Default::default(), settings),
+            None => Frontend::load(assets, Default::default()),
+        }.unwrap();
         std::fs::remove_dir_all(directory).unwrap();
         Self {
             config: ModelConfig {
@@ -183,6 +207,7 @@ impl Fixture {
             scheduler,
             receiver,
             4,
+            super::super::PrefixCacheReuse::Shared,
         );
         worker.inputs = Some(
             crate::model::Inputs::new(&self.config, &crate::model::testing::manifest(&self.config))
@@ -196,7 +221,7 @@ impl Fixture {
         self.incoming_for(
             tokens,
             limit,
-            PromptData {
+            PromptData { audio_token_indices: Vec::new(),
                 positions: (0..length).map(|n| [n as i64; 3]).collect(),
                 vision_token_indices: vec![-1; length],
                 ..Default::default()
@@ -210,6 +235,8 @@ impl Fixture {
             message_boundaries: vec![],
             data,
             conditioned_inputs: vec![],
+            #[cfg(feature = "audio")]
+            conditioned_audio: None,
             conditioning: vec![],
             sampling: SamplingParameters::default(),
             max_new_tokens: limit,
@@ -237,9 +264,12 @@ impl Fixture {
         let failure = Arc::new(Mutex::new(None));
         (
             Incoming {
+                prefix_scope: None,
                 _capacity: None,
+                queue_capacity: None,
                 arrival_ns: super::super::observation::monotonic_ns(),
                 publications: Default::default(),
+                initial_prompt_tokens: tokens.len(),
                 prompt: Self::prompt_for(tokens, limit, data),
                 events,
                 admission: Mutex::new(Some(admission)),
@@ -710,6 +740,7 @@ fn prepared_budget_request(
     );
     let (mut incoming, generation) = fixture.incoming(vec![], 0);
     incoming.prompt = prepared.prompt;
+    incoming.initial_prompt_tokens = incoming.prompt.tokens.len();
     (incoming, generation, decoder, prompt_tokens)
 }
 
@@ -1683,6 +1714,7 @@ fn packed_dashboard_depth_uses_allocated_prefixes_and_live_request_count() {
         scheduler,
         receiver,
         4,
+        super::super::PrefixCacheReuse::Shared,
     );
     worker.inputs = Some(crate::model::Inputs::new(&fixture.config, &manifest).unwrap());
     assert_eq!(worker.admit().unwrap(), ControlFlow::Continue(true));
@@ -3079,14 +3111,97 @@ fn group_runtime(
             config: Arc::new(fixture.config.clone()),
             event_capacity: 16,
             capacity: Arc::new(tokio::sync::Semaphore::new(capacity)),
+            queue_capacity: Arc::new(tokio::sync::Semaphore::new(2)),
             thread: Mutex::new(None),
             shutdown: Mutex::new(None),
             finished: Arc::new((Mutex::new(false), Condvar::new())),
             metrics: fixture.metrics.clone(),
             input_store: None,
+            input_records: None,
+            prefix_scopes: None,
         },
         receiver,
     )
+}
+
+fn queued_prompt() -> Prompt {
+    Fixture::prompt_for(vec![0], 2, PromptData {
+        positions: vec![[0; 3]], vision_token_indices: vec![-1], ..Default::default()
+    })
+}
+
+#[tokio::test]
+async fn cancelling_a_queue_waiter_releases_its_host_credit_without_enqueueing() {
+    let fixture = Fixture::new();
+    let (runtime, receiver) = group_runtime(&fixture, 3);
+    let first = runtime.generate(queued_prompt()).unwrap();
+    let second = runtime.generate(queued_prompt()).unwrap();
+    {
+        let waiting = runtime.generate_when_available(queued_prompt());
+        tokio::pin!(waiting);
+        assert!(tokio::time::timeout(Duration::from_millis(10), &mut waiting).await.is_err());
+        assert_eq!(runtime.capacity.available_permits(), 0);
+        assert_eq!(runtime.queue_capacity.available_permits(), 0);
+    }
+    assert_eq!(runtime.capacity.available_permits(), 1);
+    assert_eq!(receiver.try_recv().unwrap().len(), 1);
+    assert_eq!(receiver.try_recv().unwrap().len(), 1);
+    assert!(receiver.try_recv().is_err());
+    drop((first, second));
+    assert_eq!(runtime.capacity.available_permits(), 3);
+    assert_eq!(runtime.queue_capacity.available_permits(), 2);
+}
+
+#[tokio::test]
+async fn asynchronous_queue_waiters_are_fifo_and_receive_releases_only_message_credit() {
+    let fixture = Fixture::new();
+    let (runtime, receiver) = group_runtime(&fixture, 5);
+    let first = runtime.generate(queued_prompt()).unwrap();
+    let second = runtime.generate(queued_prompt()).unwrap();
+    let third = runtime.generate_when_available(queued_prompt());
+    let fourth = runtime.generate_when_available(queued_prompt());
+    tokio::pin!(third, fourth);
+    for waiting in [&mut third, &mut fourth] {
+        assert!(tokio::time::timeout(Duration::from_millis(10), waiting).await.is_err());
+    }
+    assert_eq!(runtime.capacity.available_permits(), 1);
+    let mut worker = fixture.worker(receiver);
+    let message = worker.receiver.try_recv().unwrap();
+    worker.enqueue(message);
+    // The first waiter owns the returned queue credit even before being polled.
+    assert!(tokio::time::timeout(Duration::from_millis(10), &mut fourth).await.is_err());
+    let third = third.await.unwrap();
+    assert_eq!(runtime.capacity.available_permits(), 1);
+    assert_eq!(worker.pending.len(), 1);
+    let message = worker.receiver.try_recv().unwrap();
+    worker.enqueue(message);
+    let fourth = tokio::time::timeout(Duration::from_secs(1), fourth).await.unwrap().unwrap();
+    assert_eq!(runtime.capacity.available_permits(), 1);
+    let third_message = worker.receiver.try_recv().unwrap();
+    assert!(Arc::ptr_eq(&third_message[0].cancelled, &third.cancelled));
+    let fourth_message = worker.receiver.try_recv().unwrap();
+    assert!(Arc::ptr_eq(&fourth_message[0].cancelled, &fourth.cancelled));
+    drop((third_message, fourth_message, worker, first, second, third, fourth));
+    assert_eq!(runtime.capacity.available_permits(), 5);
+    assert_eq!(runtime.queue_capacity.available_permits(), 2);
+}
+
+#[tokio::test]
+async fn closing_admission_wakes_both_request_and_message_capacity_waiters() {
+    for queue_wait in [false, true] {
+        let fixture = Fixture::new();
+        let (runtime, receiver) = group_runtime(&fixture, if queue_wait { 3 } else { 1 });
+        let first = runtime.generate(queued_prompt()).unwrap();
+        let second = queue_wait.then(|| runtime.generate(queued_prompt()).unwrap());
+        let waiting = runtime.generate_when_available(queued_prompt());
+        tokio::pin!(waiting);
+        assert!(tokio::time::timeout(Duration::from_millis(10), &mut waiting).await.is_err());
+        runtime.request_stop();
+        let failure = tokio::time::timeout(Duration::from_secs(1), waiting).await.unwrap().err().unwrap();
+        assert!(matches!(failure, Error::Admission(AdmissionError::Unavailable(_))));
+        assert_eq!(receiver.try_iter().count(), if queue_wait { 2 } else { 1 });
+        drop((first, second));
+    }
 }
 #[test]
 fn unread_responses_finish_and_release_model_resources_but_retain_admission_capacity() {
@@ -3097,7 +3212,7 @@ fn unread_responses_finish_and_release_model_resources_but_retain_admission_capa
         fixture.config.limits.pages = 64;
         fixture.config.max_top_logprobs = 20;
         let (runtime, receiver) = group_runtime(&fixture, 2);
-        let prompt = |limit| Fixture::prompt_for(vec![0], limit, PromptData {
+        let prompt = |limit| Fixture::prompt_for(vec![0], limit, PromptData { audio_token_indices: Vec::new(),
             positions: vec![[0; 3]], vision_token_indices: vec![-1], ..Default::default()
         });
         let mut slow_prompt = prompt(512);
@@ -3153,7 +3268,7 @@ fn unread_response_keeps_its_budget_through_a_reasoning_continuation() {
     fixture.config.prepared_sequence_tokens = 256;
     fixture.config.limits.max_sequence_tokens = 256;
     let (runtime, receiver) = group_runtime(&fixture, 1);
-    let mut prompt = Fixture::prompt_for(vec![0], 80, PromptData {
+    let mut prompt = Fixture::prompt_for(vec![0], 80, PromptData { audio_token_indices: Vec::new(),
         positions: vec![[0; 3]], vision_token_indices: vec![-1], ..Default::default()
     });
     prompt.reasoning_cut = Some(budget_cut(4, 81));
@@ -3180,7 +3295,7 @@ fn grouped_submission_validates_all_children_before_enqueue_and_releases_capacit
         Fixture::prompt_for(
             vec![1, 2],
             4,
-            PromptData {
+            PromptData { audio_token_indices: Vec::new(),
                 positions: vec![[0; 3], [1; 3]],
                 vision_token_indices: vec![-1; 2],
                 ..Default::default()
@@ -3218,6 +3333,7 @@ fn exercise_text_preemption(
     data: impl Fn(usize) -> crate::model::PromptData,
     evict_checkpoint: bool,
     reasoning_cut: Option<ReasoningCut>,
+    isolate_prefixes: bool,
 ) {
     let mut fixture = Fixture::new();
     fixture.config.history_drafts = true;
@@ -3231,6 +3347,8 @@ fn exercise_text_preemption(
     let (sender, receiver) = mpsc::channel();
     let (mut first, mut first_generation) = fixture.incoming_for(vec![0; 60], budget, data(60));
     let (mut second, mut second_generation) = fixture.incoming_for(vec![2; 60], budget, data(60));
+    first.prefix_scope = isolate_prefixes.then_some([1; 24]);
+    second.prefix_scope = isolate_prefixes.then_some([2; 24]);
     first.prompt.reasoning_cut = reasoning_cut.clone();
     second.prompt.reasoning_cut = reasoning_cut.clone();
     sender.send(vec![first, second]).unwrap();
@@ -3290,6 +3408,8 @@ fn exercise_text_preemption(
         reasoning_cut.as_ref().is_some_and(|cut| cut.close != 1)
     );
     let index = usize::from(incoming.prompt.tokens[0] == 2);
+    let scope = incoming.prefix_scope;
+    assert_eq!(scope, isolate_prefixes.then_some([index as u8 + 1; 24]));
     let decoded_sequence = parked.carried.decoded_sequence;
     assert_ne!(decoded_sequence, Default::default());
     let history_len = incoming.prompt.tokens.len();
@@ -3316,7 +3436,8 @@ fn exercise_text_preemption(
         let pressure = worker
             .scheduler
             .admit(RequestSpec {
-                prompt: vec![3; page_tokens * 5],
+                prefix_scope: None,
+                initial_prompt_tokens: page_tokens * 5, prompt: vec![3; page_tokens * 5],
                 max_new_tokens: 1,
                 growable_output: false,
                 message_boundaries: vec![],
@@ -3331,6 +3452,7 @@ fn exercise_text_preemption(
     assert_eq!(worker.admit().unwrap(), ControlFlow::Continue(true));
     assert!(worker.parked.is_empty());
     let resumed = worker.active.iter().flatten().next().unwrap().request;
+    assert_eq!(worker.active[resumed.slot as usize].as_ref().unwrap().incoming.prefix_scope, scope);
     let live = worker.scheduler.request(resumed).unwrap();
     assert_eq!(live.decoded_sequence, decoded_sequence);
     if evict_checkpoint {
@@ -3410,18 +3532,21 @@ fn exercise_text_preemption(
 fn text_preemption_restores_or_recomputes_every_attention_contract() {
     for page_tokens in [64, 128, 256] {
         for evict in [false, true] {
+          for isolate in [false, true] {
             let mut metadata = crate::model::testing::metadata();
             metadata.cache.page_tokens = page_tokens;
             exercise_text_preemption(
                 metadata,
-                |n| PromptData {
+                |n| PromptData { audio_token_indices: Vec::new(),
                     positions: (0..n).map(|p| [p as i64; 3]).collect(),
                     vision_token_indices: vec![-1; n],
                     ..Default::default()
                 },
                 evict,
                 None,
+                isolate,
             );
+          }
         }
     }
 }
@@ -3430,16 +3555,19 @@ fn text_preemption_restores_or_recomputes_every_attention_contract() {
 fn reasoning_budget_survives_preemption_and_checkpoint_recomputation() {
     for evict in [false, true] {
         for close in [1, 4] {
+          for isolate in [false, true] {
             exercise_text_preemption(
                 crate::model::testing::metadata(),
-                |n| PromptData {
+                |n| PromptData { audio_token_indices: Vec::new(),
                     positions: (0..n).map(|p| [p as i64; 3]).collect(),
                     vision_token_indices: vec![-1; n],
                     ..Default::default()
                 },
                 evict,
                 Some(budget_cut(close, 16)),
+                isolate,
             );
+          }
         }
     }
 }
@@ -3567,6 +3695,13 @@ fn http_state_for(
         &[],
     )
     .unwrap();
+    #[cfg(feature = "audio")]
+    let audio = fixture.frontend.audio_settings().map(|settings|
+        Arc::new(crate::frontend::audio::AudioProcessor::new(settings.clone(), 1).unwrap()));
+    #[cfg(feature = "audio")]
+    let transcription = fixture.config.contract.frontend.transcription.as_ref().map(|format|
+        Arc::new(crate::frontend::transcription::Renderer::new(&fixture.frontend, format,
+            fixture.config.contract.frontend.audio_tokens.as_ref().unwrap()).unwrap()));
     let model = Arc::new(ModelRuntime {
         sender,
         stop: Arc::new(AtomicBool::new(false)),
@@ -3574,6 +3709,7 @@ fn http_state_for(
         config: Arc::new(fixture.config),
         event_capacity: 64,
         capacity: Arc::new(Semaphore::new(4)),
+        queue_capacity: Arc::new(Semaphore::new(4)),
         thread: Mutex::new(None),
         shutdown: Mutex::new(Some(Shutdown {
             drained: true,
@@ -3582,8 +3718,14 @@ fn http_state_for(
         finished: Arc::new((Mutex::new(true), Condvar::new())),
         metrics: fixture.metrics,
         input_store: None,
+            input_records: None,
+        prefix_scopes: None,
     });
     Arc::new(HttpState {
+        #[cfg(feature = "audio")]
+        audio,
+        #[cfg(feature = "audio")]
+        transcription,
         model,
         frontend: Arc::new(fixture.frontend),
         images: None,
@@ -3596,6 +3738,7 @@ fn http_state_for(
         run: crate::server::run_id(),
         ids: Default::default(),
         api_key,
+        served_names: Vec::new(),
         thinking_token_budget: None,
         context_hint: String::new(),
         capacity_hint: String::new(),
@@ -4388,7 +4531,8 @@ fn host_prefix_selects_whole_required_images_and_compacts_feature_indices() {
             let occupied = worker
                 .scheduler
                 .admit(RequestSpec {
-                    prompt: vec![1; 2],
+                    prefix_scope: None,
+                    initial_prompt_tokens: 2, prompt: vec![1; 2],
                     message_boundaries: vec![],
                     conditioning: vec![],
                     max_new_tokens: 1,
@@ -4441,6 +4585,7 @@ fn failed_host_restore_replans_all_images_from_the_shallower_prefix() {
         .frontend;
     let (sender, receiver) = mpsc::channel();
     let (mut incoming, _generation) = fixture.incoming(vec![0; 100], 4);
+    incoming.initial_prompt_tokens = 90;
     incoming.prompt.conditioned_inputs = vec![
         described_image(10..26, 0..16),
         described_image(40..56, 16..32),
@@ -4456,7 +4601,6 @@ fn failed_host_restore_replans_all_images_from_the_shallower_prefix() {
     assert_eq!(worker.active[0].as_ref().unwrap().selected_images.len(), 0);
     worker.active[0].as_mut().unwrap().carried = Carried {
         decoded_sequence: Default::default(),
-        prompt_tokens: Some(90),
         reused_prompt_tokens: Some(56),
         generated_tokens: 7,
         seed: Some(99),
@@ -4484,7 +4628,8 @@ fn failed_host_restore_replans_all_images_from_the_shallower_prefix() {
     assert_eq!(active.next_image, 0);
     assert!(active.incoming.readmitted);
     assert!(!active.incoming.host_lookup);
-    assert_eq!(active.carried.prompt_tokens, Some(90));
+    assert_eq!(active.incoming.initial_prompt_tokens, 90);
+    assert_eq!(worker.scheduler.request(active.request).unwrap().initial_prompt_tokens(), 90);
     assert_eq!(active.carried.reused_prompt_tokens, Some(56));
     assert_eq!(active.carried.generated_tokens, 7);
     assert_eq!(active.carried.seed, Some(99));
@@ -4677,7 +4822,7 @@ fn worker_restores_conditioned_windows_with_fresh_generation_and_unchanged_sampl
         embedding_tables: vec![],
         pending_token: None,
     });
-    manifest.graphs.push(GraphDescriptor { tuned_bindings: vec![],
+    manifest.graphs.push(GraphDescriptor { initial_prompt_capacity: 0, tuned_bindings: vec![],
         confidence_width: 0,
         draft_tokens: 0,
         name: "Vision-1-256".into(),
@@ -4708,7 +4853,7 @@ fn worker_restores_conditioned_windows_with_fresh_generation_and_unchanged_sampl
         .unwrap(),
     );
     let mut tokens = vec![0; 100];
-    let mut data = PromptData {
+    let mut data = PromptData { audio_token_indices: Vec::new(),
         positions: (0..100).map(|n| [n; 3]).collect(),
         vision_token_indices: vec![-1; 100],
         ..Default::default()
@@ -4750,6 +4895,7 @@ fn worker_restores_conditioned_windows_with_fresh_generation_and_unchanged_sampl
         scheduler,
         receiver,
         4,
+        super::super::PrefixCacheReuse::Shared,
     );
     worker.inputs = Some(crate::model::Inputs::new(&fixture.config, &manifest).unwrap());
     worker.image_preparation = Some(ImagePreparation::new(None));
@@ -4934,7 +5080,8 @@ fn unpinned_checkpoint(
     end: usize,
 ) -> crate::cache::CheckpointId {
     let spec = RequestSpec {
-        prompt: vec![token; end + 1],
+        prefix_scope: None,
+        initial_prompt_tokens: end + 1, prompt: vec![token; end + 1],
         message_boundaries: vec![],
         conditioning: vec![],
         max_new_tokens: 1,
@@ -5096,7 +5243,8 @@ fn publication_copy_pins_survive_ancestor_compaction() {
     assert_eq!(pins(&worker, b), 1);
     let (incoming, generation) = fixture.incoming(vec![1; 70], 4);
     let spec = RequestSpec {
-        prompt: incoming.prompt.tokens.clone(),
+        prefix_scope: None,
+        initial_prompt_tokens: incoming.initial_prompt_tokens, prompt: incoming.prompt.tokens.clone(),
         message_boundaries: vec![],
         conditioning: vec![],
         max_new_tokens: 4,
@@ -5245,7 +5393,8 @@ fn publication_retries_wait_for_progress_and_abandon_evicted_ids() {
         assert_eq!(pins(&worker, id), 0);
         assert_eq!(worker.deferred_stores, [(id, reason)]);
         let spec = RequestSpec {
-            prompt: vec![1; 70],
+            prefix_scope: None,
+            initial_prompt_tokens: 70, prompt: vec![1; 70],
             message_boundaries: vec![],
             conditioning: vec![],
             max_new_tokens: 1,
@@ -5286,4 +5435,50 @@ fn publication_losses_classify_oversize_and_copy_failure() {
         );
         assert_eq!(pins(&worker, id), 0);
     }
+}
+
+#[test]
+fn isolated_generations_receive_distinct_scopes_without_changing_prompts_or_sampling() {
+    let fixture = Fixture::new();
+    let (mut runtime, receiver) = group_runtime(&fixture, 4);
+    runtime.prefix_scopes = Some(PrefixScopes::new());
+    let first = runtime.generate(queued_prompt()).unwrap();
+    let second = runtime.generate(queued_prompt()).unwrap();
+    let mut a = receiver.recv().unwrap();
+    let mut b = receiver.recv().unwrap();
+    assert_ne!(a[0].prefix_scope, b[0].prefix_scope);
+    assert!(a[0].prefix_scope.is_some());
+    assert_eq!(a[0].prompt.tokens, b[0].prompt.tokens);
+    assert_eq!(a[0].prompt.sampling.seed, b[0].prompt.sampling.seed);
+    let scope = a[0].prefix_scope;
+    a[0].readmitted = true;
+    assert_eq!(a[0].spec().prefix_scope, scope);
+    assert_eq!(b[0].spec().prefix_scope, b[0].prefix_scope);
+    drop(first);
+    drop(second);
+    assert!(a[0].cancelled.load(Ordering::Acquire));
+    assert!(b[0].cancelled.load(Ordering::Acquire));
+    a.clear(); b.clear();
+    assert_eq!(runtime.capacity.available_permits(), 4);
+    assert_eq!(runtime.queue_capacity.available_permits(), 2);
+}
+
+#[test]
+fn request_scope_sequence_is_concurrent_and_never_wraps() {
+    let scopes = Arc::new(PrefixScopes::new());
+    let mut threads = Vec::new();
+    for _ in 0..8 {
+        let scopes = scopes.clone();
+        threads.push(std::thread::spawn(move ||
+            (0..128).map(|_| scopes.next().unwrap()).collect::<Vec<_>>()));
+    }
+    let all: std::collections::HashSet<_> = threads.into_iter()
+        .flat_map(|thread| thread.join().unwrap()).collect();
+    assert_eq!(all.len(), 1024);
+    assert!(all.iter().all(|scope| scope[..16] == scopes.nonce));
+    let last = PrefixScopes { nonce: [7; 16], next: AtomicU64::new(u64::MAX - 1) };
+    assert_eq!(&last.next().unwrap()[16..], &(u64::MAX - 1).to_le_bytes());
+    assert!(last.next().is_err());
+    assert!(last.next().is_err());
+    assert_eq!(last.next.load(Ordering::Relaxed), u64::MAX);
 }

@@ -9,6 +9,7 @@ FROM ubuntu:24.04 AS build
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential ca-certificates cmake dpkg-dev libibverbs-dev nasm \
     pkg-config protobuf-compiler python3 \
+    libavformat-dev libavcodec-dev libavutil-dev libswresample-dev \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=toolchain /usr/local/cargo /usr/local/cargo
 COPY --from=toolchain /usr/local/rustup /usr/local/rustup

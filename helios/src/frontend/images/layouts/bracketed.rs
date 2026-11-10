@@ -35,7 +35,7 @@ pub(crate) fn prepare_input(
         }
         return Ok(PreparedInput {
             tokens: rendered.token_ids.clone(),
-            data: PromptData {
+            data: PromptData { audio_token_indices: Vec::new(),
                 vision_token_indices: vec![-1; rendered.token_ids.len()],
                 ..Default::default()
             },
@@ -82,7 +82,7 @@ pub(crate) fn prepare_input(
     Ok(PreparedInput {
         token_expansions,
         tokens: expanded.token_ids,
-        data: PromptData {
+        data: PromptData { audio_token_indices: Vec::new(),
             vision_token_indices: indices,
             ..Default::default()
         },

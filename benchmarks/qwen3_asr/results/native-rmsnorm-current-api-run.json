@@ -1,0 +1,343 @@
+{
+  "scope": "Complete attempted current exported-package finite HTTP, frozen annotated long9 and144-request concurrency clients; failures retained, not full API/lifecycle/performance qualification",
+  "status": "failed_HTTP_network_controls_and_one_long_truncation_retained",
+  "client_source_head": "609edd83d8dfd0197346bc7babf2be77ba65765a",
+  "preparation_source_head": "b5754581fe44ff54b85a0845e122ca5b3382769a",
+  "runtime_source_head": "69ab162e71616d8fae7aae8ae6c991f06ea6ef0b",
+  "package_primary_sha256": "0d5f2748c9a64c8d9d54a8d429ca126b0ebad3f57e7af6a99e14eb3659c6c8fa",
+  "runtime_binary_sha256": "1c177cda5f5640888e54842af9ffaaf2ca15b261c19b4f06c69a25bdb75bd687",
+  "embedding_table_storage": "ram",
+  "across_request_cache_reuse": false,
+  "prepared_input_cache": "off",
+  "native_preparer_absent": true,
+  "native_python_torch_mappings_absent": true,
+  "raw_measurements": {
+    "HTTP": "native-rmsnorm-current-http.json.gz",
+    "long_speech": "native-rmsnorm-current-long.json.gz",
+    "concurrency": "native-rmsnorm-current-concurrency.json.gz"
+  },
+  "HTTP": {
+    "attempted_checks": 88,
+    "passed": 86,
+    "failed": [
+      "public-fixture-bytes-wav",
+      "public-fixture-bytes-mp3"
+    ],
+    "public_URL_fixture_prefetches_failed": true,
+    "public_URL_model_requests_executed": 0,
+    "public_URL_model_requests_unrun": 2,
+    "planned_complete_checks_if_both_fixture_prefetches_succeed": 90,
+    "scope_correction": "Earlier guard scope said HTTP89 based on a historical run. The extended client has88 non-model-public checks, including2 fixture prefetches;2 public model requests execute only after valid fixture bytes. This run attempted88, with86 passes; it is not89 or90 passing API checks."
+  },
+  "long_speech": {
+    "requests": 9,
+    "natural_stop": 8,
+    "truncated": 1,
+    "failed_in_denominator": true,
+    "failed_ids": [
+      "L_R003S01C02-540s"
+    ],
+    "failure": {
+      "id": "L_R003S01C02-540s",
+      "finish_reason": "length",
+      "generated_tokens": 2483,
+      "max_completion_tokens_per_service_child": 1024,
+      "interpretation": "At least one native child hit the output cap; parent includes a repeated filler phrase. No sample, chunk or output limit changed."
+    }
+  },
+  "concurrency": {
+    "requests": 144,
+    "status": "passed_finite_text_count_schedule",
+    "errors": [],
+    "same_input_text_and_actual_token_count_checks": true,
+    "schedule": [
+      {
+        "batch": 1,
+        "order": "baseline",
+        "repeat": 0,
+        "members": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "batch": 1,
+        "order": "forward",
+        "repeat": 0,
+        "members": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "batch": 1,
+        "order": "forward",
+        "repeat": 1,
+        "members": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "batch": 1,
+        "order": "reverse",
+        "repeat": 0,
+        "members": [
+          7,
+          6,
+          5,
+          4,
+          3,
+          2,
+          1,
+          0
+        ]
+      },
+      {
+        "batch": 1,
+        "order": "reverse",
+        "repeat": 1,
+        "members": [
+          7,
+          6,
+          5,
+          4,
+          3,
+          2,
+          1,
+          0
+        ]
+      },
+      {
+        "batch": 2,
+        "order": "forward",
+        "repeat": 0,
+        "members": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "batch": 2,
+        "order": "forward",
+        "repeat": 1,
+        "members": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "batch": 2,
+        "order": "reverse",
+        "repeat": 0,
+        "members": [
+          7,
+          6,
+          5,
+          4,
+          3,
+          2,
+          1,
+          0
+        ]
+      },
+      {
+        "batch": 2,
+        "order": "reverse",
+        "repeat": 1,
+        "members": [
+          7,
+          6,
+          5,
+          4,
+          3,
+          2,
+          1,
+          0
+        ]
+      },
+      {
+        "batch": 4,
+        "order": "forward",
+        "repeat": 0,
+        "members": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "batch": 4,
+        "order": "forward",
+        "repeat": 1,
+        "members": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "batch": 4,
+        "order": "reverse",
+        "repeat": 0,
+        "members": [
+          7,
+          6,
+          5,
+          4,
+          3,
+          2,
+          1,
+          0
+        ]
+      },
+      {
+        "batch": 4,
+        "order": "reverse",
+        "repeat": 1,
+        "members": [
+          7,
+          6,
+          5,
+          4,
+          3,
+          2,
+          1,
+          0
+        ]
+      },
+      {
+        "batch": 8,
+        "order": "forward",
+        "repeat": 0,
+        "members": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "batch": 8,
+        "order": "forward",
+        "repeat": 1,
+        "members": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "batch": 8,
+        "order": "reverse",
+        "repeat": 0,
+        "members": [
+          7,
+          6,
+          5,
+          4,
+          3,
+          2,
+          1,
+          0
+        ]
+      },
+      {
+        "batch": 8,
+        "order": "reverse",
+        "repeat": 1,
+        "members": [
+          7,
+          6,
+          5,
+          4,
+          3,
+          2,
+          1,
+          0
+        ]
+      },
+      {
+        "batch": 8,
+        "order": "after-parent-cancel",
+        "repeat": 0,
+        "members": [
+          7,
+          6,
+          5,
+          4,
+          3,
+          2,
+          1,
+          0
+        ]
+      }
+    ],
+    "native_token_IDs_observed": false,
+    "actual_slot_and_fence_IDs_observed": false,
+    "cancellation": "passed_active_queued_disconnect_and_retirement",
+    "scope": "Finite B1/2/4/8 ordering/repetition plus parent disconnect, drain and eight new requests; no unrelated short request was observed during cancellation."
+  },
+  "complete_HTTP_frontend_KV_feature_offload_idle_boundaries": [
+    "before-clients",
+    "after-HTTP-extended",
+    "after-annotated-long9",
+    "after-concurrency-and-parent-disconnect"
+  ],
+  "normal_server_exit_code": 0,
+  "listener_and_compute_owner_released": true,
+  "full_API_qualified": false,
+  "full_lifecycle_qualified": false,
+  "full_model_numerical_qualified": false,
+  "performance_qualified": false,
+  "formal_sustained_cells": 0
+}

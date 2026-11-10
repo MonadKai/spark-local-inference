@@ -7,6 +7,9 @@
 //! Native HTTP admission, bounded generation streams and direct graph scheduling.
 
 mod config;
+mod audio;
+#[cfg(feature = "audio")]
+mod transcription;
 mod dashboard;
 mod http;
 mod inference;
@@ -18,11 +21,13 @@ pub(crate) mod output;
 mod logprobs;
 mod protocol;
 mod request;
+mod seed;
 pub use request::{PreparedRequest, prepare as prepare_request};
 mod runtime;
 mod stops;
 pub(crate) mod token_spans;
 pub use config::Bootstrap;
+pub(crate) use config::frontend_capacities;
 pub use dashboard::view;
 pub use metrics::Snapshot;
 pub use runtime::{Generation, GenerationEvent, ModelRuntime, Prompt};
@@ -59,6 +64,34 @@ use std::{
 };
 use tokio::sync::{OwnedSemaphorePermit, Semaphore, oneshot};
 
+/// Reuse complete prefix state across generations, or only within one generation.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PrefixCacheReuse {
+    #[default]
+    Shared,
+    Request,
+}
+
+impl PrefixCacheReuse {
+    pub fn as_str(self) -> &'static str {
+        match self { Self::Shared => "shared", Self::Request => "request" }
+    }
+}
+
+impl std::str::FromStr for PrefixCacheReuse {
+    type Err = String;
+    fn from_str(value: &str) -> std::result::Result<Self, Self::Err> {
+        match value {
+            "shared" => Ok(Self::Shared),
+            "request" => Ok(Self::Request),
+            _ => Err("prefix cache reuse must be shared or request".into()),
+        }
+    }
+}
+
+pub use crate::offload::PreparedInputCacheMode;
+
 pub struct ServerConfig {
     pub bind: SocketAddr,
     pub queue_capacity: usize,
@@ -78,6 +111,9 @@ pub struct ServerConfig {
     /// Setting that raises request or page capacity, appended to capacity rejections.
     pub capacity_hint: String,
     pub scheduling_policy: crate::scheduler::PolicyConfig,
+    pub prefix_cache_reuse: PrefixCacheReuse,
+    /// None retains the historical coupling to prefix-cache reuse.
+    pub prepared_input_cache: Option<PreparedInputCacheMode>,
 }
 impl Default for ServerConfig {
     fn default() -> Self {
@@ -93,6 +129,8 @@ impl Default for ServerConfig {
             context_hint: String::new(),
             capacity_hint: String::new(),
             scheduling_policy: crate::scheduler::PolicyConfig::default(),
+            prefix_cache_reuse: PrefixCacheReuse::Shared,
+            prepared_input_cache: None,
         }
     }
 }
@@ -102,6 +140,10 @@ struct HttpState {
     model: Arc<ModelRuntime>,
     frontend: Arc<Frontend>,
     images: Option<Arc<ImageProcessor>>,
+    #[cfg(feature = "audio")]
+    audio: Option<Arc<crate::frontend::audio::AudioProcessor>>,
+    #[cfg(feature = "audio")]
+    transcription: Option<Arc<crate::frontend::transcription::Renderer>>,
     grammar: Arc<crate::grammar::GrammarCompiler>,
     frontend_slots: Arc<Semaphore>,
     ingress_slots: Arc<Semaphore>,
@@ -112,6 +154,7 @@ struct HttpState {
     run: u64,
     ids: AtomicU64,
     api_key: Option<String>,
+    served_names: Vec<String>,
     thinking_token_budget: Option<u32>,
     context_hint: String,
     capacity_hint: String,
@@ -195,6 +238,22 @@ impl Server {
         {
             return Err("invalid HTTP admission limits".into());
         }
+        if model.contract.audio.is_some() != frontend.audio_settings().is_some() {
+            return Err("audio settings must match prepared feature storage".into());
+        }
+        if model.contract.audio.as_ref().zip(frontend.audio_settings())
+            .is_some_and(|(capacity, settings)| capacity.mel_bins != settings.mel_bins as usize) {
+            return Err("audio settings and encoder storage require the same Mel-bin count".into());
+        }
+        #[cfg(feature = "audio")]
+        let audio = frontend.audio_settings().cloned()
+            .map(|settings| crate::frontend::audio::AudioProcessor::new(settings, config.frontend_workers))
+            .transpose()?.map(Arc::new);
+        #[cfg(feature = "audio")]
+        let transcription = model.contract.frontend.transcription.as_ref().map(|format| {
+            crate::frontend::transcription::Renderer::new(&frontend, format,
+                model.contract.frontend.audio_tokens.as_ref().ok_or("transcription requires audio markers")?)
+        }).transpose()?.map(Arc::new);
         let delimiters =
             crate::model::reasoning_delimiter_tokens(&frontend, &model.contract.frontend)?;
         config.validate_thinking_budget(&frontend, &model)?;
@@ -221,12 +280,18 @@ impl Server {
                 frontend.clone(),
                 peers,
                 config.scheduling_policy,
+                config.prefix_cache_reuse,
+                config.prepared_input_cache,
             )?
         });
         let state = Arc::new(HttpState {
             model: model.clone(),
             frontend,
             images: images.map(Arc::new),
+            #[cfg(feature = "audio")]
+            audio,
+            #[cfg(feature = "audio")]
+            transcription,
             grammar,
             frontend_slots: Arc::new(Semaphore::new(config.frontend_workers)),
             ingress_slots: Arc::new(Semaphore::new(ingress_capacity)),
@@ -236,6 +301,7 @@ impl Server {
             run: run_id(),
             ids: AtomicU64::new(1),
             api_key: config.api_key.clone(),
+            served_names: config.served_names.clone(),
             thinking_token_budget: config.thinking_token_budget,
             context_hint: config.context_hint.clone(),
             capacity_hint: config.capacity_hint.clone(),
@@ -409,7 +475,7 @@ impl Drop for Server {
 /// Routes generation and model discovery behind API-key authentication; health
 /// and metrics expose no request content and stay unauthenticated.
 fn router(state: Arc<HttpState>, served_names: &[String], max_body_bytes: usize) -> Router {
-    Router::new()
+    let router = Router::new()
         .merge(models::router(
             state.model.config(),
             served_names,
@@ -422,6 +488,11 @@ fn router(state: Arc<HttpState>, served_names: &[String], max_body_bytes: usize)
         .route("/v1/responses", post(http::generate).get(http::no_websocket).layer(middleware::from_fn_with_state(state.clone(), admit_http)))
         .route("/v1/systemone", post(protocol::decisions::generate).layer(middleware::from_fn_with_state(state.clone(), admit_http)))
         .route("/v1/decisions", post(protocol::decisions::generate).layer(middleware::from_fn_with_state(state.clone(), admit_http)))
+        ;
+    #[cfg(feature = "audio")]
+    let router = router.route("/v1/audio/transcriptions", post(transcription::generate)
+        .layer(middleware::from_fn_with_state(state.clone(), admit_http)));
+    router
         .route_layer(middleware::from_fn_with_state(state.clone(), authorize))
         .route("/health", get(health))
         .route("/metrics", get(metrics))
@@ -446,7 +517,7 @@ async fn metrics(State(state): State<Arc<HttpState>>, uri: Uri, headers: HeaderM
         Err(message) => return error(StatusCode::BAD_REQUEST, message),
     };
     let input_metrics = metrics::input_metrics(
-        state.model.input_store().map(|store| store.stats()).unwrap_or_default(),
+        state.model.input_record_stats(),
         state.images.as_ref().map(|processor| processor.preparation_counts()).unwrap_or_default(),
     );
     if format == metrics::Format::Json {

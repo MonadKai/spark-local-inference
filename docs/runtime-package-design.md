@@ -83,7 +83,15 @@ extents of dynamic caches; unused gaps in the preparation arena are omitted. PyT
 allocates through a `MemPool` whose pluggable allocator is the Rust arena in
 `heliopause/src/allocator.rs`, so weights, state, pages, and the
 graph pool all live inside the range. Ordinary preparation and capture use
-separate PyTorch pools backed by that arena. Mapped host buffers, including
+separate PyTorch pools backed by that arena. A successful backing allocation
+checks creation, mapping, creator-reference release, and access before publishing
+its pointer. Driver OOM during creation remains retryable. Failure after creation
+quarantines the address and any uncertain physical reference until process exit;
+later allocator operations and export inventory fail without retrying the driver
+resource operations. This avoids reusing a possibly mapped address or releasing
+an already released handle after an asynchronous error.
+
+Mapped host buffers, including
 n-gram request mailboxes, use fixed addresses from `0x0c00_0000_0000` when
 the device rank ranges fit below it. Larger Linux layouts start host storage
 at `0x2000_0000_0000` to avoid overlap. Each rank has a disjoint 1 TiB host
@@ -586,6 +594,20 @@ On integrated GPUs such as GB10, that budget is Linux `MemAvailable`, capped
 by CUDA's device total. CPU allocations, registered buffers, and GPU allocations
 share physical DRAM; reclaimable page cache contributes to available memory,
 while swap does not. Discrete GPUs use CUDA's free device-memory query.
+Before sizing caches, audio frontends reserve future host payloads using the
+authenticated audio limits and selected serving concurrency. Ingress capacity is
+the HTTP queue plus active requests; decoded parent PCM can remain live after a
+frontend worker returns its permit. The reserve includes retained parent and
+child Mel matrices, worker-local Mel copies and sample padding, full STFT
+temporaries for FP32 FMA processing, encoded upload buffers, and a body-payload
+allowance. Serialized input-store records, read windows, and encoded staging
+retain their separate charges. Generic host headroom remains necessary: the
+body allowance is not an exact bound on JSON or allocator RSS. These future host
+allocations reduce the integrated GPU's cache budget; they do not reduce a
+discrete GPU's device budget. Packages without an audio frontend keep their
+existing reserve. Missing audio numerics retain the legacy transform's storage
+charge. Capacity overflow or invalid audio settings fail startup.
+
 Dedicated rows comprise one null row and the selected request capacity times
 the recipe's execution rows per request. KV pages receive the remaining budget,
 within their virtual maximum. The planner accounts for mapping alignment and

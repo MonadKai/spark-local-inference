@@ -38,6 +38,7 @@ openssl = "0.10"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 io-uring = "0.7.11"
+helios-core = { package = "flare-helios", path = "../helios", features = ["runtime-package", "audio"] }
 
 # sha2 0.10 gates ARM SHA-256 instructions behind its asm feature.
 [target.'cfg(all(target_os = "linux", target_arch = "aarch64"))'.dependencies]

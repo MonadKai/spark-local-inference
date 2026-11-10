@@ -13,6 +13,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use crate::Result;
 pub use flare_selene::{CheckpointId, PageId};
 pub use hash::{ConditioningEvent, HASH_BLOCK_TOKENS, PrefixHistory, PrefixKey};
+pub(crate) use hash::model_cache_identity;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct SnapshotId(pub u32);
@@ -213,6 +214,13 @@ impl PrefixCheckpointCache {
 
     pub fn completed(&self) -> Fence {
         self.completed
+    }
+
+    /// Ready, unpinned checkpoints have no remaining cache or GPU user.
+    pub(crate) fn idle_reclamation_ready(&self) -> bool {
+        self.retirement.is_empty() && self.nodes.values().all(|node|
+            node.ready && node.pins == 0 && node.last_use <= self.completed
+                && node.ready_after <= self.completed)
     }
 
     pub fn checkpoint(&self, id: CheckpointId) -> Result<&Checkpoint> {

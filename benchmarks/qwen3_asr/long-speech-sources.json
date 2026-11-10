@@ -1,0 +1,106 @@
+{
+  "scope": "supplemental continuous annotated meeting speech; separate from the frozen 128+128 qualification set",
+  "fixed_before_recognizer_execution": true,
+  "request": {
+    "temperature": 0,
+    "seed": 0,
+    "max_model_len": 8192,
+    "context": "",
+    "language": "utterance.language",
+    "max_completion_tokens": 1024
+  },
+  "segments": [
+    {
+      "anchor_seconds": 30,
+      "target_seconds": 90
+    },
+    {
+      "anchor_seconds": 240,
+      "target_seconds": 240
+    },
+    {
+      "anchor_seconds": 600,
+      "target_seconds": 540
+    }
+  ],
+  "boundary_rule": "annotation start/end candidates only; floor and ceil to 16 kHz sample positions; first sample within 15 seconds after anchor or anchor+target that lies inside no protected interval on any speaker; an anchor already in silence is not an extra candidate; fail acquisition when absent; retain continuous samples, pauses, overlap and speaker turns",
+  "reference_order": [
+    "start",
+    "end",
+    "speaker_id",
+    "annotation_id"
+  ],
+  "ami": {
+    "source": "https://groups.inf.ed.ac.uk/ami/download/",
+    "license": "CC-BY-4.0",
+    "annotations": "https://groups.inf.ed.ac.uk/ami/AMICorpusAnnotations/ami_public_manual_1.6.2.zip",
+    "annotation_release": "1.6.2",
+    "channel": "official Mix-Headset",
+    "recordings": [
+      {
+        "id": "ES2002a",
+        "audio": "https://groups.inf.ed.ac.uk/ami/AMICorpusMirror/amicorpus/ES2002a/audio/ES2002a.Mix-Headset.wav"
+      },
+      {
+        "id": "IS1000a",
+        "audio": "https://groups.inf.ed.ac.uk/ami/AMICorpusMirror/amicorpus/IS1000a/audio/IS1000a.Mix-Headset.wav"
+      }
+    ],
+    "protected_intervals": "every original speech segment, including segments without lexical words; preserve exact XML decimal times",
+    "reference": "timed w elements referenced by the original segments; all words must have exactly one containing segment; retain original word shape and truncation/mispronunciation attributes; record gaps separately",
+    "known_boundary_acquisition_failures": [
+      {
+        "recording": "ES2002a",
+        "target_seconds": 90,
+        "reason": "no safe original segment boundary within the frozen 15-second window"
+      },
+      {
+        "recording": "ES2002a",
+        "target_seconds": 240,
+        "reason": "no safe original segment boundary within the frozen 15-second window"
+      },
+      {
+        "recording": "ES2002a",
+        "target_seconds": 540,
+        "reason": "no safe original segment boundary within the frozen 15-second window"
+      }
+    ]
+  },
+  "aishell4": {
+    "source": "https://www.openslr.org/111/",
+    "license": "CC-BY-SA-4.0",
+    "mirror": "AISHELL/AISHELL-4",
+    "revision": "aada72727856313b19d4a030383c426364931dbf",
+    "channel": 0,
+    "license_note": "The mirror card labels Apache-2.0; dataset use follows the original publisher CC-BY-SA-4.0 statement. Original-WAV and mirror-FLAC decoded equivalence is not yet verified.",
+    "recordings": [
+      {
+        "id": "L_R003S01C02",
+        "audio": "https://huggingface.co/datasets/AISHELL/AISHELL-4/resolve/aada72727856313b19d4a030383c426364931dbf/test/wav/L_R003S01C02.flac",
+        "annotations": "https://huggingface.co/datasets/AISHELL/AISHELL-4/resolve/aada72727856313b19d4a030383c426364931dbf/test/TextGrid/L_R003S01C02.TextGrid",
+        "rttm": "https://huggingface.co/datasets/AISHELL/AISHELL-4/resolve/aada72727856313b19d4a030383c426364931dbf/test/TextGrid/L_R003S01C02.rttm"
+      },
+      {
+        "id": "L_R003S02C02",
+        "audio": "https://huggingface.co/datasets/AISHELL/AISHELL-4/resolve/aada72727856313b19d4a030383c426364931dbf/test/wav/L_R003S02C02.flac",
+        "annotations": "https://huggingface.co/datasets/AISHELL/AISHELL-4/resolve/aada72727856313b19d4a030383c426364931dbf/test/TextGrid/L_R003S02C02.TextGrid",
+        "rttm": "https://huggingface.co/datasets/AISHELL/AISHELL-4/resolve/aada72727856313b19d4a030383c426364931dbf/test/TextGrid/L_R003S02C02.rttm"
+      }
+    ],
+    "protected_intervals": "every nonempty original TextGrid IntervalTier interval on all six speakers; preserve original decimal precision; RTTM is a rounded cross-check only",
+    "reference_markers": {
+      "source": "https://aishell-4.oss-cn-hangzhou.aliyuncs.com/AISHELL-4%20Data-Specification.pdf",
+      "rule": "remove marker literals only, retain all other text and per-interval marker metadata; never discard a whole utterance for invalid speech, partial words or overlap",
+      "markers": {
+        "<sil>": "hesitation/pause",
+        "<$>": "laughter",
+        "<%>": "cough",
+        "<#>": "invalid speech",
+        "<->": "partial word",
+        "<_>": "truncated sentence",
+        "&": "overlap"
+      },
+      "uncertainty": "invalid-speech and partial-word intervals are not fully determined lexical truth; overlapping utterance order is deterministic reference order, not a word-interleaving claim"
+    }
+  }
+}

@@ -132,10 +132,13 @@ pub struct SchedulerCapabilities {
     /// Recurrent state and sliding windows occupy separately reserved continuation rows.
     pub page_tokens: usize,
     pub vision: crate::model::VisionCapabilities,
+    pub audio: Option<crate::model::contract::AudioCapacity>,
+    pub immutable_request_values: Vec<crate::model::contract::ValueSource>,
     pub draft_pages_per_request: usize,
-    /// Host completion inputs keyed by kind, batch, draft depth, width, packed rows and prefill rows.
+    /// Host completion inputs keyed by kind, batch, draft depth, width, packed rows,
+    /// prefill rows and initial prompt extent.
     /// Graphs requiring these values drain before another generation round.
-    pub completion_inputs: Vec<((GraphKind, usize, usize, usize, usize, usize), Vec<String>)>,
+    pub completion_inputs: Vec<((GraphKind, usize, usize, usize, usize, usize, usize), Vec<String>)>,
     pub speculative_allocations: Vec<(usize, usize, usize, usize, crate::execution::PrefixAllocation)>,
     /// Execution state rows each active request holds; None, the widest speculative graph's width.
     pub state_rows_per_request: Option<usize>,
@@ -170,7 +173,11 @@ pub struct SchedulerStats {
 
 #[derive(Clone)]
 pub struct RequestSpec {
+    /// Stable across this generation's readmissions; absent shares prefixes.
+    pub prefix_scope: Option<[u8; 24]>,
     pub prompt: Vec<u32>,
+    /// Fully expanded input length at first submission; unchanged on readmission.
+    pub initial_prompt_tokens: usize,
     pub message_boundaries: Vec<usize>,
     pub conditioning: Vec<ConditioningEvent>,
     pub max_new_tokens: u32,
@@ -190,6 +197,7 @@ pub enum RequestPhase {
     Inbound,
     Restore,
     Vision,
+    AudioEncode,
     Prefill,
     Resume,
     Decode,
@@ -211,16 +219,34 @@ struct BoundaryCapture {
     resume: RequestPhase,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg(any(feature = "server", test))]
 pub(crate) struct ConditionedInput {
     pub token_span: std::ops::Range<usize>,
     pub feature_range: std::ops::Range<usize>,
-    pub patches: usize,
+    pub encodings: Vec<EncoderJob>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum EncoderJob {
+    Vision { patches: usize },
+    Audio { frames: usize, features: usize },
+}
+
+impl EncoderJob {
+    pub(crate) fn operation(self) -> GraphKind {
+        match self { Self::Vision { .. } => GraphKind::Vision, Self::Audio { .. } => GraphKind::AudioEncode }
+    }
+
+    pub(crate) fn units(self) -> usize {
+        match self { Self::Vision { patches } => patches, Self::Audio { frames, .. } => frames }
+    }
 }
 
 #[derive(Clone, Debug)]
 struct ConditionedWindow {
+    #[cfg(any(feature = "server", test))]
+    single_input: Option<ConditionedInput>,
     #[cfg(any(feature = "server", test))]
     inputs: std::ops::Range<usize>,
     #[cfg(any(feature = "server", test))]
@@ -228,11 +254,41 @@ struct ConditionedWindow {
     prefill_end: usize,
     #[cfg(any(feature = "server", test))]
     features: Vec<std::ops::Range<usize>>,
-    patches: VecDeque<usize>,
+    encodings: VecDeque<EncoderJob>,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+#[cfg(any(feature = "server", test))]
+struct PrerequisiteState {
+    handle: RequestHandle,
+    epoch: u64,
+    feature_slot: usize,
+    input: ConditionedInput,
+    window_inputs: std::ops::Range<usize>,
+    prefill_end: usize,
+}
+
+/// A whole immutable input's outstanding prerequisite, never a graph completion.
+/// The worker must keep ownership through its fenced copy and revalidate here.
+#[cfg(any(feature = "server", test))]
+pub(crate) struct ConditionedPrerequisite {
+    owner: Arc<()>,
+    state: PrerequisiteState,
+}
+
+#[cfg(any(feature = "server", test))]
+impl ConditionedPrerequisite {
+    pub(crate) fn feature_slot(&self) -> usize { self.state.feature_slot }
+    pub(crate) fn input(&self) -> &ConditionedInput { &self.state.input }
+    #[cfg(test)]
+    pub(crate) fn same_as(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.owner, &other.owner) && self.state == other.state
+    }
 }
 
 pub struct LiveRequest {
     pub image_slot: Option<usize>,
+    pub audio_slot: Option<usize>,
     conditioned_features: Option<Vec<std::ops::Range<usize>>>,
     conditioned_inputs_ready: bool,
     conditioned_windows: VecDeque<ConditionedWindow>,
@@ -249,6 +305,8 @@ pub struct LiveRequest {
     pub consumed_tokens: u64,
     pub generated_tokens: u32,
     pub prompt_tokens: usize,
+    initial_prompt_tokens: usize,
+    initial_prompt_capacity: usize,
     pub grammar_constrained: bool,
     pub error_code: Option<i64>,
     host_stops: bool,
@@ -273,7 +331,7 @@ pub struct LiveRequest {
     last_use: Fence,
     pending: usize,
     terminal_snapshot_ready: bool,
-    vision_patches: VecDeque<usize>,
+    encoder_jobs: VecDeque<EncoderJob>,
     prefill_spans: Vec<std::ops::Range<usize>>,
     copy_proposal: Option<speculation::CopyProposal>,
     pub(crate) decoded_sequence: decoded_history::DecodedSequence,
@@ -284,6 +342,18 @@ pub struct LiveRequest {
 }
 
 impl LiveRequest {
+    pub fn initial_prompt_tokens(&self) -> usize {
+        self.initial_prompt_tokens
+    }
+
+    pub fn initial_prompt_capacity(&self) -> usize {
+        self.initial_prompt_capacity
+    }
+
+    pub(crate) fn encoder_job(&self) -> Option<EncoderJob> {
+        self.encoder_jobs.front().copied()
+    }
+
     fn plans_prompt_capture(&self) -> bool {
         self.checkpoint_budget >= 2 && self.max_new_tokens > 1
     }
@@ -340,7 +410,7 @@ impl LiveRequest {
     }
     fn following_conditioned_window(&self) -> Option<&ConditionedWindow> {
         let window = self.conditioned_windows.front()?;
-        (self.vision_patches.is_empty() && self.consumed_tokens as usize == window.prefill_end)
+        (self.encoder_jobs.is_empty() && self.consumed_tokens as usize == window.prefill_end)
             .then(|| self.conditioned_windows.get(1))
             .flatten()
     }
@@ -353,8 +423,8 @@ impl LiveRequest {
             .map_or(self.prompt_tokens, |window| window.prefill_end)
     }
     fn prompt_phase(&self) -> RequestPhase {
-        if !self.vision_patches.is_empty() {
-            RequestPhase::Vision
+        if let Some(job) = self.encoder_jobs.front() {
+            match job { EncoderJob::Vision { .. } => RequestPhase::Vision, EncoderJob::Audio { .. } => RequestPhase::AudioEncode }
         } else if self.consumed_tokens == self.prompt_tokens as u64 {
             RequestPhase::Resume
         } else {
@@ -417,6 +487,7 @@ pub struct MixedStep {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ScheduledStep {
+    pub initial_prompt_capacity: usize,
     pub draft_tokens: usize,
     pub kind: GraphKind,
     pub batch_capacity: usize,
@@ -438,6 +509,11 @@ impl ScheduledStep {
     }
 
     pub fn validate_mixed(&self) -> Result<()> {
+        if self.initial_prompt_capacity != 0
+            && (!matches!(self.kind, GraphKind::Prefill | GraphKind::ScoredPrefill)
+                || self.initial_prompt_capacity > i32::MAX as usize) {
+            return Err("initial prompt extent belongs only to bounded prefill steps".into());
+        }
         if self.kind == GraphKind::Speculative {
             if self.draft_tokens == usize::MAX || self.token_capacity == 0
                 || (self.token_capacity == 1 && self.draft_tokens != 0)
@@ -595,6 +671,7 @@ pub struct GeneratedToken {
 
 struct RetiredRequest {
     image_slot: Option<usize>,
+    audio_slot: Option<usize>,
     pages: Vec<PageId>,
     snapshots: [Option<SnapshotId>; 4],
     slot: usize,
@@ -612,6 +689,8 @@ struct Slot {
 pub struct AdmissionPlan {
     history: PrefixHistory,
     lookup: Lookup,
+    initial_prompt_tokens: usize,
+    initial_prompt_capacity: usize,
 }
 
 impl AdmissionPlan {
@@ -661,6 +740,7 @@ pub struct RequestScheduler {
     slots: Vec<Slot>,
     free_pages: BTreeSet<PageId>,
     free_image_slots: BTreeSet<usize>,
+    free_audio_slots: BTreeSet<usize>,
     free_snapshots: BTreeSet<SnapshotId>,
     snapshot_pages: Vec<std::ops::Range<u32>>,
     page_snapshot_refs: Vec<u32>,
@@ -676,6 +756,7 @@ pub struct RequestScheduler {
     speculative_fixed_width: Option<usize>,
     speculative_catalog: [Vec<usize>; 7],
     prefill_catalog: Vec<usize>,
+    initial_prompt_capacities: Vec<usize>,
     scored_prefill_catalog: Vec<usize>,
     mixed_catalog: Vec<(usize, usize, usize)>,
     proposal_source: speculation::ProposalSource,
@@ -711,6 +792,18 @@ impl RequestScheduler {
     ) -> Result<Self> {
         limits.validate_prefill()?;
         capabilities.vision.validate()?;
+        if capabilities.immutable_request_values.len() > 1
+            || capabilities.immutable_request_values.iter().any(|source|
+                *source != crate::model::contract::ValueSource::InitialPromptTokens)
+        {
+            return Err("unsupported or duplicate immutable cache request value".into());
+        }
+        if let Some(audio) = &capabilities.audio {
+            audio.feature_stride()?;
+            if audio.feature_slots > limits.request_slots {
+                return Err("audio feature slots exceed prepared request capacity".into());
+            }
+        }
         if capabilities.completion_token_capacity == 0
             || capabilities.draft_pages_per_request > limits.pages as usize
             || capabilities.vocabulary == 0
@@ -740,6 +833,7 @@ impl RequestScheduler {
             plan_owner: Arc::new(()),
             limits,
             free_image_slots: (0..capabilities.vision.feature_slots).collect(),
+            free_audio_slots: (0..capabilities.audio.as_ref().map_or(0, |audio| audio.feature_slots)).collect(),
             capabilities,
             identity,
             cache,
@@ -766,6 +860,7 @@ impl RequestScheduler {
             speculative_fixed_width: None,
             speculative_catalog: Default::default(),
             prefill_catalog: prefill_capacities(limits.prefill_chunk_size).collect(),
+            initial_prompt_capacities: vec![0],
             scored_prefill_catalog: Vec::new(),
             mixed_catalog: Vec::new(),
             proposal_source: speculation::ProposalSource::Mtp,
@@ -1031,7 +1126,16 @@ impl RequestScheduler {
         if self.submitted != Fence(0) || self.slots.iter().any(|s| s.request.is_some()) {
             return Err("graph durations must be configured before admission".into());
         }
+        let mut initial: Vec<_> = graphs.iter().filter(|graph| graph.kind == GraphKind::Prefill)
+            .map(|graph| graph.initial_prompt_capacity).collect::<BTreeSet<_>>().into_iter().collect();
+        if initial.is_empty() { initial.push(0); }
+        if (initial.contains(&0) && initial.len() != 1)
+            || (initial[0] != 0 && (initial.last().copied().unwrap() < self.limits.max_sequence_tokens
+                || graphs.iter().any(|graph| graph.kind == GraphKind::Mixed))) {
+            return Err("initial prompt graph geometry does not cover the serving limits".into());
+        }
         self.costs = cost::ActionCosts::prepared(graphs, self.capabilities.completion_token_capacity)?;
+        self.initial_prompt_capacities = initial;
         self.costs
             .advance_to(self.now_ns, self.policy.estimate_ttl_ns);
         // Each graph contributes at most one candidate per request slot.
@@ -1074,7 +1178,7 @@ impl RequestScheduler {
 
     pub fn plan_requires_feedback(&self, plan: &ScheduledPlan) -> bool {
         let geometry = (plan.kind, plan.batch_capacity, plan.draft_tokens, plan.token_capacity,
-            plan.packed_token_capacity, plan.prefill_capacity());
+            plan.packed_token_capacity, plan.prefill_capacity(), plan.initial_prompt_capacity);
         plan.requires_feedback || !matches!(plan.kind, GraphKind::Decode | GraphKind::Speculative)
             || self.capabilities.completion_inputs.iter().any(|(key, inputs)| *key == geometry && !inputs.is_empty())
             || plan.lanes.iter().any(|lane| self.request(lane.request).is_ok_and(|request|
@@ -1406,10 +1510,20 @@ impl RequestScheduler {
         Ok(self.admit_planned(spec, plan, None)?.handle)
     }
 
+    fn resolve_initial_prompt_capacity(&self, tokens: usize) -> Result<usize> {
+        self.initial_prompt_capacities.iter().copied().find(|&capacity| capacity == 0 || capacity >= tokens)
+            .ok_or_else(|| crate::Error::admission(crate::AdmissionError::Invalid,
+                "initial prompt exceeds its prepared arithmetic extent"))
+    }
+
     /// Validates the request, builds its prefix history, and looks up the GPU
     /// cache without reserving anything.
     pub fn plan_admission(&mut self, spec: &RequestSpec) -> Result<AdmissionPlan> {
         if spec.prompt.is_empty()
+            || spec.initial_prompt_tokens == 0
+            || spec.initial_prompt_tokens > spec.prompt.len()
+            || (!self.capabilities.immutable_request_values.is_empty()
+                && spec.initial_prompt_tokens > i32::MAX as usize)
             || spec.message_boundaries.first() == Some(&0)
             || spec.message_boundaries.last().is_some_and(|n| *n > spec.prompt.len())
             || spec.message_boundaries.windows(2).any(|pair| pair[0] >= pair[1])
@@ -1425,9 +1539,25 @@ impl RequestScheduler {
                 "request requires a nonempty prompt, positive output limit, and bounded total tokens",
             ));
         }
+        let initial_prompt_capacity = self.resolve_initial_prompt_capacity(spec.initial_prompt_tokens)?;
         self.free_slot()?;
-        let mut history = PrefixHistory::new(self.identity);
-        history.append(&spec.prompt, &spec.conditioning)?;
+        let mut history = PrefixHistory::new_scoped(self.identity, spec.prefix_scope);
+        if self.capabilities.immutable_request_values.is_empty() {
+            history.append(&spec.prompt, &spec.conditioning)?;
+        } else {
+            let mut events = Vec::with_capacity(self.capabilities.immutable_request_values.len()
+                + spec.conditioning.len());
+            for source in &self.capabilities.immutable_request_values {
+                let value = match source {
+                    crate::model::contract::ValueSource::InitialPromptTokens => spec.initial_prompt_tokens as u64,
+                    _ => return Err("unsupported immutable cache request value".into()),
+                };
+                events.push(ConditioningEvent::request_value_with_extent(*source as i32, value,
+                    initial_prompt_capacity as u64));
+            }
+            events.extend_from_slice(&spec.conditioning);
+            history.append(&spec.prompt, &events)?;
+        }
         if spec.prompt_logprobs && self.scored_prefill_catalog.is_empty() {
             return Err(crate::Error::admission(crate::AdmissionError::Invalid,
                 "prompt logprobs are not available in this model package"));
@@ -1435,7 +1565,8 @@ impl RequestScheduler {
         let lookup = if spec.prompt_logprobs {
             Lookup { checkpoint: None, consumed_tokens: 0, pages: Vec::new(), snapshot: None }
         } else { self.cache.lookup(&history)? };
-        Ok(AdmissionPlan { history, lookup })
+        Ok(AdmissionPlan { history, lookup, initial_prompt_tokens: spec.initial_prompt_tokens,
+            initial_prompt_capacity })
     }
 
     /// Recheck GPU residency while retaining a queued request's validated history.
@@ -1444,6 +1575,8 @@ impl RequestScheduler {
         Ok(AdmissionPlan {
             history: plan.history.clone(),
             lookup: self.cache.lookup(&plan.history)?,
+            initial_prompt_tokens: plan.initial_prompt_tokens,
+            initial_prompt_capacity: plan.initial_prompt_capacity,
         })
     }
 
@@ -1477,7 +1610,14 @@ impl RequestScheduler {
         plan: AdmissionPlan,
         inbound: Option<InboundRequest>,
     ) -> Result<Admitted> {
-        let AdmissionPlan { history, lookup } = plan;
+        let AdmissionPlan { history, lookup, initial_prompt_tokens, initial_prompt_capacity } = plan;
+        if spec.initial_prompt_tokens != initial_prompt_tokens
+            || initial_prompt_tokens > spec.prompt.len()
+            || self.resolve_initial_prompt_capacity(initial_prompt_tokens)? != initial_prompt_capacity
+        {
+            return Err(crate::Error::admission(crate::AdmissionError::Invalid,
+                "initial prompt length or extent differs from its validated admission plan"));
+        }
         // Lookups count once per admitted request, not per attempt of a waiting one.
         let (hit, reused) = (lookup.checkpoint.is_some(), lookup.consumed_tokens);
         let page_tokens = self.capabilities.page_tokens as u64;
@@ -1615,6 +1755,7 @@ impl RequestScheduler {
         self.slots[slot].generation = generation;
         self.slots[slot].request = Some(LiveRequest {
             image_slot: None,
+            audio_slot: None,
             conditioned_features: None,
             conditioned_inputs_ready: true,
             conditioned_windows: VecDeque::new(),
@@ -1631,6 +1772,8 @@ impl RequestScheduler {
             consumed_tokens: consumed,
             generated_tokens: 0,
             prompt_tokens: spec.prompt.len(),
+            initial_prompt_tokens,
+            initial_prompt_capacity,
             grammar_constrained: spec.grammar_constrained,
             host_stops: spec.host_stops,
             prompt_logprobs: spec.prompt_logprobs,
@@ -1657,7 +1800,7 @@ impl RequestScheduler {
             last_use: Fence(0),
             pending: 0,
             terminal_snapshot_ready: false,
-            vision_patches: VecDeque::new(),
+            encoder_jobs: VecDeque::new(),
             prefill_spans: Vec::new(),
             growable_output: spec.growable_output,
             preempted: false,
@@ -1903,18 +2046,20 @@ impl RequestScheduler {
         handle: RequestHandle,
         inputs: &[ConditionedInput],
     ) -> Result<()> {
-        let maximum = self
-            .capabilities
-            .vision
-            .patch_capacities
-            .last()
-            .copied()
-            .unwrap_or(0);
-        let capacity = self.capabilities.vision.features_per_request;
+        let operation = inputs.first().and_then(|input| input.encodings.first()).map(|job| job.operation());
+        let (maximum, capacity) = match operation {
+            Some(GraphKind::Vision) => (self.capabilities.vision.patch_capacities.last().copied().unwrap_or(0),
+                self.capabilities.vision.features_per_request),
+            Some(GraphKind::AudioEncode) => self.capabilities.audio.as_ref()
+                .map(|audio| (audio.frame_capacities.last().copied().unwrap_or(0), audio.features_per_request))
+                .unwrap_or((0, 0)),
+            _ => (0, 0),
+        };
         let merge = self.capabilities.vision.patches_per_feature;
         let request = self.request(handle)?;
         if request.last_use != Fence(0)
             || request.conditioned_features.is_some()
+            || (operation == Some(GraphKind::AudioEncode) && (inputs.len() != 1 || inputs[0].feature_range.start != 0))
             || inputs.windows(2).any(|pair| {
                 pair[0].token_span.end > pair[1].token_span.start
                     || pair[0].feature_range.end > pair[1].feature_range.start
@@ -1925,35 +2070,44 @@ impl RequestScheduler {
                     || input.token_span.end <= request.consumed_tokens as usize
                     || input.feature_range.is_empty()
                     || input.feature_range.len() > capacity
-                    || input.patches == 0
-                    || input.patches > maximum
-                    || merge == 0
-                    || input.patches % merge != 0
-                    || input.feature_range.len() != input.patches / merge
+                    || input.encodings.is_empty()
+                    || input.encodings.iter().any(|job| Some(job.operation()) != operation || job.units() == 0 || job.units() > maximum)
+                    || match operation {
+                        Some(GraphKind::Vision) => input.encodings.len() != 1 || merge == 0
+                            || input.encodings[0].units() % merge != 0
+                            || input.feature_range.len() != input.encodings[0].units() / merge,
+                        Some(GraphKind::AudioEncode) => input.encodings.iter().try_fold(0usize, |sum, job| match job {
+                            EncoderJob::Audio { features, .. } if *features > 0 => sum.checked_add(*features),
+                            _ => None,
+                        }) != Some(input.feature_range.len()),
+                        _ => true,
+                    }
             })
         {
-            return Err("conditioned inputs violate prompt or prepared vision geometry".into());
+            return Err("conditioned inputs violate prompt or prepared feature geometry".into());
         }
         let mut windows: VecDeque<ConditionedWindow> = VecDeque::new();
         let mut features = 0usize;
         for (index, input) in inputs.iter().enumerate() {
-            if windows.is_empty() || features + input.feature_range.len() > capacity {
+            if windows.is_empty() || features.checked_add(input.feature_range.len()).is_none_or(|total| total > capacity) {
                 if let Some(previous) = windows.back_mut() {
                     previous.prefill_end = input.token_span.start;
                 }
                 windows.push_back(ConditionedWindow {
+                    single_input: None,
                     inputs: index..index,
                     token_start: input.token_span.start,
                     prefill_end: request.prompt_tokens,
                     features: vec![],
-                    patches: VecDeque::new(),
+                    encodings: VecDeque::new(),
                 });
                 features = 0;
             }
             let window = windows.back_mut().unwrap();
+            window.single_input = window.inputs.is_empty().then(|| input.clone());
             window.inputs.end = index + 1;
             window.features.push(input.feature_range.clone());
-            window.patches.push_back(input.patches);
+            window.encodings.extend(input.encodings.iter().copied());
             features += input.feature_range.len();
         }
         if windows.iter().any(|window| request.prefill_spans.iter().any(|span| {
@@ -1970,7 +2124,7 @@ impl RequestScheduler {
             return Err("request generation cannot cover its conditioned input windows".into());
         }
         if let Some(window) = windows.front() {
-            self.set_vision_images(handle, &window.patches.iter().copied().collect::<Vec<_>>())?;
+            self.set_encoder_jobs(handle, &window.encodings)?;
         }
         if windows.len() > 1 {
             // Unsubmitted page reservations may be rebound around the snapshot's backing pages.
@@ -2031,6 +2185,51 @@ impl RequestScheduler {
     }
 
     #[cfg(any(feature = "server", test))]
+    fn prerequisite_state(&self, handle: RequestHandle) -> Result<PrerequisiteState> {
+        let request = self.request(handle)?;
+        let window = request.conditioned_windows.front().ok_or("request lacks a conditioned window")?;
+        let input = window.single_input.as_ref().ok_or("prerequisite requires one complete input per window")?;
+        let slot = match (request.image_slot, request.audio_slot) {
+            (Some(slot), None) | (None, Some(slot)) => slot,
+            _ => return Err("prerequisite lacks exclusive feature storage".into()),
+        };
+        if !matches!(request.phase, RequestPhase::Vision | RequestPhase::AudioEncode)
+            || request.phase != request.prompt_phase() || !request.conditioned_inputs_ready
+            || request.pending != 0 || request.last_use > self.completed
+            || request.window_restore || request.window_snapshot_ready || request.boundary_capture.is_some()
+            || request.error_code.is_some() || request.encoder_jobs.is_empty()
+            || !request.encoder_jobs.iter().copied().eq(input.encodings.iter().copied())
+            || request.encoder_jobs != window.encodings
+            || request.conditioned_features.as_deref() != Some(std::slice::from_ref(&input.feature_range))
+            || request.consumed_tokens > input.token_span.start as u64
+        {
+            return Err("conditioned prerequisite is stale, partially executed or still in use".into());
+        }
+        Ok(PrerequisiteState { handle, epoch: request.epoch, feature_slot: slot,
+            input: input.clone(), window_inputs: window.inputs.clone(), prefill_end: window.prefill_end })
+    }
+
+    #[cfg(any(feature = "server", test))]
+    pub(crate) fn conditioned_prerequisite(&self, handle: RequestHandle) -> Result<ConditionedPrerequisite> {
+        Ok(ConditionedPrerequisite { owner: self.plan_owner.clone(), state: self.prerequisite_state(handle)? })
+    }
+
+    #[cfg(any(feature = "server", test))]
+    pub(crate) fn complete_conditioned_prerequisite(&mut self, ticket: ConditionedPrerequisite) -> Result<()> {
+        if !Arc::ptr_eq(&ticket.owner, &self.plan_owner)
+            || self.prerequisite_state(ticket.state.handle)? != ticket.state
+        {
+            return Err("conditioned prerequisite belongs to a different owner or epoch".into());
+        }
+        // All rejection checks precede request_mut: even a rejected ticket must
+        // leave epochs and plans unchanged. Future windows retain their jobs.
+        let request = self.request_mut(ticket.state.handle)?;
+        request.encoder_jobs.clear();
+        request.phase = request.prompt_phase();
+        Ok(())
+    }
+
+    #[cfg(any(feature = "server", test))]
     pub(crate) fn resume_conditioned_window(
         &mut self,
         handle: RequestHandle,
@@ -2061,7 +2260,7 @@ impl RequestScheduler {
         request.conditioned_windows.pop_front();
         let window = request.conditioned_windows.front().unwrap();
         request.conditioned_features = Some(window.features.clone());
-        request.vision_patches = window.patches.clone();
+        request.encoder_jobs = window.encodings.clone();
         request.conditioned_inputs_ready = false;
         request.window_snapshot_ready = false;
         request.window_restore = true;
@@ -2084,7 +2283,7 @@ impl RequestScheduler {
         }
         let request = self.request_mut(handle)?;
         if request.last_use != Fence(0)
-            || !request.vision_patches.is_empty()
+            || !request.encoder_jobs.is_empty()
             || request.image_slot.is_some()
             || patches.is_empty()
             || patches
@@ -2093,11 +2292,33 @@ impl RequestScheduler {
         {
             return Err("vision images must be assigned once before request initialization".into());
         }
-        let slot = self.free_image_slots.pop_first().ok_or_else(|| crate::Error::admission(
-            crate::AdmissionError::Capacity, "image feature slots are occupied or awaiting GPU retirement"))?;
+        let jobs = patches.iter().map(|patches| EncoderJob::Vision { patches: *patches }).collect();
+        self.set_encoder_jobs(handle, &jobs)
+    }
+
+    fn set_encoder_jobs(&mut self, handle: RequestHandle, jobs: &VecDeque<EncoderJob>) -> Result<()> {
+        let operation = jobs.front().ok_or("conditioned encoding requires a job")?.operation();
+        let request = self.request(handle)?;
+        if request.last_use != Fence(0) || !request.encoder_jobs.is_empty()
+            || request.image_slot.is_some() || request.audio_slot.is_some()
+            || jobs.iter().any(|job| job.operation() != operation)
+        {
+            return Err("encoder jobs must be assigned once before request initialization".into());
+        }
+        let free = match operation {
+            GraphKind::Vision => &mut self.free_image_slots,
+            GraphKind::AudioEncode => &mut self.free_audio_slots,
+            _ => return Err("unsupported feature encoder operation".into()),
+        };
+        let slot = free.pop_first().ok_or_else(|| crate::Error::admission(
+            crate::AdmissionError::Capacity, "feature slots are occupied or awaiting GPU retirement"))?;
         let request = self.request_mut(handle)?;
-        request.image_slot = Some(slot);
-        request.vision_patches.extend(patches.iter().copied());
+        match operation {
+            GraphKind::Vision => request.image_slot = Some(slot),
+            GraphKind::AudioEncode => request.audio_slot = Some(slot),
+            _ => unreachable!(),
+        }
+        request.encoder_jobs = jobs.clone();
         Ok(())
     }
 
@@ -2170,8 +2391,11 @@ impl RequestScheduler {
             }
         }
         let mut needed = Vec::new();
-        for lane in &step.lanes {
+        for (row, lane) in step.lanes.iter().enumerate() {
             let request = self.request(lane.request)?;
+            if step.lane_kind(row).is_prefill() && step.initial_prompt_capacity != request.initial_prompt_capacity {
+                return Err("scheduled initial prompt extent differs from its admitted geometry".into());
+            }
             let through = lane
                 .start_position
                 .checked_add(lane.tokens as u64)
@@ -2376,9 +2600,11 @@ impl RequestScheduler {
                     | GraphKind::Restore
                     | GraphKind::Snapshot
                     | GraphKind::Vision
+                    | GraphKind::AudioEncode
             ) {
                 let record = &records[lane.request.slot as usize];
                 if !(1..=3).contains(&record.status)
+                    || (kind == GraphKind::AudioEncode && record.status == 2)
                     || record.generation != lane.request.generation as i64
                     || record.submission_sequence != fence.0 as i64
                     || (record.status != 3
@@ -2484,6 +2710,7 @@ impl RequestScheduler {
                     | GraphKind::Restore
                     | GraphKind::Snapshot
                     | GraphKind::Vision
+                    | GraphKind::AudioEncode
             ) {
                 let record = &records[lane.request.slot as usize];
                 if record.status == 3 {
@@ -2499,8 +2726,8 @@ impl RequestScheduler {
                         request.phase = RequestPhase::Finishing;
                     }
                 } else {
-                    if kind == GraphKind::Vision {
-                        request.vision_patches.pop_front();
+                    if matches!(kind, GraphKind::Vision | GraphKind::AudioEncode) {
+                        request.encoder_jobs.pop_front();
                     }
                     if kind == GraphKind::Restore && request.window_restore {
                         request.window_restore = false;
@@ -2579,7 +2806,7 @@ impl RequestScheduler {
                 let endpoint = request.consumed_tokens;
                 if !finished
                     && request.conditioned_windows.len() > 1
-                    && request.vision_patches.is_empty()
+                    && request.encoder_jobs.is_empty()
                     && request.conditioned_windows.front().is_some_and(|window| endpoint as usize == window.prefill_end)
                 {
                     captures.push((
@@ -2776,6 +3003,9 @@ impl RequestScheduler {
                 if let Some(slot) = retired.image_slot {
                     self.free_image_slots.insert(slot);
                 }
+                if let Some(slot) = retired.audio_slot {
+                    self.free_audio_slots.insert(slot);
+                }
                 self.free_pages.extend(retired.pages);
                 for snapshot in retired.snapshots.into_iter().flatten() {
                     self.release_snapshot(snapshot);
@@ -2885,6 +3115,7 @@ impl RequestScheduler {
         request.private_pages.extend(request.reserved_pages);
         self.retired.push(RetiredRequest {
             image_slot: request.image_slot,
+            audio_slot: request.audio_slot,
             pages: request.private_pages,
             snapshots: [
                 snapshot,
@@ -2913,6 +3144,9 @@ mod policy_tests;
 
 #[cfg(test)]
 mod vision_window_tests;
+
+#[cfg(test)]
+mod audio_tests;
 
 #[cfg(test)]
 mod lifecycle_tests;

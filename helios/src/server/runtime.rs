@@ -8,13 +8,16 @@ use std::{
     collections::{HashMap, VecDeque},
     sync::{
         Arc, Condvar, Mutex,
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicU64, Ordering},
         mpsc,
     },
     thread::{self, JoinHandle},
 };
 
 use tokio::sync::{mpsc as async_mpsc, oneshot};
+
+#[cfg(feature = "audio")]
+mod encoded;
 
 use crate::{
     AdmissionError, Error, ExecutionError, Failure, Result, Shutdown,
@@ -32,6 +35,8 @@ pub struct Prompt {
     pub message_boundaries: Vec<usize>,
     pub data: crate::model::PromptData,
     pub conditioned_inputs: Vec<crate::frontend::images::PreparedImageInput>,
+    #[cfg(feature = "audio")]
+    pub conditioned_audio: Option<crate::frontend::audio::PreparedAudioInput>,
     pub conditioning: Vec<ConditioningEvent>,
     pub sampling: SamplingParameters,
     pub max_new_tokens: u32,
@@ -120,22 +125,13 @@ pub struct Generation {
 /// A buffered group starts consuming output after one choice is admitted;
 /// other choices may still be waiting for model capacity.
 pub(super) async fn await_admission(generations: &mut [Generation]) -> Result<()> {
-    use std::{future::Future, pin::Pin, task::Poll};
+    use std::task::Poll;
     std::future::poll_fn(|cx| {
         let mut admitted = generations.is_empty();
         for generation in generations.iter_mut() {
-            if let Some(error) = generation
-                .failure
-                .lock()
-                .unwrap_or_else(|e| e.into_inner())
-                .clone()
-            {
-                return Poll::Ready(Err(error));
-            }
-            match Pin::new(&mut generation.admission).poll(cx) {
-                Poll::Ready(Ok(Ok(()))) => admitted = true,
-                Poll::Ready(Ok(Err(error))) => return Poll::Ready(Err(error)),
-                Poll::Ready(Err(_)) => return Poll::Ready(Err(generation.failure())),
+            match generation.poll_admission(cx) {
+                Poll::Ready(Ok(())) => admitted = true,
+                Poll::Ready(Err(error)) => return Poll::Ready(Err(error)),
                 Poll::Pending => {}
             }
         }
@@ -149,6 +145,17 @@ pub(super) async fn await_admission(generations: &mut [Generation]) -> Result<()
 }
 
 impl Generation {
+    pub(super) fn poll_admission(&mut self, cx: &mut std::task::Context<'_>) -> std::task::Poll<Result<()>> {
+        use std::{future::Future, pin::Pin, task::Poll};
+        if let Some(error) = self.failure.lock().unwrap_or_else(|e| e.into_inner()).clone() {
+            return Poll::Ready(Err(error));
+        }
+        match Pin::new(&mut self.admission).poll(cx) {
+            Poll::Ready(Ok(result)) => Poll::Ready(result),
+            Poll::Ready(Err(_)) => Poll::Ready(Err(self.failure())),
+            Poll::Pending => Poll::Pending,
+        }
+    }
     pub(super) async fn wait_for_first_token(&mut self) -> Result<()> {
         (&mut self.first_token)
             .await
@@ -174,11 +181,42 @@ impl Drop for Generation {
     }
 }
 
+/// A random server namespace and a checked sequence keep request keys distinct
+/// across hosts/restarts without changing model identity or sampling RNG state.
+struct PrefixScopes {
+    nonce: [u8; 16],
+    next: AtomicU64,
+}
+
+impl PrefixScopes {
+    fn new() -> Self {
+        let mut nonce = [0; 16];
+        nonce[..8].copy_from_slice(&super::run_id().to_le_bytes());
+        nonce[8..].copy_from_slice(&super::run_id().to_le_bytes());
+        Self { nonce, next: AtomicU64::new(0) }
+    }
+
+    fn next(&self) -> Result<[u8; 24]> {
+        let sequence = self.next.fetch_update(Ordering::Relaxed, Ordering::Relaxed,
+            |value| value.checked_add(1)).map_err(|_| Error::admission(
+                AdmissionError::Capacity, "request prefix namespace exhausted"))?;
+        let mut scope = [0; 24];
+        scope[..16].copy_from_slice(&self.nonce);
+        scope[16..].copy_from_slice(&sequence.to_le_bytes());
+        Ok(scope)
+    }
+}
+
 struct Incoming {
+    prefix_scope: Option<[u8; 24]>,
     _capacity: Option<Arc<tokio::sync::OwnedSemaphorePermit>>,
+    // One permit per queued message, shared by its members until the worker
+    // receives them. Response readers do not retain this queue reservation.
+    queue_capacity: Option<Arc<tokio::sync::OwnedSemaphorePermit>>,
     arrival_ns: u64,
     publications: std::cell::Cell<u64>,
     prompt: Prompt,
+    initial_prompt_tokens: usize,
     events: async_mpsc::Sender<GenerationEvent>,
     admission: Mutex<Option<oneshot::Sender<Result<()>>>>,
     first_token: std::cell::Cell<Option<oneshot::Sender<Result<()>>>>,
@@ -213,8 +251,10 @@ impl Drop for Incoming {
 impl Incoming {
     fn spec(&self) -> RequestSpec {
         RequestSpec {
+            prefix_scope: self.prefix_scope,
             message_boundaries: self.prompt.message_boundaries.clone(),
             prompt: self.prompt.tokens.clone(),
+            initial_prompt_tokens: self.initial_prompt_tokens,
             conditioning: self.prompt.conditioning.clone(),
             max_new_tokens: self.prompt.max_new_tokens,
             grammar_constrained: self.prompt.grammar.is_some(),
@@ -326,6 +366,8 @@ struct Active<'a> {
     incoming: Incoming,
     last_token: Option<u32>,
     next_image: usize,
+    #[cfg(feature = "audio")]
+    next_audio_window: usize,
     selected_images: Vec<crate::frontend::images::PreparedImageInput>,
     prepared_image: Option<crate::frontend::images::ProcessedImages>,
     stops: super::stops::TokenStops,
@@ -340,7 +382,6 @@ struct Active<'a> {
 #[derive(Clone, Copy, Default)]
 struct Carried {
     decoded_sequence: crate::scheduler::decoded_history::DecodedSequence,
-    prompt_tokens: Option<usize>,
     reused_prompt_tokens: Option<u64>,
     generated_tokens: u32,
     /// The request's own sampling seed, from which each continuation's seed derives.
@@ -429,11 +470,25 @@ pub struct ModelRuntime {
     config: Arc<ModelConfig>,
     event_capacity: usize,
     capacity: Arc<tokio::sync::Semaphore>,
+    queue_capacity: Arc<tokio::sync::Semaphore>,
     thread: Mutex<Option<JoinHandle<Shutdown>>>,
     shutdown: Mutex<Option<Shutdown>>,
     finished: Arc<(Mutex<bool>, Condvar)>,
     metrics: Arc<super::metrics::Metrics>,
     input_store: Option<flare_selene::input::InputStore>,
+    input_records: Option<flare_selene::input::InputStore>,
+    prefix_scopes: Option<PrefixScopes>,
+}
+
+struct CloseAdmission {
+    requests: Arc<tokio::sync::Semaphore>,
+    messages: Arc<tokio::sync::Semaphore>,
+}
+impl Drop for CloseAdmission {
+    fn drop(&mut self) {
+        self.requests.close();
+        self.messages.close();
+    }
 }
 
 impl ModelRuntime {
@@ -448,6 +503,8 @@ impl ModelRuntime {
         frontend: Arc<crate::frontend::Frontend>,
         peers: Option<crate::execution::RankPeers>,
         policy: crate::scheduler::PolicyConfig,
+        prefix_cache_reuse: super::PrefixCacheReuse,
+        prepared_input_cache: Option<super::PreparedInputCacheMode>,
     ) -> Result<Self> {
         crate::model::catalog::validate(&config, &manifest)?;
         super::observation::initialize_clock();
@@ -457,11 +514,31 @@ impl ModelRuntime {
         let capacity = Arc::new(tokio::sync::Semaphore::new(
             queue_capacity + config.limits.max_active,
         ));
-        let input_store = manifest
-            .offload
-            .as_ref()
-            .and_then(|binding| binding.inputs());
+        let message_capacity = Arc::new(tokio::sync::Semaphore::new(queue_capacity));
+        let worker_capacity = capacity.clone();
+        let worker_message_capacity = message_capacity.clone();
+        let prefix_scopes = (prefix_cache_reuse == super::PrefixCacheReuse::Request)
+            .then(PrefixScopes::new);
+        let input_mode = prepared_input_cache.unwrap_or_else(|| {
+            if prefix_cache_reuse == super::PrefixCacheReuse::Shared { super::PreparedInputCacheMode::Preprocessed }
+            else { super::PreparedInputCacheMode::Off }
+        });
+        let input_records = (input_mode != super::PreparedInputCacheMode::Off)
+            .then(|| manifest.offload.as_ref().and_then(|binding| binding.inputs())).flatten();
+        if prepared_input_cache.is_some() && input_mode != super::PreparedInputCacheMode::Off
+            && input_records.is_none()
+        {
+            return Err("prepared input retention needs a nonzero host-cache memory or disk budget".into());
+        }
+        if input_mode.encoded() && (peers.is_some() || config.contract.audio.is_none()) {
+            return Err("encoded retention requires a declared single-rank feature storage contract".into());
+        }
+        #[cfg(not(feature = "audio"))]
+        if input_mode.encoded() { return Err("this build has no encoded audio retention".into()); }
+        let input_store = input_mode.preprocessed().then(|| input_records.clone()).flatten();
         let worker_input_store = input_store.clone();
+        #[cfg(feature = "audio")]
+        let worker_encoded_store = input_mode.encoded().then(|| input_records.clone()).flatten();
         let config = Arc::new(config);
         let (sender, receiver) = mpsc::sync_channel(queue_capacity);
         let (ready_tx, ready_rx) = mpsc::sync_channel(1);
@@ -490,6 +567,7 @@ impl ModelRuntime {
         let thread = thread::Builder::new()
             .name("flare-model".into())
             .spawn(move || {
+                let _admission = CloseAdmission { requests: worker_capacity, messages: worker_message_capacity };
                 if matches!(peers, Some(crate::execution::RankPeers::Processes(_)))
                     && manifest.offload.as_ref().is_some_and(|binding| !binding.sharded())
                 {
@@ -566,17 +644,12 @@ impl ModelRuntime {
                         )
                     })
                     .and_then(|()| {
-                        scheduler.scored_prefill_graphs(&executor.manifest().graphs.iter()
-                            .filter(|g| g.kind == GraphKind::ScoredPrefill).map(|g| g.token_capacity).collect::<Vec<_>>())?;
-                        scheduler.prefill_graphs(
-                            &executor
-                                .manifest()
-                                .graphs
-                                .iter()
-                                .filter(|graph| graph.kind == crate::execution::GraphKind::Prefill)
-                                .map(|graph| graph.token_capacity)
-                                .collect::<Vec<_>>(),
-                        )
+                        let scored = crate::model::catalog::prefill_fragment_capacities(&worker_config,
+                            executor.manifest(), GraphKind::ScoredPrefill)?;
+                        let prefill = crate::model::catalog::prefill_fragment_capacities(&worker_config,
+                            executor.manifest(), GraphKind::Prefill)?;
+                        scheduler.scored_prefill_graphs(&scored)?;
+                        scheduler.prefill_graphs(&prefill)
                     })
                     .and_then(|()| {
                         scheduler.speculative_graphs(
@@ -634,7 +707,18 @@ impl ModelRuntime {
                     scheduler,
                     receiver,
                     queue_capacity,
+                    prefix_cache_reuse,
                 );
+                #[cfg(feature = "audio")]
+                if let Some(store) = worker_encoded_store {
+                    if let Err(error) = executor.bind_feature_storage(worker.config.contract.audio.as_ref().unwrap()) {
+                        let _ = ready_tx.send(Err(error.clone()));
+                        let mut shutdown = executor.close();
+                        shutdown.error = Some(error);
+                        return shutdown;
+                    }
+                    worker.encoded_inputs = Some(encoded::EncodedInputs::new(store));
+                }
                 worker.attach_store(store);
                 if worker.config.contract.vision.enabled() {
                     worker.image_preparation = Some(ImagePreparation::new(worker_input_store));
@@ -686,7 +770,10 @@ impl ModelRuntime {
                 config,
                 event_capacity,
                 input_store,
+                input_records,
+                prefix_scopes,
                 capacity,
+                queue_capacity: message_capacity,
                 thread: Mutex::new(Some(thread)),
                 shutdown: Mutex::new(None),
                 finished,
@@ -711,11 +798,17 @@ impl ModelRuntime {
         self.input_store.as_ref()
     }
 
+    pub(super) fn input_record_stats(&self) -> flare_selene::input::InputStats {
+        self.input_records.as_ref().map(|store| store.stats()).unwrap_or_default()
+    }
+
     pub fn healthy(&self) -> bool {
         self.healthy.load(Ordering::Acquire) && !self.stop.load(Ordering::Acquire)
     }
     pub(super) fn request_stop(&self) {
         self.stop.store(true, Ordering::Release);
+        self.capacity.close();
+        self.queue_capacity.close();
     }
     pub fn config(&self) -> &ModelConfig {
         &self.config
@@ -736,6 +829,18 @@ impl ModelRuntime {
     }
     pub fn generate(&self, prompt: Prompt) -> Result<Generation> {
         self.enqueue(prompt, None)
+    }
+
+    /// Wait for bounded host and queue capacity without occupying a GPU slot.
+    /// Dropping this future releases any acquired reservation before enqueue.
+    pub(super) async fn generate_when_available(&self, prompt: Prompt) -> Result<Generation> {
+        if !self.healthy() {
+            return Err(Error::admission(AdmissionError::Unavailable, "prepared model runtime is unavailable"));
+        }
+        let unavailable = |_| Error::admission(AdmissionError::Unavailable, "native generation admission is closed");
+        let capacity = Arc::new(self.capacity.clone().acquire_owned().await.map_err(unavailable)?);
+        let queue = Arc::new(self.queue_capacity.clone().acquire_owned().await.map_err(unavailable)?);
+        self.enqueue_reserved(vec![prompt], None, capacity, queue).map(|mut group| group.remove(0))
     }
 
     pub(super) fn generate_observed(&self, prompt: Prompt, timestamps: bool) -> Result<Generation> {
@@ -781,6 +886,18 @@ impl ModelRuntime {
                     )
                 })?,
         );
+        let queue = Arc::new(self.queue_capacity.clone().try_acquire_owned().map_err(|_| {
+            Error::admission(AdmissionError::Capacity, "native request queue is full")
+        })?);
+        self.enqueue_reserved(prompts, observation, capacity, queue)
+    }
+
+    fn enqueue_reserved(&self, prompts: Vec<Prompt>, observation: Option<bool>,
+        capacity: Arc<tokio::sync::OwnedSemaphorePermit>, queue: Arc<tokio::sync::OwnedSemaphorePermit>)
+        -> Result<Vec<Generation>> {
+        if !self.healthy() {
+            return Err(Error::admission(AdmissionError::Unavailable, "prepared model runtime is unavailable"));
+        }
         let mut incoming_group = Vec::with_capacity(prompts.len());
         let mut generations = Vec::with_capacity(prompts.len());
         for prompt in prompts {
@@ -808,11 +925,14 @@ impl ModelRuntime {
             let cancelled = Arc::new(AtomicBool::new(false));
             let failure = Arc::new(Mutex::new(None));
             let incoming = Incoming {
+                prefix_scope: self.prefix_scopes.as_ref().map(PrefixScopes::next).transpose()?,
                 _capacity: Some(capacity.clone()),
+                queue_capacity: Some(queue.clone()),
                 arrival_ns: super::observation::monotonic_ns(),
                 publications: Default::default(),
                 prompt_score_end: if prompt.prompt_logprobs { prompt.tokens.len() } else { 0 },
                 prompt_scored: 0,
+                initial_prompt_tokens: prompt.tokens.len(),
                 prompt,
                 events,
                 admission: Mutex::new(Some(admission)),
@@ -867,7 +987,7 @@ impl ModelRuntime {
         {
             return shutdown;
         }
-        self.stop.store(true, Ordering::Release);
+        self.request_stop();
         let shutdown = thread
             .take()
             .map(|thread| {
@@ -968,6 +1088,7 @@ struct Worker<'a> {
     admissions: Vec<Option<crate::model::Admission>>,
     inputs: Option<crate::model::Inputs>,
     queue_capacity: usize,
+    prefix_cache_reuse: super::PrefixCacheReuse,
     store: Option<Box<dyn flare_selene::HostStore>>,
     deferred_stores: Vec<(crate::cache::CheckpointId, flare_selene::StoreReason)>,
     store_progress: u64,
@@ -980,6 +1101,8 @@ struct Worker<'a> {
     image_preparation: Option<ImagePreparation>,
     preparing_image: Option<RequestHandle>,
     image_preparation_cursor: usize,
+    #[cfg(feature = "audio")]
+    encoded_inputs: Option<encoded::EncodedInputs>,
     prefill_started: VecDeque<(crate::cache::Fence, std::time::Instant, u64)>,
 }
 
@@ -992,6 +1115,7 @@ impl<'a> Worker<'a> {
         scheduler: RequestScheduler,
         receiver: mpsc::Receiver<Vec<Incoming>>,
         queue_capacity: usize,
+        prefix_cache_reuse: super::PrefixCacheReuse,
     ) -> Self {
         Self {
             config,
@@ -1001,6 +1125,7 @@ impl<'a> Worker<'a> {
             scheduler,
             receiver,
             queue_capacity,
+            prefix_cache_reuse,
             store: None,
             deferred_stores: Vec::new(),
             store_progress: 0,
@@ -1015,6 +1140,8 @@ impl<'a> Worker<'a> {
             image_preparation: None,
             preparing_image: None,
             image_preparation_cursor: 0,
+            #[cfg(feature = "audio")]
+            encoded_inputs: None,
         }
     }
 
@@ -1032,6 +1159,8 @@ impl<'a> Worker<'a> {
             }
             progress |= self.publish()?;
             progress |= self.service_store()?;
+            #[cfg(feature = "audio")]
+            { progress |= self.service_encoded_inputs(executor)?; }
             let (step, planned) = self.plan(executor.outstanding())?;
             progress |= planned;
             if let Some(step) = step {
@@ -1070,6 +1199,10 @@ impl<'a> Worker<'a> {
                     std::hint::spin_loop();
                     thread::yield_now();
                 } else {
+                    if self.trim_request_cache(executor.outstanding())? {
+                        self.metrics.scheduler(self.scheduler.stats());
+                        continue;
+                    }
                     self.scheduler.idle()?;
                     let wait = self.idle_wait();
                     match self.receiver.recv_timeout(wait) {
@@ -1081,6 +1214,28 @@ impl<'a> Worker<'a> {
             }
         }
         Ok(())
+    }
+
+    /// Progress from new arrivals or safe reclamation of ended request scopes.
+    fn trim_request_cache(&mut self, outstanding: usize) -> Result<bool> {
+        if self.prefix_cache_reuse != super::PrefixCacheReuse::Request || outstanding != 0
+            || !self.pending.is_empty() || !self.parked.is_empty()
+            || self.active.iter().any(Option::is_some) || self.preparing_image.is_some()
+            || !self.exports.is_empty()
+            || self.store.as_ref().is_some_and(|store| {
+                let stats = store.stats();
+                stats.inbound_in_flight != 0 || stats.outbound_in_flight != 0
+            }) {
+            return Ok(false);
+        }
+        // Only new externally scoped generations may arrive after this check.
+        // Internal readmission retains its Incoming in parked, checked above.
+        match self.receiver.try_recv() {
+            Ok(group) => { self.enqueue(group); return Ok(true); }
+            Err(mpsc::TryRecvError::Empty) => {}
+            Err(mpsc::TryRecvError::Disconnected) => return Ok(false),
+        }
+        self.scheduler.discard_idle_checkpoints()
     }
 
     fn idle_wait(&self) -> std::time::Duration {
@@ -1113,6 +1268,7 @@ impl<'a> Worker<'a> {
     /// Queue arriving requests, starting each one's pool lookup so its answer is
     /// ready by admission.
     fn enqueue(&mut self, mut requests: Vec<Incoming>) {
+        for incoming in &mut requests { incoming.queue_capacity.take(); }
         self.begin_pool_lookups(&mut requests);
         self.pending.extend(requests);
     }
@@ -1352,14 +1508,26 @@ impl<'a> Worker<'a> {
                 .filter(|input| input.token_span.end > consumed)
                 .cloned()
                 .collect();
-            let inputs = selected_images
+            let mut inputs = selected_images
                 .iter()
                 .map(|image| crate::scheduler::ConditionedInput {
                     token_span: image.token_span.clone(),
                     feature_range: image.feature_range.clone(),
-                    patches: image.geometry.patches,
+                    encodings: vec![crate::scheduler::EncoderJob::Vision { patches: image.geometry.patches }],
                 })
                 .collect::<Vec<_>>();
+            #[cfg(feature = "audio")]
+            if let Some(audio) = incoming.prompt.conditioned_audio.as_ref()
+                .filter(|audio| audio.token_span().end > consumed)
+            {
+                let source = audio.audio();
+                inputs.push(crate::scheduler::ConditionedInput {
+                    token_span: audio.token_span().clone(), feature_range: 0..source.feature_count(),
+                    encodings: source.windows().iter().map(|window| crate::scheduler::EncoderJob::Audio {
+                        frames: window.frames.len(), features: window.features.len(),
+                    }).collect(),
+                });
+            }
             if let Err(error) = self.scheduler.set_conditioned_inputs(handle, &inputs) {
                 self.scheduler.cancel(handle)?;
                 if matches!(error, Error::Admission(AdmissionError::Capacity(_))) {
@@ -1373,11 +1541,16 @@ impl<'a> Worker<'a> {
                 }
                 continue;
             }
-            self.admissions[slot] = Some(crate::model::Admission::from_prompt(
+            #[cfg(feature = "audio")]
+            if incoming.prompt.conditioned_audio.is_some() {
+                self.scheduler.conditioned_inputs_ready(handle, true)?;
+            }
+            self.admissions[slot] = Some(crate::model::Admission::from_prompt_with_initial(
                 self.config,
                 handle,
                 &incoming.prompt,
                 incoming.prompt.ignore_eos,
+                incoming.initial_prompt_tokens,
             )?);
             let parked = match parked {
                 Some(parked) => parked,
@@ -1423,6 +1596,8 @@ impl<'a> Worker<'a> {
                 incoming,
                 last_token: parked.last_token,
                 next_image: 0,
+                #[cfg(feature = "audio")]
+                next_audio_window: 0,
                 selected_images,
                 prepared_image: None,
                 carried: parked.carried,
@@ -1593,7 +1768,7 @@ impl<'a> Worker<'a> {
                 let (first, end) = (range.start, range.end);
                 let payload = completion.prompt_logprobs.as_ref().ok_or("scored prefill lacks results")?;
                 let values = (first..end).map(|position| {
-                    if position == 0 || prompt.data.is_image_position(position) {
+                    if position == 0 || prompt.data.is_conditioned_position(position) {
                         return Ok(None);
                     }
                     let value = payload.get(position - lane.start_position as usize - 1)
@@ -1691,10 +1866,7 @@ impl<'a> Worker<'a> {
                     request
                         .incoming
                         .emit(GenerationEvent::Finished {
-                            prompt_tokens: request
-                                .carried
-                                .prompt_tokens
-                                .unwrap_or(live.prompt_tokens),
+                            prompt_tokens: request.incoming.initial_prompt_tokens,
                             generated_tokens: request.carried.generated_tokens
                                 + live.generated_tokens,
                             reused_prompt_tokens: request
@@ -1744,9 +1916,8 @@ impl<'a> Worker<'a> {
                 if live.phase == RequestPhase::Finishing
                     && live.last_use() <= self.scheduler.completed()
                 {
-                    let (generated, prompt_tokens, reused) = (
+                    let (generated, reused) = (
                         live.generated_tokens,
-                        live.prompt_tokens,
                         live.reused_prompt_tokens(),
                     );
                     if let Some(error) = live.error_code {
@@ -1856,10 +2027,7 @@ impl<'a> Worker<'a> {
                         request
                             .incoming
                             .emit(GenerationEvent::Finished {
-                                prompt_tokens: request
-                                    .carried
-                                    .prompt_tokens
-                                    .unwrap_or(prompt_tokens),
+                                prompt_tokens: request.incoming.initial_prompt_tokens,
                                 generated_tokens: request.carried.generated_tokens + generated,
                                 reused_prompt_tokens: request
                                     .carried
@@ -1928,9 +2096,8 @@ impl<'a> Worker<'a> {
         let mut tokens = live.tokens().to_vec();
         tokens.extend_from_slice(appended);
         let decoded_sequence = live.decoded_sequence;
-        let (generated, prompt_tokens, reused) = (
+        let (generated, reused) = (
             live.generated_tokens,
-            live.prompt_tokens,
             live.reused_prompt_tokens(),
         );
         self.scheduler.finish(handle)?;
@@ -1954,7 +2121,6 @@ impl<'a> Worker<'a> {
             reasoning: active.reasoning,
             carried: Carried {
                 decoded_sequence,
-                prompt_tokens: Some(active.carried.prompt_tokens.unwrap_or(prompt_tokens)),
                 reused_prompt_tokens: Some(active.carried.reused_prompt_tokens.unwrap_or(reused)),
                 generated_tokens,
                 seed: Some(seed),
@@ -2032,6 +2198,30 @@ impl<'a> Worker<'a> {
             .inputs
             .as_mut()
             .expect("worker inputs initialized before submission");
+        if step.kind == GraphKind::AudioEncode {
+            #[cfg(feature = "audio")]
+            {
+                let request = self.active[step.lanes[0].request.slot as usize]
+                    .as_mut().ok_or("missing active audio request")?;
+                let live = self.scheduler.request(request.request)?;
+                let audio = request.incoming.prompt.conditioned_audio.as_ref()
+                    .ok_or("missing immutable audio input")?.audio();
+                let window = audio.windows().get(request.next_audio_window)
+                    .ok_or("audio request exhausted its encoder windows")?;
+                if live.encoder_job() != Some(crate::scheduler::EncoderJob::Audio {
+                    frames: window.frames.len(), features: window.features.len(),
+                }) {
+                    return Err("scheduled audio job differs from its immutable source window".into());
+                }
+                inputs.pack_audio(step, self.config, request.request,
+                    live.audio_slot.ok_or("audio request lacks a feature slot")?,
+                    audio, request.next_audio_window)?;
+                request.next_audio_window += 1;
+                return Ok(());
+            }
+            #[cfg(not(feature = "audio"))]
+            return Err("this build cannot submit audio encoder graphs".into());
+        }
         if step.kind == GraphKind::Vision {
             let request = self.active[step.lanes[0].request.slot as usize]
                 .as_mut()
@@ -2087,7 +2277,7 @@ impl<'a> Worker<'a> {
             return Ok(false);
         }
         validate_sampling_admissions(step, &self.admissions)?;
-        let graph = crate::model::catalog::select_shape_with_drafts(
+        let graph = crate::model::catalog::select_shape_at_initial_prompt_capacity(
             self.config,
             executor.manifest(),
             step.kind,
@@ -2096,6 +2286,7 @@ impl<'a> Worker<'a> {
             step.prefill_capacity(),
             step.packed_token_capacity,
             step.draft_tokens,
+            step.initial_prompt_capacity,
             SamplingMode::General,
         )?;
         let fence = executor.next_fence()?;
@@ -2709,7 +2900,7 @@ mod tests {
                 },
                 max_new_tokens: 16,
                 prompt: vec![7],
-                data: PromptData {
+                data: PromptData { audio_token_indices: Vec::new(),
                     positions: vec![[0; 3]],
                     vision_token_indices: vec![-1],
                     ..Default::default()
@@ -2733,7 +2924,7 @@ mod tests {
             GraphKind::Resume,
             GraphKind::Speculative,
         ] {
-            let mut step = ScheduledStep { draft_tokens: 0, packed_token_capacity: 0,
+            let mut step = ScheduledStep { initial_prompt_capacity: 0, draft_tokens: 0, packed_token_capacity: 0,
                 kind,
                 batch_capacity: 4,
                 token_capacity: 1,
@@ -2755,7 +2946,7 @@ mod tests {
                 Error::Execution(ExecutionError::State(_))
             ));
         }
-        let mut step = ScheduledStep { draft_tokens: 0, packed_token_capacity: 0,
+        let mut step = ScheduledStep { initial_prompt_capacity: 0, draft_tokens: 0, packed_token_capacity: 0,
             kind: GraphKind::Decode,
             batch_capacity: 1,
             token_capacity: 1,
@@ -2856,7 +3047,7 @@ mod tests {
                 pages: 4,
                 snapshots: 40,
             },
-            SchedulerCapabilities {
+            SchedulerCapabilities { immutable_request_values: vec![], audio: None,
                 completion_token_capacity: 16,
                 speculative_allocations: vec![],
                 vocabulary: 248320,
@@ -2880,8 +3071,9 @@ mod tests {
             .measured_graph_durations(&crate::scheduler::tests::duration_graphs(4))
             .unwrap();
         let spec = |token, grammar_constrained| RequestSpec {
+            prefix_scope: None,
             message_boundaries: vec![],
-            prompt: vec![token],
+            initial_prompt_tokens: 1, prompt: vec![token],
             conditioning: vec![],
             max_new_tokens: 20,
             grammar_constrained,
@@ -2948,18 +3140,23 @@ mod tests {
         let cancelled = Arc::new(AtomicBool::new(false));
         let failure = Arc::new(Mutex::new(None));
         let incoming = Incoming {
+            prefix_scope: None,
             _capacity: None,
+            queue_capacity: None,
             arrival_ns: super::super::observation::monotonic_ns(),
             publications: Default::default(),
+            initial_prompt_tokens: 1,
             prompt: Prompt {
                 tokens: vec![7],
                 message_boundaries: vec![],
-                data: PromptData {
+                data: PromptData { audio_token_indices: Vec::new(),
                     positions: vec![[0; 3]],
                     vision_token_indices: vec![-1],
                     ..Default::default()
                 },
                 conditioned_inputs: vec![],
+                #[cfg(feature = "audio")]
+                conditioned_audio: None,
                 conditioning: vec![],
                 sampling: SamplingParameters::default(),
                 max_new_tokens: 10,
@@ -3113,7 +3310,7 @@ mod tests {
                 pages: 4,
                 snapshots: 40,
             },
-            SchedulerCapabilities {
+            SchedulerCapabilities { immutable_request_values: vec![], audio: None,
                 completion_token_capacity: 16,
                 speculative_allocations: vec![],
                 vocabulary: 6,
@@ -3143,8 +3340,9 @@ mod tests {
 
     fn retirement_spec(grammar_constrained: bool) -> RequestSpec {
         RequestSpec {
+            prefix_scope: None,
             message_boundaries: vec![],
-            prompt: vec![0],
+            initial_prompt_tokens: 1, prompt: vec![0],
             conditioning: vec![],
             max_new_tokens: 10,
             grammar_constrained,
@@ -3278,6 +3476,8 @@ mod tests {
             incoming,
             last_token: None,
             next_image: 0,
+            #[cfg(feature = "audio")]
+            next_audio_window: 0,
             selected_images: vec![],
             prepared_image: None,
             stops: super::super::stops::TokenStops::new(vec![], 6).unwrap(),
@@ -3296,7 +3496,7 @@ mod tests {
                 sampling: SamplingParameters::default(),
                 max_new_tokens: 10,
                 prompt: vec![0],
-                data: PromptData {
+                data: PromptData { audio_token_indices: Vec::new(),
                     positions: vec![[0; 3]],
                     vision_token_indices: vec![-1],
                     ..Default::default()
@@ -3467,6 +3667,8 @@ mod tests {
             incoming,
             last_token: None,
             next_image: 0,
+            #[cfg(feature = "audio")]
+            next_audio_window: 0,
             selected_images: vec![],
             prepared_image: None,
             stops: super::super::stops::TokenStops::new(vec![], 248320).unwrap(),
@@ -3635,7 +3837,7 @@ mod tests {
                 pages: 1,
                 snapshots: 2,
             },
-            SchedulerCapabilities {
+            SchedulerCapabilities { immutable_request_values: vec![], audio: None,
                 completion_token_capacity: 16,
                 speculative_allocations: vec![],
                 vocabulary: 248320,
@@ -3656,8 +3858,9 @@ mod tests {
         )
         .unwrap();
         let spec = || RequestSpec {
+            prefix_scope: None,
             message_boundaries: vec![],
-            prompt: vec![7],
+            initial_prompt_tokens: 1, prompt: vec![7],
             conditioning: vec![],
             max_new_tokens: 10,
             grammar_constrained: false,

@@ -101,7 +101,7 @@ pub(crate) fn prepare_input(
     Ok(PreparedInput {
         tokens,
         token_expansions,
-        data: PromptData {
+        data: PromptData { audio_token_indices: Vec::new(),
             positions,
             vision_token_indices,
             spans: Vec::new(),

@@ -1,0 +1,89 @@
+{
+  "scope": "Actual frozen8434 WAVs and real authenticated CPU plans consumed by Flare phase geometry validation; original69 package only, no CUDA/server/performance qualification",
+  "producer_source_commit": "5eb4377ed8c56188a079031cbd366f19b7e278f0",
+  "package_source_commit": "69ab162e71616d8fae7aae8ae6c991f06ea6ef0b",
+  "envelope_sha256": "f7c470e11ed73240532a6f84cff517b92d6e3fcc6aec587af567a882ecf335f1",
+  "model_identity": "Qwen/Qwen3-ASR-1.7B",
+  "audio_settings": {
+    "sample_rate": 16000,
+    "mel_bins": 128,
+    "fft_size": 400,
+    "hop_samples": 160,
+    "max_file_bytes": 26214400,
+    "max_samples": 9600000,
+    "decode_timeout_millis": 60000,
+    "service_chunk_samples": 480000,
+    "silence_search_samples": 16000,
+    "silence_window_samples": 1600,
+    "sample_padding": 2,
+    "numerics": 1
+  },
+  "frame_capacities": [
+    100,
+    800
+  ],
+  "attention_window_frames": 800,
+  "input_sets": [
+    {
+      "set": "performance",
+      "parents": 8169,
+      "service_chunks": 8176,
+      "encoder_windows": 9231
+    },
+    {
+      "set": "development",
+      "parents": 256,
+      "service_chunks": 258,
+      "encoder_windows": 343
+    },
+    {
+      "set": "long",
+      "parents": 9,
+      "service_chunks": 95,
+      "encoder_windows": 362
+    }
+  ],
+  "planned_cells": [
+    {
+      "suite": "short",
+      "regime": "unique-content",
+      "parents": 8169,
+      "chunks": 8176,
+      "windows": 9231
+    },
+    {
+      "suite": "short",
+      "regime": "repeated-content",
+      "parents": 8169,
+      "chunks": 8233,
+      "windows": 10951
+    },
+    {
+      "suite": "mixed",
+      "regime": "unique-content",
+      "parents": 310,
+      "chunks": 396,
+      "windows": 725
+    },
+    {
+      "suite": "long",
+      "regime": "unique-content",
+      "parents": 9,
+      "chunks": 95,
+      "windows": 362
+    }
+  ],
+  "controls": {
+    "native_audio_plan_and_decode": 53,
+    "phase_workload_and_reconciliation_modules": 142,
+    "removed_intermediate_continuity_check_rejected_by_control": true
+  },
+  "limitations": [
+    "Native plans belong to the original69 package, not the new RMSNorm export.",
+    "CPU frontend and collector controls only; no measured warmup or model execution.",
+    "The new Flare phase collector has not run against an actual serving package.",
+    "SDK reconstructed reference GPU equality, final state/lifecycle/quality and sustained comparisons remain open."
+  ],
+  "formal_performance_cells": 0,
+  "performance_qualified": false
+}

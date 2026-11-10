@@ -103,6 +103,7 @@ def test_pool_and_compiler_entry_pass_policy_without_mutating_defaults(monkeypat
     from ignition.preparation.forward_metadata import dumps
 
     baseline = dict(aot._OPTIONS)
+    monkeypatch.setattr(torch.backends.cuda.matmul, 'allow_bf16_reduced_precision_reduction', False)
     supplied = dict(baseline, **{'triton.autotune_at_compile_time': True})
     monkeypatch.setattr(compile_pool, 'device_memory_info', lambda device: (40 << 30, 96 << 30))
     monkeypatch.setattr(torch.cuda, 'get_device_properties', lambda device: SimpleNamespace(is_integrated=False))
@@ -120,6 +121,7 @@ def test_pool_and_compiler_entry_pass_policy_without_mutating_defaults(monkeypat
         supplied['triton.autotune_at_compile_time'] = False
         pool.submit(SimpleNamespace(), tmp_path / 'first.bin')
     assert calls[0][2]['triton.autotune_at_compile_time']
+    assert calls[0][-1] == (False, True)
     observed = []
     class Artifact:
         def save_compiled_function(self, path):
@@ -130,10 +132,22 @@ def test_pool_and_compiler_entry_pass_policy_without_mutating_defaults(monkeypat
     monkeypatch.setattr(aot, 'aot_forward', lambda forward, *, options:
         (observed.append(dict(options)), Artifact())[1])
     compile_pool._compile_forward(dumps(SimpleNamespace()), 'cuda:0', calls[0][2],
-                                  tmp_path / 'saved.bin', 1, False)
+                                  tmp_path / 'saved.bin', 1, False, calls[0][-1])
     assert observed == [calls[0][2]]
     assert (tmp_path / 'saved.bin').read_bytes() == b'compiled'
     assert aot._OPTIONS == baseline
+
+
+def test_forward_cache_distinguishes_bf16_reduction_arithmetic(caches, monkeypatch):
+    monkeypatch.setattr(torch.backends.cuda.matmul, 'allow_bf16_reduced_precision_reduction', False)
+    fp32 = caches()
+    monkeypatch.setattr(torch.backends.cuda.matmul, 'allow_bf16_reduced_precision_reduction', True)
+    reduced = caches()
+    assert fp32.root != reduced.root
+    monkeypatch.setattr(torch.backends.cuda.matmul, 'allow_bf16_reduced_precision_reduction', False)
+    assert caches().root == fp32.root
+    torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction = (False, False)
+    assert caches().root not in (fp32.root, reduced.root)
 
 
 def test_prepare_and_binding_rebuild_retain_instance_options(caches, monkeypatch, tmp_path):

@@ -1,0 +1,417 @@
+{
+  "scope": "Pinned-image development deployment exploration, not a formal performance cell",
+  "image": {
+    "config_id": "sha256:5531937957eb47e4062d9c45b784f9339705262f2d69f735aa99322e901e06a5",
+    "manifest": "127.0.0.1:18495/flare-qwen3-asr-vllm@sha256:fb9789ff5462f32d727a8958f060c5bf1a5bd010a626d9648e8e4c305cff3abb",
+    "vllm": "0.29.0",
+    "revision": "98dff2a81d747d1dba01a47f939f48c3526d4206"
+  },
+  "source_base": "d846afa9",
+  "observer": "qualify/asr_vllm_attention_trial_worker.py",
+  "observer_body_equal_gpu_executed_private_copy": true,
+  "input_manifest": "benchmarks/qwen3_asr/development.json",
+  "selection": "First four sorted speakers per language, utterance offsets0/3/5/6, fixed before measuring; eight distinct PCM contents",
+  "planned_order": [
+    [
+      "FLASH_ATTN",
+      false
+    ],
+    [
+      "FLASHINFER",
+      false
+    ],
+    [
+      "FLASH_ATTN",
+      true
+    ],
+    [
+      "FLASHINFER",
+      true
+    ]
+  ],
+  "cache_conditions": {
+    "prefix": false,
+    "processor_gb": 0,
+    "encoder_observed": true
+  },
+  "cohort_plan": [
+    {
+      "warmup": true,
+      "concurrency": 8,
+      "repeat": 0
+    },
+    {
+      "warmup": false,
+      "concurrency": 1,
+      "repeat": 0
+    },
+    {
+      "warmup": false,
+      "concurrency": 2,
+      "repeat": 0
+    },
+    {
+      "warmup": false,
+      "concurrency": 4,
+      "repeat": 0
+    },
+    {
+      "warmup": false,
+      "concurrency": 8,
+      "repeat": 0
+    },
+    {
+      "warmup": false,
+      "concurrency": 1,
+      "repeat": 1
+    },
+    {
+      "warmup": false,
+      "concurrency": 2,
+      "repeat": 1
+    },
+    {
+      "warmup": false,
+      "concurrency": 4,
+      "repeat": 1
+    },
+    {
+      "warmup": false,
+      "concurrency": 8,
+      "repeat": 1
+    },
+    {
+      "warmup": false,
+      "concurrency": 1,
+      "repeat": 2
+    },
+    {
+      "warmup": false,
+      "concurrency": 2,
+      "repeat": 2
+    },
+    {
+      "warmup": false,
+      "concurrency": 4,
+      "repeat": 2
+    },
+    {
+      "warmup": false,
+      "concurrency": 8,
+      "repeat": 2
+    },
+    {
+      "warmup": false,
+      "concurrency": 3,
+      "repeat": 0
+    },
+    {
+      "warmup": false,
+      "concurrency": 5,
+      "repeat": 0
+    },
+    {
+      "warmup": false,
+      "concurrency": 6,
+      "repeat": 0
+    },
+    {
+      "warmup": false,
+      "concurrency": 7,
+      "repeat": 0
+    }
+  ],
+  "configuration_note": "Fixed startup-separated order; paired cohorts have the same request inputs, but three repeats and uncalibrated observers do not establish an uncertainty-qualified ranking.",
+  "attempts": [
+    {
+      "label": "flash_attn-original",
+      "arguments": [
+        "--model",
+        "/checkpoint",
+        "--served-model-name",
+        "Qwen/Qwen3-ASR-1.7B",
+        "--revision",
+        "7278e1e70fe206f11671096ffdd38061171dd6e5",
+        "--dtype",
+        "bfloat16",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--max-model-len",
+        "8192",
+        "--max-num-seqs",
+        "8",
+        "--max-num-batched-tokens",
+        "4096",
+        "--gpu-memory-utilization",
+        "0.5",
+        "--kv-cache-memory-bytes",
+        "8589934592",
+        "--no-enable-prefix-caching",
+        "--mm-processor-cache-gb",
+        "0",
+        "--limit-mm-per-prompt",
+        "{\"audio\":1}",
+        "--compilation-config",
+        "{\"mode\": 3, \"cudagraph_mode\": \"FULL_AND_PIECEWISE\", \"cudagraph_capture_sizes\": [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096], \"compile_mm_encoder\": false, \"cudagraph_mm_encoder\": false}",
+        "--shutdown-timeout",
+        "120",
+        "--worker-extension-cls",
+        "asr_vllm_attention_trial_worker.AttentionTrialWorker",
+        "--attention-backend",
+        "FLASH_ATTN",
+        "--block-size",
+        "16"
+      ],
+      "requests": 74,
+      "status": "passed_development_functional_controls",
+      "actual_backend_groups": [
+        {
+          "backend": "FLASH_ATTN",
+          "builder": "vllm.v1.attention.backends.flash_attn.FlashAttentionMetadataBuilder",
+          "selected": {
+            "selected_decode_kernel": null
+          },
+          "layer_count": 28,
+          "implementation_classes": [
+            "vllm.v1.attention.backends.flash_attn.FlashAttentionImpl"
+          ],
+          "flash_attention_versions": [
+            2
+          ],
+          "manager_block_size": 16,
+          "kernel_block_size": 16,
+          "cache_dtype": "torch.bfloat16"
+        }
+      ],
+      "terminal_errors": [],
+      "encoder_errors": [],
+      "normal_exit": true,
+      "task_container_absent": true,
+      "terminal_measurements": "vllm-development-flash_attn-original-terminal.json.gz",
+      "actual_terminal_tokens": 1358
+    },
+    {
+      "label": "flashinfer-original",
+      "arguments": [
+        "--model",
+        "/checkpoint",
+        "--served-model-name",
+        "Qwen/Qwen3-ASR-1.7B",
+        "--revision",
+        "7278e1e70fe206f11671096ffdd38061171dd6e5",
+        "--dtype",
+        "bfloat16",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--max-model-len",
+        "8192",
+        "--max-num-seqs",
+        "8",
+        "--max-num-batched-tokens",
+        "4096",
+        "--gpu-memory-utilization",
+        "0.5",
+        "--kv-cache-memory-bytes",
+        "8589934592",
+        "--no-enable-prefix-caching",
+        "--mm-processor-cache-gb",
+        "0",
+        "--limit-mm-per-prompt",
+        "{\"audio\":1}",
+        "--compilation-config",
+        "{\"mode\": 3, \"cudagraph_mode\": \"FULL_AND_PIECEWISE\", \"cudagraph_capture_sizes\": [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096], \"compile_mm_encoder\": false, \"cudagraph_mm_encoder\": false}",
+        "--shutdown-timeout",
+        "120",
+        "--worker-extension-cls",
+        "asr_vllm_attention_trial_worker.AttentionTrialWorker",
+        "--attention-backend",
+        "FLASHINFER",
+        "--block-size",
+        "16"
+      ],
+      "requests": 74,
+      "status": "passed_development_functional_controls",
+      "actual_backend_groups": [
+        {
+          "backend": "FLASHINFER",
+          "builder": "vllm.v1.attention.backends.flashinfer.FlashInferMetadataBuilder",
+          "selected": {
+            "use_trtllm_decode_attention": true,
+            "use_dedicated_xqa": true,
+            "num_qo_heads": 16,
+            "num_kv_heads": 8,
+            "head_dim": 128,
+            "page_size": 16,
+            "selected_decode_kernel": "xqa",
+            "q_data_type_prefill": "torch.bfloat16",
+            "q_data_type_decode": "torch.bfloat16"
+          },
+          "layer_count": 28,
+          "implementation_classes": [
+            "vllm.v1.attention.backends.flashinfer.FlashInferImpl"
+          ],
+          "flash_attention_versions": [],
+          "manager_block_size": 16,
+          "kernel_block_size": 16,
+          "cache_dtype": "torch.bfloat16"
+        }
+      ],
+      "terminal_errors": [],
+      "encoder_errors": [],
+      "normal_exit": true,
+      "task_container_absent": true,
+      "terminal_measurements": "vllm-development-flashinfer-original-terminal.json.gz",
+      "actual_terminal_tokens": 1358
+    },
+    {
+      "label": "flash_attn-partial",
+      "arguments": [
+        "--model",
+        "/checkpoint",
+        "--served-model-name",
+        "Qwen/Qwen3-ASR-1.7B",
+        "--revision",
+        "7278e1e70fe206f11671096ffdd38061171dd6e5",
+        "--dtype",
+        "bfloat16",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--max-model-len",
+        "8192",
+        "--max-num-seqs",
+        "8",
+        "--max-num-batched-tokens",
+        "4096",
+        "--gpu-memory-utilization",
+        "0.5",
+        "--kv-cache-memory-bytes",
+        "8589934592",
+        "--no-enable-prefix-caching",
+        "--mm-processor-cache-gb",
+        "0",
+        "--limit-mm-per-prompt",
+        "{\"audio\":1}",
+        "--compilation-config",
+        "{\"mode\": 3, \"cudagraph_mode\": \"FULL_AND_PIECEWISE\", \"cudagraph_capture_sizes\": [1, 2, 3, 4, 5, 6, 7, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096], \"compile_mm_encoder\": false, \"cudagraph_mm_encoder\": false}",
+        "--shutdown-timeout",
+        "120",
+        "--worker-extension-cls",
+        "asr_vllm_attention_trial_worker.AttentionTrialWorker",
+        "--attention-backend",
+        "FLASH_ATTN",
+        "--block-size",
+        "16"
+      ],
+      "requests": 74,
+      "status": "passed_development_functional_controls",
+      "actual_backend_groups": [
+        {
+          "backend": "FLASH_ATTN",
+          "builder": "vllm.v1.attention.backends.flash_attn.FlashAttentionMetadataBuilder",
+          "selected": {
+            "selected_decode_kernel": null
+          },
+          "layer_count": 28,
+          "implementation_classes": [
+            "vllm.v1.attention.backends.flash_attn.FlashAttentionImpl"
+          ],
+          "flash_attention_versions": [
+            2
+          ],
+          "manager_block_size": 16,
+          "kernel_block_size": 16,
+          "cache_dtype": "torch.bfloat16"
+        }
+      ],
+      "terminal_errors": [],
+      "encoder_errors": [],
+      "normal_exit": true,
+      "task_container_absent": true,
+      "terminal_measurements": "vllm-development-flash_attn-partial-terminal.json.gz",
+      "actual_terminal_tokens": 1358
+    },
+    {
+      "label": "flashinfer-partial",
+      "arguments": [
+        "--model",
+        "/checkpoint",
+        "--served-model-name",
+        "Qwen/Qwen3-ASR-1.7B",
+        "--revision",
+        "7278e1e70fe206f11671096ffdd38061171dd6e5",
+        "--dtype",
+        "bfloat16",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--max-model-len",
+        "8192",
+        "--max-num-seqs",
+        "8",
+        "--max-num-batched-tokens",
+        "4096",
+        "--gpu-memory-utilization",
+        "0.5",
+        "--kv-cache-memory-bytes",
+        "8589934592",
+        "--no-enable-prefix-caching",
+        "--mm-processor-cache-gb",
+        "0",
+        "--limit-mm-per-prompt",
+        "{\"audio\":1}",
+        "--compilation-config",
+        "{\"mode\": 3, \"cudagraph_mode\": \"FULL_AND_PIECEWISE\", \"cudagraph_capture_sizes\": [1, 2, 3, 4, 5, 6, 7, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096], \"compile_mm_encoder\": false, \"cudagraph_mm_encoder\": false}",
+        "--shutdown-timeout",
+        "120",
+        "--worker-extension-cls",
+        "asr_vllm_attention_trial_worker.AttentionTrialWorker",
+        "--attention-backend",
+        "FLASHINFER",
+        "--block-size",
+        "16"
+      ],
+      "requests": 74,
+      "status": "passed_development_functional_controls",
+      "actual_backend_groups": [
+        {
+          "backend": "FLASHINFER",
+          "builder": "vllm.v1.attention.backends.flashinfer.FlashInferMetadataBuilder",
+          "selected": {
+            "use_trtllm_decode_attention": true,
+            "use_dedicated_xqa": true,
+            "num_qo_heads": 16,
+            "num_kv_heads": 8,
+            "head_dim": 128,
+            "page_size": 16,
+            "selected_decode_kernel": "xqa",
+            "q_data_type_prefill": "torch.bfloat16",
+            "q_data_type_decode": "torch.bfloat16"
+          },
+          "layer_count": 28,
+          "implementation_classes": [
+            "vllm.v1.attention.backends.flashinfer.FlashInferImpl"
+          ],
+          "flash_attention_versions": [],
+          "manager_block_size": 16,
+          "kernel_block_size": 16,
+          "cache_dtype": "torch.bfloat16"
+        }
+      ],
+      "terminal_errors": [],
+      "encoder_errors": [],
+      "normal_exit": true,
+      "task_container_absent": true,
+      "terminal_measurements": "vllm-development-flashinfer-partial-terminal.json.gz",
+      "actual_terminal_tokens": 1358
+    }
+  ],
+  "performance_qualified": false,
+  "reasonable_deployment_tuning_complete": false
+}

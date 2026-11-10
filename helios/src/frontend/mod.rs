@@ -8,9 +8,12 @@
 
 mod deepseek;
 mod boundaries;
+pub mod transcription;
 mod templates;
 #[cfg(feature = "images")]
 pub mod images;
+#[cfg(feature = "audio")]
+pub mod audio;
 mod json;
 mod jinja;
 
@@ -122,12 +125,47 @@ pub struct FrontendSettings {
     pub prompt_encoder: PromptEncoder,
     #[serde(default)]
     pub image_placeholder_token_id: Option<u32>,
+    pub audio: Option<AudioSettings>,
     pub tokenizer: TokenizerSettings,
     pub eos_token_ids: Vec<u32>,
     #[serde(default)]
     pub template_encoding: TemplateEncoding,
     #[cfg(feature = "images")]
     pub image: Option<images::ImageSettings>,
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AudioSettings {
+    pub sample_rate: u32,
+    pub mel_bins: u32,
+    pub fft_size: u32,
+    pub hop_samples: u32,
+    pub max_file_bytes: usize,
+    pub max_samples: usize,
+    pub decode_timeout_millis: u64,
+    pub service_chunk_samples: usize,
+    pub silence_search_samples: usize,
+    pub silence_window_samples: usize,
+    pub sample_padding: crate::model::contract::AudioSamplePadding,
+    #[serde(default, skip_serializing_if = "crate::model::contract::AudioNumerics::is_legacy")]
+    pub numerics: crate::model::contract::AudioNumerics,
+}
+
+impl AudioSettings {
+    pub fn validate(&self) -> Result<()> {
+        if (self.sample_rate, self.mel_bins, self.fft_size, self.hop_samples) != (16000, 128, 400, 160)
+            || self.max_file_bytes == 0 || self.max_file_bytes > 25 * 1024 * 1024
+            || self.max_samples <= 200 || self.max_samples > 600 * 16000
+            || self.decode_timeout_millis == 0 || self.decode_timeout_millis > 60000
+            || self.service_chunk_samples <= 200 || self.service_chunk_samples > self.max_samples
+            || self.silence_search_samples == 0 || self.silence_search_samples >= self.service_chunk_samples
+            || self.silence_window_samples == 0 || self.silence_window_samples > self.silence_search_samples
+        {
+            return Err(Error::frontend(FrontendError::Input(Failure::new("invalid prepared audio settings"))));
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -236,6 +274,7 @@ pub struct RenderedPrompt {
 }
 
 pub struct Frontend {
+    audio_settings: Option<AudioSettings>,
     prompt_encoder: PromptEncoder,
     image_placeholder_token_id: Option<u32>,
     tokenizer: Tokenizer,
@@ -250,6 +289,10 @@ pub struct Frontend {
 }
 
 impl Frontend {
+    pub fn audio_settings(&self) -> Option<&AudioSettings> {
+        self.audio_settings.as_ref()
+    }
+
     pub fn prompt_encoder(&self) -> PromptEncoder {
         self.prompt_encoder
     }
@@ -387,6 +430,11 @@ impl Frontend {
         template_defaults: Map<String, Json>,
         settings: &FrontendSettings,
     ) -> Result<Self> {
+        if let Some(audio) = &settings.audio {
+            audio.validate()?;
+            #[cfg(not(feature = "audio"))]
+            return Err(deepseek::invalid("this build does not include native audio preparation"));
+        }
         if settings.prompt_encoder != PromptEncoder::Jinja && assets.chat_template.is_some() {
             return Err(deepseek::invalid(
                 "official prompt encoding does not use a chat template asset",
@@ -405,7 +453,11 @@ impl Frontend {
             settings.prompt_encoder,
             settings.image_placeholder_token_id,
         )
-        .map(|frontend| frontend.with_template_encoding(settings.template_encoding))
+        .map(|frontend| {
+            let mut frontend = frontend.with_template_encoding(settings.template_encoding);
+            frontend.audio_settings = settings.audio.clone();
+            frontend
+        })
     }
 
     fn load_encoder(
@@ -488,6 +540,7 @@ impl Frontend {
         defaults.insert("documents".into(), Json::Null);
         defaults.extend(template_defaults);
         let frontend = Self {
+            audio_settings: None,
             prompt_encoder,
             image_placeholder_token_id,
             bos_token_id,
@@ -887,6 +940,7 @@ mod tests {
         );
         let template = Some(jinja::CompiledTemplate::compile(&source).unwrap());
         Frontend {
+            audio_settings: None,
             prompt_encoder: PromptEncoder::Jinja,
             image_placeholder_token_id: None,
             ordinary_tokenizer: None,
@@ -986,6 +1040,7 @@ mod tests {
             );
             let template = Some(jinja::CompiledTemplate::compile(&source).unwrap());
             let frontend = Frontend {
+                audio_settings: None,
                 prompt_encoder: PromptEncoder::Jinja,
                 image_placeholder_token_id: None,
                 ordinary_tokenizer: None,
@@ -1043,6 +1098,7 @@ mod tests {
         let source = "{{ raise_exception('fixture rejection') }}";
         let template = Some(jinja::CompiledTemplate::compile(source).unwrap());
         let frontend = Frontend {
+            audio_settings: None,
             prompt_encoder: PromptEncoder::Jinja,
             image_placeholder_token_id: None,
             bos_token_id: None,

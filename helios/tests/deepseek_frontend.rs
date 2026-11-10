@@ -36,6 +36,7 @@ fn numeric_effort_matches_python_reference_bytes_and_checkpoint_token_ids() {
             eos_token_ids: vec![],
             prompt_encoder: PromptEncoder::DeepseekV41,
             image_placeholder_token_id: None,
+            audio: None,
             template_encoding: Default::default(),
             image: None,
         },
@@ -71,6 +72,7 @@ fn official_encoder_renders_and_initializes_native_output_state() {
         eos_token_ids: vec![],
         prompt_encoder: PromptEncoder::DeepseekV41,
         image_placeholder_token_id: None,
+        audio: None,
         template_encoding: Default::default(),
         image: None,
     };

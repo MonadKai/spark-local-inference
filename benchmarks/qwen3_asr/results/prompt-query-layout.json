@@ -1,0 +1,1963 @@
+{
+  "scope": "Frozen synthetic BF16 Q/K/V. Direct pinned ATen FA2 full versus intermediate fragments under original, rounded and merged query geometry. True usedK=end throughout. Arithmetic attribution only; no recipe, metadata, native, ASR, quality or performance qualification.",
+  "seed": 20261106,
+  "paged_key_capacity": 8192,
+  "pinned_fa2_sms_factor": 2,
+  "physical_sms": 48,
+  "originals": [
+    19,
+    38,
+    123,
+    129,
+    165,
+    192,
+    443
+  ],
+  "status": "completed_attribution_only",
+  "observations": [
+    {
+      "original": 19,
+      "geometry": "original-query",
+      "physical_query": 19,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 19,
+      "canonical_query_index_shift": 0,
+      "actual_used_keys": 19,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 19,
+      "geometry": "original-query",
+      "physical_query": 19,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 19,
+      "canonical_query_index_shift": 0,
+      "actual_used_keys": 19,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 19,
+      "geometry": "rounded",
+      "physical_query": 64,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 19,
+      "canonical_query_index_shift": 45,
+      "actual_used_keys": 19,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 19,
+      "geometry": "rounded",
+      "physical_query": 64,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 19,
+      "canonical_query_index_shift": 45,
+      "actual_used_keys": 19,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 19,
+      "geometry": "merged",
+      "physical_query": 8192,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 19,
+      "canonical_query_index_shift": 8173,
+      "actual_used_keys": 19,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 19,
+      "geometry": "merged",
+      "physical_query": 8192,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 19,
+      "canonical_query_index_shift": 8173,
+      "actual_used_keys": 19,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 38,
+      "geometry": "original-query",
+      "physical_query": 38,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 38,
+      "canonical_query_index_shift": 0,
+      "actual_used_keys": 38,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 38,
+      "geometry": "original-query",
+      "physical_query": 38,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 38,
+      "canonical_query_index_shift": 0,
+      "actual_used_keys": 38,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 38,
+      "geometry": "rounded",
+      "physical_query": 64,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 38,
+      "canonical_query_index_shift": 26,
+      "actual_used_keys": 38,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 38,
+      "geometry": "rounded",
+      "physical_query": 64,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 38,
+      "canonical_query_index_shift": 26,
+      "actual_used_keys": 38,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 38,
+      "geometry": "merged",
+      "physical_query": 8192,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 38,
+      "canonical_query_index_shift": 8154,
+      "actual_used_keys": 38,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 38,
+      "geometry": "merged",
+      "physical_query": 8192,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 38,
+      "canonical_query_index_shift": 8154,
+      "actual_used_keys": 38,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 123,
+      "geometry": "original-query",
+      "physical_query": 123,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 123,
+      "canonical_query_index_shift": 0,
+      "actual_used_keys": 123,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 123,
+      "geometry": "original-query",
+      "physical_query": 123,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 64,
+      "canonical_query_index_shift": 59,
+      "actual_used_keys": 64,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 123,
+      "geometry": "original-query",
+      "physical_query": 123,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 64,
+      "end": 123,
+      "canonical_query_index_shift": 0,
+      "actual_used_keys": 123,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 123,
+      "geometry": "rounded",
+      "physical_query": 128,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 123,
+      "canonical_query_index_shift": 5,
+      "actual_used_keys": 123,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 123,
+      "geometry": "rounded",
+      "physical_query": 128,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 64,
+      "canonical_query_index_shift": 64,
+      "actual_used_keys": 64,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 123,
+      "geometry": "rounded",
+      "physical_query": 128,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 64,
+      "end": 123,
+      "canonical_query_index_shift": 5,
+      "actual_used_keys": 123,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 123,
+      "geometry": "merged",
+      "physical_query": 8192,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 123,
+      "canonical_query_index_shift": 8069,
+      "actual_used_keys": 123,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 123,
+      "geometry": "merged",
+      "physical_query": 8192,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 64,
+      "canonical_query_index_shift": 8128,
+      "actual_used_keys": 64,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 123,
+      "geometry": "merged",
+      "physical_query": 8192,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 64,
+      "end": 123,
+      "canonical_query_index_shift": 8069,
+      "actual_used_keys": 123,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 129,
+      "geometry": "original-query",
+      "physical_query": 129,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 129,
+      "canonical_query_index_shift": 0,
+      "actual_used_keys": 129,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 129,
+      "geometry": "original-query",
+      "physical_query": 129,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 64,
+      "canonical_query_index_shift": 65,
+      "actual_used_keys": 64,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 129,
+      "geometry": "original-query",
+      "physical_query": 129,
+      "split": 2,
+      "key_bound": 256,
+      "start": 64,
+      "end": 128,
+      "canonical_query_index_shift": 1,
+      "actual_used_keys": 128,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 129,
+      "geometry": "original-query",
+      "physical_query": 129,
+      "split": 2,
+      "key_bound": 256,
+      "start": 128,
+      "end": 129,
+      "canonical_query_index_shift": 0,
+      "actual_used_keys": 129,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 129,
+      "geometry": "original-query",
+      "physical_query": 129,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 128,
+      "canonical_query_index_shift": 1,
+      "actual_used_keys": 128,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 129,
+      "geometry": "rounded",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 129,
+      "canonical_query_index_shift": 63,
+      "actual_used_keys": 129,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 129,
+      "geometry": "rounded",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 64,
+      "canonical_query_index_shift": 128,
+      "actual_used_keys": 64,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 129,
+      "geometry": "rounded",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 64,
+      "end": 128,
+      "canonical_query_index_shift": 64,
+      "actual_used_keys": 128,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 129,
+      "geometry": "rounded",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 128,
+      "end": 129,
+      "canonical_query_index_shift": 63,
+      "actual_used_keys": 129,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 129,
+      "geometry": "rounded",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 128,
+      "canonical_query_index_shift": 64,
+      "actual_used_keys": 128,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 129,
+      "geometry": "merged",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 129,
+      "canonical_query_index_shift": 63,
+      "actual_used_keys": 129,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 129,
+      "geometry": "merged",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 64,
+      "canonical_query_index_shift": 128,
+      "actual_used_keys": 64,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 129,
+      "geometry": "merged",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 64,
+      "end": 128,
+      "canonical_query_index_shift": 64,
+      "actual_used_keys": 128,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 129,
+      "geometry": "merged",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 128,
+      "end": 129,
+      "canonical_query_index_shift": 63,
+      "actual_used_keys": 129,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 129,
+      "geometry": "merged",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 128,
+      "canonical_query_index_shift": 64,
+      "actual_used_keys": 128,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 165,
+      "geometry": "original-query",
+      "physical_query": 165,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 165,
+      "canonical_query_index_shift": 0,
+      "actual_used_keys": 165,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 165,
+      "geometry": "original-query",
+      "physical_query": 165,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 64,
+      "canonical_query_index_shift": 101,
+      "actual_used_keys": 64,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 165,
+      "geometry": "original-query",
+      "physical_query": 165,
+      "split": 2,
+      "key_bound": 256,
+      "start": 64,
+      "end": 128,
+      "canonical_query_index_shift": 37,
+      "actual_used_keys": 128,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 165,
+      "geometry": "original-query",
+      "physical_query": 165,
+      "split": 2,
+      "key_bound": 256,
+      "start": 128,
+      "end": 165,
+      "canonical_query_index_shift": 0,
+      "actual_used_keys": 165,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 165,
+      "geometry": "original-query",
+      "physical_query": 165,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 128,
+      "canonical_query_index_shift": 37,
+      "actual_used_keys": 128,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 165,
+      "geometry": "rounded",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 165,
+      "canonical_query_index_shift": 27,
+      "actual_used_keys": 165,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 165,
+      "geometry": "rounded",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 64,
+      "canonical_query_index_shift": 128,
+      "actual_used_keys": 64,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 165,
+      "geometry": "rounded",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 64,
+      "end": 128,
+      "canonical_query_index_shift": 64,
+      "actual_used_keys": 128,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 165,
+      "geometry": "rounded",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 128,
+      "end": 165,
+      "canonical_query_index_shift": 27,
+      "actual_used_keys": 165,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 165,
+      "geometry": "rounded",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 128,
+      "canonical_query_index_shift": 64,
+      "actual_used_keys": 128,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 165,
+      "geometry": "merged",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 165,
+      "canonical_query_index_shift": 27,
+      "actual_used_keys": 165,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 165,
+      "geometry": "merged",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 64,
+      "canonical_query_index_shift": 128,
+      "actual_used_keys": 64,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 165,
+      "geometry": "merged",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 64,
+      "end": 128,
+      "canonical_query_index_shift": 64,
+      "actual_used_keys": 128,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 165,
+      "geometry": "merged",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 128,
+      "end": 165,
+      "canonical_query_index_shift": 27,
+      "actual_used_keys": 165,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 165,
+      "geometry": "merged",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 128,
+      "canonical_query_index_shift": 64,
+      "actual_used_keys": 128,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 192,
+      "geometry": "original-query",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 192,
+      "canonical_query_index_shift": 0,
+      "actual_used_keys": 192,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 192,
+      "geometry": "original-query",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 64,
+      "canonical_query_index_shift": 128,
+      "actual_used_keys": 64,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 192,
+      "geometry": "original-query",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 64,
+      "end": 128,
+      "canonical_query_index_shift": 64,
+      "actual_used_keys": 128,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 192,
+      "geometry": "original-query",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 128,
+      "end": 192,
+      "canonical_query_index_shift": 0,
+      "actual_used_keys": 192,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 192,
+      "geometry": "original-query",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 128,
+      "canonical_query_index_shift": 64,
+      "actual_used_keys": 128,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 192,
+      "geometry": "rounded",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 192,
+      "canonical_query_index_shift": 0,
+      "actual_used_keys": 192,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 192,
+      "geometry": "rounded",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 64,
+      "canonical_query_index_shift": 128,
+      "actual_used_keys": 64,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 192,
+      "geometry": "rounded",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 64,
+      "end": 128,
+      "canonical_query_index_shift": 64,
+      "actual_used_keys": 128,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 192,
+      "geometry": "rounded",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 128,
+      "end": 192,
+      "canonical_query_index_shift": 0,
+      "actual_used_keys": 192,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 192,
+      "geometry": "rounded",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 128,
+      "canonical_query_index_shift": 64,
+      "actual_used_keys": 128,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 192,
+      "geometry": "merged",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 192,
+      "canonical_query_index_shift": 0,
+      "actual_used_keys": 192,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 192,
+      "geometry": "merged",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 64,
+      "canonical_query_index_shift": 128,
+      "actual_used_keys": 64,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 192,
+      "geometry": "merged",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 64,
+      "end": 128,
+      "canonical_query_index_shift": 64,
+      "actual_used_keys": 128,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 192,
+      "geometry": "merged",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 128,
+      "end": 192,
+      "canonical_query_index_shift": 0,
+      "actual_used_keys": 192,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 192,
+      "geometry": "merged",
+      "physical_query": 192,
+      "split": 2,
+      "key_bound": 256,
+      "start": 0,
+      "end": 128,
+      "canonical_query_index_shift": 64,
+      "actual_used_keys": 128,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 443,
+      "geometry": "original-query",
+      "physical_query": 443,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 443,
+      "canonical_query_index_shift": 0,
+      "actual_used_keys": 443,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 443,
+      "geometry": "original-query",
+      "physical_query": 443,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 64,
+      "canonical_query_index_shift": 379,
+      "actual_used_keys": 64,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 443,
+      "geometry": "original-query",
+      "physical_query": 443,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 64,
+      "end": 128,
+      "canonical_query_index_shift": 315,
+      "actual_used_keys": 128,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 443,
+      "geometry": "original-query",
+      "physical_query": 443,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 128,
+      "end": 443,
+      "canonical_query_index_shift": 0,
+      "actual_used_keys": 443,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 443,
+      "geometry": "original-query",
+      "physical_query": 443,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 128,
+      "canonical_query_index_shift": 315,
+      "actual_used_keys": 128,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 443,
+      "geometry": "rounded",
+      "physical_query": 448,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 443,
+      "canonical_query_index_shift": 5,
+      "actual_used_keys": 443,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 443,
+      "geometry": "rounded",
+      "physical_query": 448,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 64,
+      "canonical_query_index_shift": 384,
+      "actual_used_keys": 64,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 443,
+      "geometry": "rounded",
+      "physical_query": 448,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 64,
+      "end": 128,
+      "canonical_query_index_shift": 320,
+      "actual_used_keys": 128,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 443,
+      "geometry": "rounded",
+      "physical_query": 448,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 128,
+      "end": 443,
+      "canonical_query_index_shift": 5,
+      "actual_used_keys": 443,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 443,
+      "geometry": "rounded",
+      "physical_query": 448,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 128,
+      "canonical_query_index_shift": 320,
+      "actual_used_keys": 128,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 443,
+      "geometry": "merged",
+      "physical_query": 8192,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 443,
+      "canonical_query_index_shift": 7749,
+      "actual_used_keys": 443,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 443,
+      "geometry": "merged",
+      "physical_query": 8192,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 64,
+      "canonical_query_index_shift": 8128,
+      "actual_used_keys": 64,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 443,
+      "geometry": "merged",
+      "physical_query": 8192,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 64,
+      "end": 128,
+      "canonical_query_index_shift": 8064,
+      "actual_used_keys": 128,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 443,
+      "geometry": "merged",
+      "physical_query": 8192,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 128,
+      "end": 443,
+      "canonical_query_index_shift": 7749,
+      "actual_used_keys": 443,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    },
+    {
+      "original": 443,
+      "geometry": "merged",
+      "physical_query": 8192,
+      "split": 1,
+      "key_bound": 8192,
+      "start": 0,
+      "end": 128,
+      "canonical_query_index_shift": 8064,
+      "actual_used_keys": 128,
+      "repeated_replays": 5,
+      "allocation_stable": true,
+      "future_kv_poison_unread": true,
+      "active_poison_and_recovery": true,
+      "versus_sdk": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "versus_same_geometry_full": {
+        "changed": 0,
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      }
+    }
+  ],
+  "errors": [],
+  "started_at": "2026-11-08T15:02:47.051407+00:00",
+  "finished_at": "2026-11-08T15:02:50.906964+00:00",
+  "configuration": {
+    "heads": 16,
+    "kv_heads": 8,
+    "head_dimension": 128,
+    "cache_page_tokens": 256,
+    "paged_key_capacity": 8192,
+    "operand_dtype": "bfloat16",
+    "distribution": "CUDA torch.Generator.normal BF16, multiplied by0.2",
+    "seed_per_original": "20261106+original",
+    "fragment_endpoints": "0,min(64,N),min(128,N),N; plusprefix128",
+    "query_placement": "right-aligned within the selected original-query/rounded/merged physical geometry",
+    "oracle": "Pinned Torch fixed-length FLASH_ATTENTION SDPA over all N original keys",
+    "reproduce": "python -m qualify.asr_query_layout --config CONFIG.toml --output OUTPUT",
+    "qualification": "Frozen synthetic arithmetic attribution only; no recipe/model/native/performance qualification"
+  },
+  "portable_entry_verified_same_observations": true,
+  "source_scope": "Base commit plus the accompanying component/portable collector changes; portable execution produced identical observations",
+  "source_base_commit": "343ab31cc416c02130ef41a53aab966e8a44b92a",
+  "torch_version": "2.14.1+cu132",
+  "torch_git_revision": "5c4886908584029761b579af026dcfb627c84070",
+  "torch_cuda_runtime": "13.2"
+}

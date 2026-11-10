@@ -48,7 +48,7 @@ The additional `flare` object reports prepared and selected serving metadata:
 | `max_image_tokens_per_image` | Image tokens one image may cost after the profile's normalization; the smaller of one prepared vision graph and one feature window; zero for text-only packages |
 | `max_image_pixels` | Largest decoded image extent (width times height) accepted before normalization; zero for text-only packages |
 | `max_image_bytes` | Largest encoded image accepted; zero for text-only packages |
-| `input_modalities` | `text`, plus `image` when vision is prepared |
+| `input_modalities` | `text`, plus `image` or `audio` when the corresponding prepared storage contract is present |
 | `output_modalities` | `text` |
 
 Generation requests always use the loaded model, regardless of the request's
@@ -77,7 +77,10 @@ labels are empty strings; `families` is empty. The listing reports unknown artif
 size as zero and unknown modification time as `0001-01-01T00:00:00Z`. Its `digest`
 is a SHA-256 cache key over the prepared model identity and discovery details;
 it changes when the model or advertised metadata changes. It is not an Ollama
-manifest digest. Templates and tensor inventories are not exposed.
+manifest digest. Native loading includes the authenticated executable producer
+in this cache identity, so upgrading from an engine that omitted it changes this
+opaque digest for an unchanged package. Signed model identifiers remain intact.
+Templates and tensor inventories are not exposed.
 
 OpenCode v2 can discover Flare through its built-in Ollama provider. Merge into
 `~/.config/opencode/opencode.json`:
@@ -678,6 +681,15 @@ input, output, and cache counts. Chat and Completions include final usage when
 including the legacy terminal usage when token IDs are requested without a
 separate usage chunk. Stop sequences report the exact matched string through
 Anthropic `stop_sequence`.
+
+Token timestamps use the server process's monotonic clock. `ingress_ns` starts
+in the handler before body reading, after ingress admission; `enqueue_ns` is
+recorded before the runtime queue submission. Each raw token timestamp is a CPU
+observation after completion validation and scheduler state commitment, before
+text/stop filtering. Their differences describe server-observed first raw-token
+latency, including completion delivery and polling. They are not GPU-only model
+TTFT, client/network timing or word-aligned audio timestamps. Raw IDs include
+EOS and control tokens; do not subtract a client clock from these timestamps.
 
 For cumulative usage during Chat and Completions streaming, set
 `"stream_options": {"include_usage": true, "continuous_usage_stats": true}`.

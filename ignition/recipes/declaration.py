@@ -227,6 +227,9 @@ class Recipe:
     mapped_host_name: str = ""
     max_images: int = 0
     image_bytes: int = 0
+    # Explicit encoded HTTP entity capacity when token/image geometry does not
+    # describe the frontend's request bytes. None retains historical derivation.
+    max_body_bytes: int | None = None
     speculation: Speculation | None = None
     speculative_methods: Mapping[str, SpeculativeMethod] = field(default_factory=lambda: MappingProxyType({}))
     plain_ranks: Mapping[int, RankCosts] = field(default_factory=lambda: MappingProxyType({}))
@@ -255,6 +258,9 @@ class Recipe:
                                         speculation.token_capacity if enabled else None))
 
     def __post_init__(self):
+        if self.max_body_bytes is not None and (type(self.max_body_bytes) is not int
+                or not 1 <= self.max_body_bytes <= 256 * 1024 * 1024):
+            raise ValueError("max_body_bytes must be an integer HTTP capacity in [1,256 MiB]")
         if self.export_repository:
             import re
             if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*', self.export_repository) or '..' in self.export_repository:

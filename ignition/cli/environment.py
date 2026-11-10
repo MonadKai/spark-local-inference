@@ -43,6 +43,7 @@ def apply(configuration, gpus, b12x=()) -> None:
         "FLASHINFER_WORKSPACE_BASE": str(flashinfer_workspace(kernel_cache)),
         "TRITON_CACHE_DIR": str(kernel_cache / "triton"),
         "TORCHINDUCTOR_CACHE_DIR": str(kernel_cache / "inductor"),
+        "CUDA_TILE_CACHE_DIR": str(kernel_cache / "cutile"),
         **dict(b12x),
     })
     # cuTile discovers its compiler bundle independently of the native toolkit.

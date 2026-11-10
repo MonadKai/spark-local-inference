@@ -91,6 +91,20 @@ pub fn input_staging_bytes(
         }
         maximum = maximum.max(bytes);
     }
+    if let Some(audio) = &contract.audio {
+        // A retained record contains the whole normalized input, not one
+        // encoder window. A feature covers at most one convolution chunk or
+        // subsampling_factor frames, whichever is smaller.
+        let bytes = (audio.features_per_request as u64)
+            .checked_mul(audio.subsampling_factor.min(audio.frames_per_chunk) as u64)
+            .and_then(|frames| frames.checked_mul(audio.mel_bins as u64))
+            .and_then(|elements| elements.checked_mul(4))
+            .ok_or("prepared audio input extent overflows")?;
+        maximum = maximum.max(bytes);
+        let encoded = (audio.features_per_request as u64).checked_mul(audio.feature_width as u64)
+            .and_then(|elements| elements.checked_mul(2)).ok_or("encoded feature staging overflows")?;
+        maximum = maximum.max(encoded);
+    }
     if maximum == 0 {
         Ok(0)
     } else {
@@ -100,6 +114,14 @@ pub fn input_staging_bytes(
     }
 }
 
+/// Additional fixed pinned storage for explicit encoded retention. This is
+/// separate from the CPU store reservation and the frontend processing window.
+pub(crate) fn encoded_staging_bytes(contract: &crate::model::PreparedContract) -> Result<u64> {
+    let audio = contract.audio.as_ref().ok_or("encoded retention lacks a feature storage contract")?;
+    (audio.feature_stride()? as u64).checked_add(12)
+        .ok_or_else(|| "encoded feature pinned staging overflows".into())
+}
+
 #[derive(Clone, Copy)]
 pub enum LookupOutcome {
     NoMatch,
@@ -107,4 +129,81 @@ pub enum LookupOutcome {
     CapacityRejected,
     EnqueueRejected,
     Admitted,
+}
+
+#[cfg(all(test, feature = "frontend"))]
+mod input_tests {
+    use super::input_staging_bytes;
+    use crate::model::contract::{AudioCapacity, GraphContract, GraphOperation, InputIndexing,
+        PreparedContract, StateView, ValueBinding, ValueSource};
+
+    #[test]
+    fn audio_records_reserve_whole_input_bytes_and_preserve_image_accounting() {
+        let mut contract: PreparedContract = serde_json::from_str(include_str!(
+            "../../tests/support/contracts/qwen38.json")).unwrap();
+        assert_eq!(input_staging_bytes(&contract, |_| None).unwrap(), 0);
+        contract.graphs.push(GraphContract {
+            graph: "vision256".into(), kind: GraphOperation::Vision, state: vec![], state_rows_per_request: 1,
+            draft_cursor: None, embedding_tables: vec![], pending_token: None, tuned_bindings: vec![],
+            inputs: vec![ValueBinding { buffer: "pixels".into(), source: ValueSource::ImageTensor,
+                indexing: InputIndexing::Scalar, value_offset: 0, padding: 0, tensor: "pixel_values".into(), audio_tensor: None }],
+        });
+        let image = input_staging_bytes(&contract, |_| Some(8192)).unwrap();
+        assert_eq!(image, 8192 + 4096);
+        assert!(input_staging_bytes(&contract, |_| None).is_err());
+        let view = || StateView { buffer: String::new(), offset: 0, stride: 1, nbytes: 1 };
+        contract.audio = Some(AudioCapacity {
+            feature_slots: 2, features_per_request: 8192, feature_width: 2048,
+            frame_capacities: vec![100, 800], mel_bins: 128, frames_per_chunk: 100,
+            features_per_chunk: 13, subsampling_factor: 8, attention_window_frames: 800,
+            features: view(), generations: view(), counts: view(),
+        });
+        assert_eq!(input_staging_bytes(&contract, |_| Some(8192)).unwrap(), 8192 * 8 * 128 * 4 + 4096);
+        contract.audio.as_mut().unwrap().feature_width = 4096;
+        assert_eq!(input_staging_bytes(&contract, |_| Some(8192)).unwrap(), 8192 * 4096 * 2 + 4096);
+        assert_eq!(super::encoded_staging_bytes(&contract).unwrap(), 8192 * 4096 * 2 + 12);
+        contract.audio.as_mut().unwrap().feature_width = 2048;
+        contract.audio.as_mut().unwrap().features_per_request = usize::MAX;
+        assert!(input_staging_bytes(&contract, |_| Some(8192)).is_err());
+        let audio = contract.audio.as_mut().unwrap();
+        audio.features_per_request = 1;
+        audio.feature_width = 1;
+        audio.frames_per_chunk = 1;
+        audio.features_per_chunk = 1;
+        audio.subsampling_factor = usize::MAX;
+        audio.attention_window_frames = 1;
+        audio.frame_capacities = vec![1];
+        assert_eq!(audio.feature_stride().unwrap(), 2);
+        assert_eq!(input_staging_bytes(&contract, |_| Some(8192)).unwrap(), image);
+        contract.graphs.clear();
+        assert_eq!(input_staging_bytes(&contract, |_| None).unwrap(), 128 * 4 + 4096);
+        contract.audio = None;
+        assert_eq!(input_staging_bytes(&contract, |_| None).unwrap(), 0);
+        assert!(super::encoded_staging_bytes(&contract).is_err());
+    }
+}
+/// Host retention tiers, independent of prefix KV reuse when explicitly set.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "server", derive(serde::Deserialize))]
+#[cfg_attr(feature = "server", serde(rename_all = "lowercase"))]
+pub enum PreparedInputCacheMode { Off, Preprocessed, Encoded, Both }
+
+impl PreparedInputCacheMode {
+    pub fn as_str(self) -> &'static str {
+        match self { Self::Off => "off", Self::Preprocessed => "preprocessed",
+            Self::Encoded => "encoded", Self::Both => "both" }
+    }
+    pub(crate) fn preprocessed(self) -> bool { matches!(self, Self::Preprocessed | Self::Both) }
+    pub(crate) fn encoded(self) -> bool { matches!(self, Self::Encoded | Self::Both) }
+}
+
+impl std::str::FromStr for PreparedInputCacheMode {
+    type Err = String;
+    fn from_str(value: &str) -> std::result::Result<Self, Self::Err> {
+        match value {
+            "off" => Ok(Self::Off), "preprocessed" => Ok(Self::Preprocessed),
+            "encoded" => Ok(Self::Encoded), "both" => Ok(Self::Both),
+            _ => Err("prepared input cache must be off, preprocessed, encoded or both".into()),
+        }
+    }
 }

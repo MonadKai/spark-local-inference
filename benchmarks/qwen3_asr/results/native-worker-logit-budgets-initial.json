@@ -1,0 +1,1372 @@
+{
+  "scope": "CPU application of unchanged frozen scalar/top1 budgets to raw BF16 logits from the separate native Rust Worker; only four complete original PCM inputs, no full twenty-input or final qualification",
+  "status": "failed_or_incomplete",
+  "native_status": "failed_or_interrupted",
+  "checkpoint_revision": "7278e1e70fe206f11671096ffdd38061171dd6e5",
+  "transformers_revision": "1d9654e78a23fb167ef539cbd699dfbd3e4830cf",
+  "candidate_used_for_budgets": false,
+  "source_node": "actual signed sampler arg0 BF16 values",
+  "expected_requests": 39,
+  "cases": [
+    {
+      "cohort": 0,
+      "request": 0,
+      "id": "en-777-126732-0081",
+      "expected_teacher_rows": 6,
+      "rows": [
+        {
+          "step": 0,
+          "max_abs": 0.25,
+          "relative_l2": 0.00682999816884547,
+          "top1": 94317,
+          "reference_top1": 94317,
+          "candidate_top1_logit": 40.0,
+          "reference_top1_logit": 40.0,
+          "candidate_logit_at_reference_top1": 40.0,
+          "reference_logit_at_candidate_top1": 40.0,
+          "candidate_margin": 8.625,
+          "reference_margin": 8.5,
+          "passed": true
+        },
+        {
+          "step": 1,
+          "max_abs": 0.2734375,
+          "relative_l2": 0.008104614457912445,
+          "top1": 480,
+          "reference_top1": 480,
+          "candidate_top1_logit": 49.75,
+          "reference_top1_logit": 49.75,
+          "candidate_logit_at_reference_top1": 49.75,
+          "reference_logit_at_candidate_top1": 49.75,
+          "candidate_margin": 20.5,
+          "reference_margin": 20.5,
+          "passed": true
+        },
+        {
+          "step": 2,
+          "max_abs": 0.453125,
+          "relative_l2": 0.03630370312736091,
+          "top1": 11,
+          "reference_top1": 11,
+          "candidate_top1_logit": 44.5,
+          "reference_top1_logit": 44.5,
+          "candidate_logit_at_reference_top1": 44.5,
+          "reference_logit_at_candidate_top1": 44.5,
+          "candidate_margin": 9.0,
+          "reference_margin": 9.0,
+          "passed": true
+        },
+        {
+          "step": 3,
+          "max_abs": 0.375,
+          "relative_l2": 0.008373875122104397,
+          "top1": 24253,
+          "reference_top1": 24253,
+          "candidate_top1_logit": 40.25,
+          "reference_top1_logit": 40.5,
+          "candidate_logit_at_reference_top1": 40.25,
+          "reference_logit_at_candidate_top1": 40.5,
+          "candidate_margin": 14.0,
+          "reference_margin": 14.25,
+          "passed": true
+        },
+        {
+          "step": 4,
+          "max_abs": 0.375,
+          "relative_l2": 0.016019136248348432,
+          "top1": 13,
+          "reference_top1": 13,
+          "candidate_top1_logit": 37.0,
+          "reference_top1_logit": 37.0,
+          "candidate_logit_at_reference_top1": 37.0,
+          "reference_logit_at_candidate_top1": 37.0,
+          "candidate_margin": 5.0,
+          "reference_margin": 4.75,
+          "passed": true
+        },
+        {
+          "step": 5,
+          "max_abs": 0.375,
+          "relative_l2": 0.02007848301993248,
+          "top1": 151645,
+          "reference_top1": 151645,
+          "candidate_top1_logit": 30.5,
+          "reference_top1_logit": 30.375,
+          "candidate_logit_at_reference_top1": 30.5,
+          "reference_logit_at_candidate_top1": 30.375,
+          "candidate_margin": 12.25,
+          "reference_margin": 12.125,
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "actual_natural_rows": 6
+    },
+    {
+      "cohort": 1,
+      "request": 0,
+      "id": "en-422-122949-0013",
+      "expected_teacher_rows": 16,
+      "rows": [
+        {
+          "step": 0,
+          "max_abs": 0.5,
+          "relative_l2": 0.01667985815491537,
+          "top1": 1655,
+          "reference_top1": 1655,
+          "candidate_top1_logit": 50.0,
+          "reference_top1_logit": 49.75,
+          "candidate_logit_at_reference_top1": 50.0,
+          "reference_logit_at_candidate_top1": 49.75,
+          "candidate_margin": 15.75,
+          "reference_margin": 15.75,
+          "passed": true
+        },
+        {
+          "step": 1,
+          "max_abs": 0.546875,
+          "relative_l2": 0.01642953893032989,
+          "top1": 419,
+          "reference_top1": 419,
+          "candidate_top1_logit": 47.75,
+          "reference_top1_logit": 47.5,
+          "candidate_logit_at_reference_top1": 47.75,
+          "reference_logit_at_candidate_top1": 47.5,
+          "candidate_margin": 19.125,
+          "reference_margin": 19.125,
+          "passed": true
+        },
+        {
+          "step": 2,
+          "max_abs": 0.3125,
+          "relative_l2": 0.007650032090055809,
+          "top1": 13054,
+          "reference_top1": 13054,
+          "candidate_top1_logit": 40.5,
+          "reference_top1_logit": 40.5,
+          "candidate_logit_at_reference_top1": 40.5,
+          "reference_logit_at_candidate_top1": 40.5,
+          "candidate_margin": 15.125,
+          "reference_margin": 15.0,
+          "passed": true
+        },
+        {
+          "step": 3,
+          "max_abs": 0.65625,
+          "relative_l2": 0.012048359007418876,
+          "top1": 1459,
+          "reference_top1": 1459,
+          "candidate_top1_logit": 43.75,
+          "reference_top1_logit": 43.5,
+          "candidate_logit_at_reference_top1": 43.75,
+          "reference_logit_at_candidate_top1": 43.5,
+          "candidate_margin": 9.25,
+          "reference_margin": 8.75,
+          "passed": true
+        },
+        {
+          "step": 4,
+          "max_abs": 0.75,
+          "relative_l2": 0.04317151843223466,
+          "top1": 315,
+          "reference_top1": 315,
+          "candidate_top1_logit": 48.0,
+          "reference_top1_logit": 47.25,
+          "candidate_logit_at_reference_top1": 48.0,
+          "reference_logit_at_candidate_top1": 47.25,
+          "candidate_margin": 16.625,
+          "reference_margin": 16.375,
+          "passed": false
+        },
+        {
+          "step": 5,
+          "max_abs": 0.5625,
+          "relative_l2": 0.012925327630105482,
+          "top1": 3840,
+          "reference_top1": 3840,
+          "candidate_top1_logit": 44.0,
+          "reference_top1_logit": 43.75,
+          "candidate_logit_at_reference_top1": 44.0,
+          "reference_logit_at_candidate_top1": 43.75,
+          "candidate_margin": 14.875,
+          "reference_margin": 14.875,
+          "passed": true
+        },
+        {
+          "step": 6,
+          "max_abs": 0.53125,
+          "relative_l2": 0.020246565795528398,
+          "top1": 11,
+          "reference_top1": 11,
+          "candidate_top1_logit": 43.75,
+          "reference_top1_logit": 43.75,
+          "candidate_logit_at_reference_top1": 43.75,
+          "reference_logit_at_candidate_top1": 43.75,
+          "candidate_margin": 14.625,
+          "reference_margin": 14.5,
+          "passed": true
+        },
+        {
+          "step": 7,
+          "max_abs": 0.5,
+          "relative_l2": 0.01301067331937733,
+          "top1": 1052,
+          "reference_top1": 1052,
+          "candidate_top1_logit": 39.5,
+          "reference_top1_logit": 39.5,
+          "candidate_logit_at_reference_top1": 39.5,
+          "reference_logit_at_candidate_top1": 39.5,
+          "candidate_margin": 1.25,
+          "reference_margin": 1.5,
+          "passed": true
+        },
+        {
+          "step": 8,
+          "max_abs": 0.375,
+          "relative_l2": 0.00910320920720103,
+          "top1": 14455,
+          "reference_top1": 14455,
+          "candidate_top1_logit": 36.75,
+          "reference_top1_logit": 36.5,
+          "candidate_logit_at_reference_top1": 36.75,
+          "reference_logit_at_candidate_top1": 36.5,
+          "candidate_margin": 5.0,
+          "reference_margin": 5.0,
+          "passed": true
+        },
+        {
+          "step": 9,
+          "max_abs": 0.421875,
+          "relative_l2": 0.0120737006333588,
+          "top1": 5577,
+          "reference_top1": 5577,
+          "candidate_top1_logit": 41.25,
+          "reference_top1_logit": 41.0,
+          "candidate_logit_at_reference_top1": 41.25,
+          "reference_logit_at_candidate_top1": 41.0,
+          "candidate_margin": 11.625,
+          "reference_margin": 11.625,
+          "passed": true
+        },
+        {
+          "step": 10,
+          "max_abs": 0.3125,
+          "relative_l2": 0.012297966385881943,
+          "top1": 11,
+          "reference_top1": 11,
+          "candidate_top1_logit": 43.0,
+          "reference_top1_logit": 43.0,
+          "candidate_logit_at_reference_top1": 43.0,
+          "reference_logit_at_candidate_top1": 43.0,
+          "candidate_margin": 0.25,
+          "reference_margin": 0.25,
+          "passed": true
+        },
+        {
+          "step": 11,
+          "max_abs": 0.40625,
+          "relative_l2": 0.01090946705455782,
+          "top1": 3108,
+          "reference_top1": 3108,
+          "candidate_top1_logit": 47.0,
+          "reference_top1_logit": 46.75,
+          "candidate_logit_at_reference_top1": 47.0,
+          "reference_logit_at_candidate_top1": 46.75,
+          "candidate_margin": 17.5,
+          "reference_margin": 17.0,
+          "passed": true
+        },
+        {
+          "step": 12,
+          "max_abs": 0.6875,
+          "relative_l2": 0.013071929161128527,
+          "top1": 553,
+          "reference_top1": 553,
+          "candidate_top1_logit": 43.5,
+          "reference_top1_logit": 43.0,
+          "candidate_logit_at_reference_top1": 43.5,
+          "reference_logit_at_candidate_top1": 43.0,
+          "candidate_margin": 14.75,
+          "reference_margin": 14.625,
+          "passed": true
+        },
+        {
+          "step": 13,
+          "max_abs": 0.59375,
+          "relative_l2": 0.01603006796520505,
+          "top1": 3108,
+          "reference_top1": 3108,
+          "candidate_top1_logit": 45.75,
+          "reference_top1_logit": 45.75,
+          "candidate_logit_at_reference_top1": 45.75,
+          "reference_logit_at_candidate_top1": 45.75,
+          "candidate_margin": 18.875,
+          "reference_margin": 19.125,
+          "passed": true
+        },
+        {
+          "step": 14,
+          "max_abs": 0.375,
+          "relative_l2": 0.01621862897115348,
+          "top1": 323,
+          "reference_top1": 323,
+          "candidate_top1_logit": 45.0,
+          "reference_top1_logit": 44.75,
+          "candidate_logit_at_reference_top1": 45.0,
+          "reference_logit_at_candidate_top1": 44.75,
+          "candidate_margin": 0.75,
+          "reference_margin": 0.5,
+          "passed": true
+        },
+        {
+          "step": 15,
+          "max_abs": 0.625,
+          "relative_l2": 0.021936228656805695,
+          "top1": 3545,
+          "reference_top1": 3545,
+          "candidate_top1_logit": 45.0,
+          "reference_top1_logit": 45.0,
+          "candidate_logit_at_reference_top1": 45.0,
+          "reference_logit_at_candidate_top1": 45.0,
+          "candidate_margin": 16.375,
+          "reference_margin": 16.125,
+          "passed": true
+        }
+      ],
+      "passed": false,
+      "actual_natural_rows": 104
+    },
+    {
+      "cohort": 2,
+      "request": 0,
+      "id": "zh-BAC009S0727W0418",
+      "expected_teacher_rows": 5,
+      "rows": [
+        {
+          "step": 0,
+          "max_abs": 0.5859375,
+          "relative_l2": 0.015323768016902876,
+          "top1": 26288,
+          "reference_top1": 26288,
+          "candidate_top1_logit": 40.5,
+          "reference_top1_logit": 40.75,
+          "candidate_logit_at_reference_top1": 40.5,
+          "reference_logit_at_candidate_top1": 40.75,
+          "candidate_margin": 4.5,
+          "reference_margin": 4.5,
+          "passed": true
+        },
+        {
+          "step": 1,
+          "max_abs": 0.375,
+          "relative_l2": 0.011354602216805728,
+          "top1": 100177,
+          "reference_top1": 100177,
+          "candidate_top1_logit": 37.25,
+          "reference_top1_logit": 37.0,
+          "candidate_logit_at_reference_top1": 37.25,
+          "reference_logit_at_candidate_top1": 37.0,
+          "candidate_margin": 10.875,
+          "reference_margin": 10.875,
+          "passed": true
+        },
+        {
+          "step": 2,
+          "max_abs": 0.5,
+          "relative_l2": 0.012879222706873134,
+          "top1": 69249,
+          "reference_top1": 69249,
+          "candidate_top1_logit": 46.75,
+          "reference_top1_logit": 47.0,
+          "candidate_logit_at_reference_top1": 46.75,
+          "reference_logit_at_candidate_top1": 47.0,
+          "candidate_margin": 18.25,
+          "reference_margin": 18.25,
+          "passed": true
+        },
+        {
+          "step": 3,
+          "max_abs": 0.625,
+          "relative_l2": 0.04631247589413247,
+          "top1": 1773,
+          "reference_top1": 1773,
+          "candidate_top1_logit": 43.75,
+          "reference_top1_logit": 44.25,
+          "candidate_logit_at_reference_top1": 43.75,
+          "reference_logit_at_candidate_top1": 44.25,
+          "candidate_margin": 12.375,
+          "reference_margin": 12.75,
+          "passed": false
+        },
+        {
+          "step": 4,
+          "max_abs": 0.40625,
+          "relative_l2": 0.02251562165074556,
+          "top1": 151645,
+          "reference_top1": 151645,
+          "candidate_top1_logit": 28.5,
+          "reference_top1_logit": 28.5,
+          "candidate_logit_at_reference_top1": 28.5,
+          "reference_logit_at_candidate_top1": 28.5,
+          "candidate_margin": 13.6875,
+          "reference_margin": 13.6875,
+          "passed": true
+        }
+      ],
+      "passed": false,
+      "actual_natural_rows": 5
+    },
+    {
+      "cohort": 3,
+      "request": 0,
+      "id": "zh-BAC009S0729W0241",
+      "expected_teacher_rows": 16,
+      "rows": [
+        {
+          "step": 0,
+          "max_abs": 0.375,
+          "relative_l2": 0.009692398653171565,
+          "top1": 106107,
+          "reference_top1": 106107,
+          "candidate_top1_logit": 38.75,
+          "reference_top1_logit": 38.75,
+          "candidate_logit_at_reference_top1": 38.75,
+          "reference_logit_at_candidate_top1": 38.75,
+          "candidate_margin": 8.25,
+          "reference_margin": 8.25,
+          "passed": true
+        },
+        {
+          "step": 1,
+          "max_abs": 0.53125,
+          "relative_l2": 0.029052320644982393,
+          "top1": 55338,
+          "reference_top1": 55338,
+          "candidate_top1_logit": 45.75,
+          "reference_top1_logit": 46.0,
+          "candidate_logit_at_reference_top1": 45.75,
+          "reference_logit_at_candidate_top1": 46.0,
+          "candidate_margin": 11.5,
+          "reference_margin": 11.5,
+          "passed": false
+        },
+        {
+          "step": 2,
+          "max_abs": 0.5,
+          "relative_l2": 0.01461241035941352,
+          "top1": 20742,
+          "reference_top1": 20742,
+          "candidate_top1_logit": 40.75,
+          "reference_top1_logit": 41.0,
+          "candidate_logit_at_reference_top1": 40.75,
+          "reference_logit_at_candidate_top1": 41.0,
+          "candidate_margin": 16.625,
+          "reference_margin": 16.625,
+          "passed": true
+        },
+        {
+          "step": 3,
+          "max_abs": 0.3125,
+          "relative_l2": 0.010639062042261433,
+          "top1": 31843,
+          "reference_top1": 31843,
+          "candidate_top1_logit": 38.5,
+          "reference_top1_logit": 38.25,
+          "candidate_logit_at_reference_top1": 38.5,
+          "reference_logit_at_candidate_top1": 38.25,
+          "candidate_margin": 10.75,
+          "reference_margin": 10.5,
+          "passed": true
+        },
+        {
+          "step": 4,
+          "max_abs": 0.4375,
+          "relative_l2": 0.013559428240886203,
+          "top1": 112840,
+          "reference_top1": 112840,
+          "candidate_top1_logit": 41.75,
+          "reference_top1_logit": 42.0,
+          "candidate_logit_at_reference_top1": 41.75,
+          "reference_logit_at_candidate_top1": 42.0,
+          "candidate_margin": 6.5,
+          "reference_margin": 6.75,
+          "passed": true
+        },
+        {
+          "step": 5,
+          "max_abs": 0.375,
+          "relative_l2": 0.013361316208221948,
+          "top1": 99472,
+          "reference_top1": 99472,
+          "candidate_top1_logit": 47.0,
+          "reference_top1_logit": 47.0,
+          "candidate_logit_at_reference_top1": 47.0,
+          "reference_logit_at_candidate_top1": 47.0,
+          "candidate_margin": 6.25,
+          "reference_margin": 6.25,
+          "passed": true
+        },
+        {
+          "step": 6,
+          "max_abs": 0.375,
+          "relative_l2": 0.010831678430233986,
+          "top1": 104708,
+          "reference_top1": 104708,
+          "candidate_top1_logit": 39.5,
+          "reference_top1_logit": 39.5,
+          "candidate_logit_at_reference_top1": 39.5,
+          "reference_logit_at_candidate_top1": 39.5,
+          "candidate_margin": 10.625,
+          "reference_margin": 10.625,
+          "passed": true
+        },
+        {
+          "step": 7,
+          "max_abs": 0.375,
+          "relative_l2": 0.01455519424717642,
+          "top1": 100166,
+          "reference_top1": 100166,
+          "candidate_top1_logit": 42.25,
+          "reference_top1_logit": 42.25,
+          "candidate_logit_at_reference_top1": 42.25,
+          "reference_logit_at_candidate_top1": 42.25,
+          "candidate_margin": 6.5,
+          "reference_margin": 6.5,
+          "passed": true
+        },
+        {
+          "step": 8,
+          "max_abs": 0.40625,
+          "relative_l2": 0.012122574741851307,
+          "top1": 32108,
+          "reference_top1": 32108,
+          "candidate_top1_logit": 45.75,
+          "reference_top1_logit": 45.5,
+          "candidate_logit_at_reference_top1": 45.75,
+          "reference_logit_at_candidate_top1": 45.5,
+          "candidate_margin": 17.375,
+          "reference_margin": 17.25,
+          "passed": true
+        },
+        {
+          "step": 9,
+          "max_abs": 0.390625,
+          "relative_l2": 0.00987730948354229,
+          "top1": 105742,
+          "reference_top1": 105742,
+          "candidate_top1_logit": 39.5,
+          "reference_top1_logit": 39.5,
+          "candidate_logit_at_reference_top1": 39.5,
+          "reference_logit_at_candidate_top1": 39.5,
+          "candidate_margin": 13.75,
+          "reference_margin": 13.875,
+          "passed": true
+        },
+        {
+          "step": 10,
+          "max_abs": 0.5625,
+          "relative_l2": 0.013238548389267309,
+          "top1": 100787,
+          "reference_top1": 100787,
+          "candidate_top1_logit": 41.75,
+          "reference_top1_logit": 41.75,
+          "candidate_logit_at_reference_top1": 41.75,
+          "reference_logit_at_candidate_top1": 41.75,
+          "candidate_margin": 10.25,
+          "reference_margin": 10.25,
+          "passed": true
+        },
+        {
+          "step": 11,
+          "max_abs": 0.359375,
+          "relative_l2": 0.014359423969826786,
+          "top1": 96050,
+          "reference_top1": 96050,
+          "candidate_top1_logit": 38.75,
+          "reference_top1_logit": 38.75,
+          "candidate_logit_at_reference_top1": 38.75,
+          "reference_logit_at_candidate_top1": 38.75,
+          "candidate_margin": 5.75,
+          "reference_margin": 5.75,
+          "passed": true
+        },
+        {
+          "step": 12,
+          "max_abs": 0.453125,
+          "relative_l2": 0.01151098636893228,
+          "top1": 101123,
+          "reference_top1": 101123,
+          "candidate_top1_logit": 37.25,
+          "reference_top1_logit": 37.25,
+          "candidate_logit_at_reference_top1": 37.25,
+          "reference_logit_at_candidate_top1": 37.25,
+          "candidate_margin": 10.375,
+          "reference_margin": 10.25,
+          "passed": true
+        },
+        {
+          "step": 13,
+          "max_abs": 0.4111328125,
+          "relative_l2": 0.011407813166234642,
+          "top1": 59074,
+          "reference_top1": 59074,
+          "candidate_top1_logit": 26.0,
+          "reference_top1_logit": 26.0,
+          "candidate_logit_at_reference_top1": 26.0,
+          "reference_logit_at_candidate_top1": 26.0,
+          "candidate_margin": 0.125,
+          "reference_margin": 0.125,
+          "passed": true
+        },
+        {
+          "step": 14,
+          "max_abs": 0.375,
+          "relative_l2": 0.013264475703969707,
+          "top1": 100787,
+          "reference_top1": 100787,
+          "candidate_top1_logit": 41.75,
+          "reference_top1_logit": 41.75,
+          "candidate_logit_at_reference_top1": 41.75,
+          "reference_logit_at_candidate_top1": 41.75,
+          "candidate_margin": 9.0,
+          "reference_margin": 9.0,
+          "passed": true
+        },
+        {
+          "step": 15,
+          "max_abs": 0.40625,
+          "relative_l2": 0.012369124171656698,
+          "top1": 97290,
+          "reference_top1": 97290,
+          "candidate_top1_logit": 34.25,
+          "reference_top1_logit": 34.5,
+          "candidate_logit_at_reference_top1": 34.25,
+          "reference_logit_at_candidate_top1": 34.5,
+          "candidate_margin": 5.75,
+          "reference_margin": 5.875,
+          "passed": true
+        }
+      ],
+      "passed": false,
+      "actual_natural_rows": 19
+    },
+    {
+      "cohort": 4,
+      "request": 0,
+      "id": "en-777-126732-0081",
+      "expected_teacher_rows": 6,
+      "rows": [
+        {
+          "step": 0,
+          "max_abs": 0.25,
+          "relative_l2": 0.00682999816884547,
+          "top1": 94317,
+          "reference_top1": 94317,
+          "candidate_top1_logit": 40.0,
+          "reference_top1_logit": 40.0,
+          "candidate_logit_at_reference_top1": 40.0,
+          "reference_logit_at_candidate_top1": 40.0,
+          "candidate_margin": 8.625,
+          "reference_margin": 8.5,
+          "passed": true
+        },
+        {
+          "step": 1,
+          "max_abs": 0.2734375,
+          "relative_l2": 0.008104614457912445,
+          "top1": 480,
+          "reference_top1": 480,
+          "candidate_top1_logit": 49.75,
+          "reference_top1_logit": 49.75,
+          "candidate_logit_at_reference_top1": 49.75,
+          "reference_logit_at_candidate_top1": 49.75,
+          "candidate_margin": 20.5,
+          "reference_margin": 20.5,
+          "passed": true
+        },
+        {
+          "step": 2,
+          "max_abs": 0.453125,
+          "relative_l2": 0.03630370312736091,
+          "top1": 11,
+          "reference_top1": 11,
+          "candidate_top1_logit": 44.5,
+          "reference_top1_logit": 44.5,
+          "candidate_logit_at_reference_top1": 44.5,
+          "reference_logit_at_candidate_top1": 44.5,
+          "candidate_margin": 9.0,
+          "reference_margin": 9.0,
+          "passed": true
+        },
+        {
+          "step": 3,
+          "max_abs": 0.375,
+          "relative_l2": 0.008373875122104397,
+          "top1": 24253,
+          "reference_top1": 24253,
+          "candidate_top1_logit": 40.25,
+          "reference_top1_logit": 40.5,
+          "candidate_logit_at_reference_top1": 40.25,
+          "reference_logit_at_candidate_top1": 40.5,
+          "candidate_margin": 14.0,
+          "reference_margin": 14.25,
+          "passed": true
+        }
+      ],
+      "passed": false,
+      "actual_natural_rows": 4
+    },
+    {
+      "cohort": 4,
+      "request": 1,
+      "id": "en-422-122949-0013",
+      "expected_teacher_rows": 16,
+      "rows": [
+        {
+          "step": 0,
+          "max_abs": 0.4375,
+          "relative_l2": 0.015186743027567739,
+          "top1": 1655,
+          "reference_top1": 1655,
+          "candidate_top1_logit": 49.75,
+          "reference_top1_logit": 49.75,
+          "candidate_logit_at_reference_top1": 49.75,
+          "reference_logit_at_candidate_top1": 49.75,
+          "candidate_margin": 15.75,
+          "reference_margin": 15.75,
+          "passed": true
+        }
+      ],
+      "passed": false,
+      "actual_natural_rows": 1
+    },
+    {
+      "cohort": 5,
+      "request": 0,
+      "id": "zh-BAC009S0727W0418",
+      "expected_teacher_rows": 5,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 5,
+      "request": 1,
+      "id": "zh-BAC009S0729W0241",
+      "expected_teacher_rows": 16,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 6,
+      "request": 0,
+      "id": "en-777-126732-0081",
+      "expected_teacher_rows": 6,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 6,
+      "request": 1,
+      "id": "en-422-122949-0013",
+      "expected_teacher_rows": 16,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 6,
+      "request": 2,
+      "id": "zh-BAC009S0727W0418",
+      "expected_teacher_rows": 5,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 6,
+      "request": 3,
+      "id": "zh-BAC009S0729W0241",
+      "expected_teacher_rows": 16,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 7,
+      "request": 0,
+      "id": "zh-BAC009S0729W0241",
+      "expected_teacher_rows": 16,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 7,
+      "request": 1,
+      "id": "zh-BAC009S0727W0418",
+      "expected_teacher_rows": 5,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 7,
+      "request": 2,
+      "id": "en-422-122949-0013",
+      "expected_teacher_rows": 16,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 7,
+      "request": 3,
+      "id": "en-777-126732-0081",
+      "expected_teacher_rows": 6,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 8,
+      "request": 0,
+      "id": "en-777-126732-0081",
+      "expected_teacher_rows": 6,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 8,
+      "request": 1,
+      "id": "en-422-122949-0013",
+      "expected_teacher_rows": 16,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 8,
+      "request": 2,
+      "id": "zh-BAC009S0727W0418",
+      "expected_teacher_rows": 5,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 8,
+      "request": 3,
+      "id": "zh-BAC009S0729W0241",
+      "expected_teacher_rows": 16,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 8,
+      "request": 4,
+      "id": "en-777-126732-0081",
+      "expected_teacher_rows": 6,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 8,
+      "request": 5,
+      "id": "en-422-122949-0013",
+      "expected_teacher_rows": 16,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 8,
+      "request": 6,
+      "id": "zh-BAC009S0727W0418",
+      "expected_teacher_rows": 5,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 8,
+      "request": 7,
+      "id": "zh-BAC009S0729W0241",
+      "expected_teacher_rows": 16,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 9,
+      "request": 0,
+      "id": "zh-BAC009S0729W0241",
+      "expected_teacher_rows": 16,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 9,
+      "request": 1,
+      "id": "zh-BAC009S0727W0418",
+      "expected_teacher_rows": 5,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 9,
+      "request": 2,
+      "id": "en-422-122949-0013",
+      "expected_teacher_rows": 16,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 9,
+      "request": 3,
+      "id": "en-777-126732-0081",
+      "expected_teacher_rows": 6,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 9,
+      "request": 4,
+      "id": "zh-BAC009S0729W0241",
+      "expected_teacher_rows": 16,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 9,
+      "request": 5,
+      "id": "zh-BAC009S0727W0418",
+      "expected_teacher_rows": 5,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 9,
+      "request": 6,
+      "id": "en-422-122949-0013",
+      "expected_teacher_rows": 16,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 9,
+      "request": 7,
+      "id": "en-777-126732-0081",
+      "expected_teacher_rows": 6,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 10,
+      "request": 0,
+      "id": "en-777-126732-0081",
+      "expected_teacher_rows": 6,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 10,
+      "request": 1,
+      "id": "en-422-122949-0013",
+      "expected_teacher_rows": 16,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 10,
+      "request": 2,
+      "id": "zh-BAC009S0727W0418",
+      "expected_teacher_rows": 5,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 10,
+      "request": 3,
+      "id": "zh-BAC009S0729W0241",
+      "expected_teacher_rows": 16,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 10,
+      "request": 4,
+      "id": "en-777-126732-0081",
+      "expected_teacher_rows": 6,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 10,
+      "request": 5,
+      "id": "en-422-122949-0013",
+      "expected_teacher_rows": 16,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    },
+    {
+      "cohort": 10,
+      "request": 6,
+      "id": "zh-BAC009S0727W0418",
+      "expected_teacher_rows": 5,
+      "rows": [],
+      "passed": false,
+      "error": {
+        "type": "ValueError",
+        "message": "planned native request has no raw BF16 trace"
+      }
+    }
+  ],
+  "errors": [
+    {
+      "cohort": 1,
+      "request": 0,
+      "id": "en-422-122949-0013",
+      "reason": "missing or failing frozen teacher rows"
+    },
+    {
+      "cohort": 2,
+      "request": 0,
+      "id": "zh-BAC009S0727W0418",
+      "reason": "missing or failing frozen teacher rows"
+    },
+    {
+      "cohort": 3,
+      "request": 0,
+      "id": "zh-BAC009S0729W0241",
+      "reason": "missing or failing frozen teacher rows"
+    },
+    {
+      "cohort": 4,
+      "request": 0,
+      "id": "en-777-126732-0081",
+      "reason": "missing or failing frozen teacher rows"
+    },
+    {
+      "cohort": 4,
+      "request": 1,
+      "id": "en-422-122949-0013",
+      "reason": "missing or failing frozen teacher rows"
+    },
+    {
+      "cohort": 5,
+      "request": 0,
+      "id": "zh-BAC009S0727W0418",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 5,
+      "request": 1,
+      "id": "zh-BAC009S0729W0241",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 6,
+      "request": 0,
+      "id": "en-777-126732-0081",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 6,
+      "request": 1,
+      "id": "en-422-122949-0013",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 6,
+      "request": 2,
+      "id": "zh-BAC009S0727W0418",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 6,
+      "request": 3,
+      "id": "zh-BAC009S0729W0241",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 7,
+      "request": 0,
+      "id": "zh-BAC009S0729W0241",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 7,
+      "request": 1,
+      "id": "zh-BAC009S0727W0418",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 7,
+      "request": 2,
+      "id": "en-422-122949-0013",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 7,
+      "request": 3,
+      "id": "en-777-126732-0081",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 8,
+      "request": 0,
+      "id": "en-777-126732-0081",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 8,
+      "request": 1,
+      "id": "en-422-122949-0013",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 8,
+      "request": 2,
+      "id": "zh-BAC009S0727W0418",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 8,
+      "request": 3,
+      "id": "zh-BAC009S0729W0241",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 8,
+      "request": 4,
+      "id": "en-777-126732-0081",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 8,
+      "request": 5,
+      "id": "en-422-122949-0013",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 8,
+      "request": 6,
+      "id": "zh-BAC009S0727W0418",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 8,
+      "request": 7,
+      "id": "zh-BAC009S0729W0241",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 9,
+      "request": 0,
+      "id": "zh-BAC009S0729W0241",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 9,
+      "request": 1,
+      "id": "zh-BAC009S0727W0418",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 9,
+      "request": 2,
+      "id": "en-422-122949-0013",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 9,
+      "request": 3,
+      "id": "en-777-126732-0081",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 9,
+      "request": 4,
+      "id": "zh-BAC009S0729W0241",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 9,
+      "request": 5,
+      "id": "zh-BAC009S0727W0418",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 9,
+      "request": 6,
+      "id": "en-422-122949-0013",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 9,
+      "request": 7,
+      "id": "en-777-126732-0081",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 10,
+      "request": 0,
+      "id": "en-777-126732-0081",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 10,
+      "request": 1,
+      "id": "en-422-122949-0013",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 10,
+      "request": 2,
+      "id": "zh-BAC009S0727W0418",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 10,
+      "request": 3,
+      "id": "zh-BAC009S0729W0241",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 10,
+      "request": 4,
+      "id": "en-777-126732-0081",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 10,
+      "request": 5,
+      "id": "en-422-122949-0013",
+      "reason": "planned native request has no raw BF16 trace"
+    },
+    {
+      "cohort": 10,
+      "request": 6,
+      "id": "zh-BAC009S0727W0418",
+      "reason": "planned native request has no raw BF16 trace"
+    }
+  ],
+  "full_model_numerical_qualification": false,
+  "finished_at": "2026-11-08T03:15:17.257627+00:00"
+}

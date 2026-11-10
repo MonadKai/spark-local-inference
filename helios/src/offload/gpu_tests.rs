@@ -320,7 +320,9 @@ mod memory {
         assert_eq!(stats.stored, 1);
         assert_eq!(stats.outbound_in_flight, 0);
         assert_eq!(stats.memory_records, 1);
-        assert_eq!(stats.memory_bytes, layout.record_bytes(3));
+        let resident_slots = layout.record_slots(3, true);
+        assert_eq!(stats.slots_used, resident_slots);
+        assert_eq!(stats.memory_bytes, resident_slots as u64 * layout.page_record_bytes);
         assert!(stats.outbound_rate > 0.0);
 
         // The record's slabs hold the source pages' and row's patterns under the layout.
@@ -1091,7 +1093,9 @@ mod composite {
             ),
             (1, gpu_bytes, 1, 1)
         );
-        assert_eq!(stats.memory_bytes, record_bytes);
+        let resident_slots = layout.record_slots(3, true);
+        assert_eq!(stats.slots_used, resident_slots);
+        assert_eq!(stats.memory_bytes, resident_slots as u64 * layout.page_record_bytes);
         write_pages(&mut write_unit, &sources, &|plane, _| 0xEE + plane as u64);
         write_row(&mut write_unit, source_slot, 0xEE);
         let hit = store.lookup(&histories[0], 0, u64::MAX).unwrap();
@@ -1313,13 +1317,21 @@ mod composite {
         assert_eq!(store.store(&large).unwrap(), StoreOutcome::Queued);
         assert_eq!(store.outbound_records(), 1);
         assert_eq!(store.disk().stats().outbound_in_flight, 1);
+        let total_slots = store.memory().pool().slot_count();
+        let short_slots = layout.record_slots(1, true);
+        let large_slots = layout.record_slots(3, true);
+        // Both copy-outs have synchronously acquired their slabs. The large
+        // record streams through disk staging in this same shared pool.
         assert_eq!(
             store.memory().pool().free_slots(),
-            flare_selene::offload::intake_slots(&layout, 1)
+            total_slots - short_slots - large_slots
         );
         let hit = store.lookup(&histories[0], 0, u64::MAX).unwrap();
         assert!(!store.retains_chain(&hit.chain));
         store.fetch(hit, ticket()).unwrap();
+        assert_eq!((store.stats().outbound_in_flight, store.stats().inbound_in_flight), (2, 1));
+        assert_eq!(store.memory().pool().free_slots(),
+            total_slots - short_slots - 2 * large_slots);
         let mut events = Vec::new();
         poll_until(&mut store, &mut events, |store| {
             let stats = store.stats();
@@ -1346,6 +1358,8 @@ mod composite {
         assert!(store.memory().record(&large.key).is_none());
         assert!(store.memory().index().nodes().all(|node| !node.pinned()));
         assert!(store.disk().index().nodes().all(|node| !node.pinned()));
+        assert_eq!(store.stats().slots_used, short_slots);
+        assert_eq!(store.memory().pool().free_slots(), total_slots - short_slots);
         assert_eq!(
             (
                 store.stats().stored,
@@ -1355,10 +1369,24 @@ mod composite {
             ),
             (2, 1, 0, 0)
         );
-        assert_eq!(
-            store.stats().inbound_rate,
-            store.disk().stats().inbound_rate
-        );
+        let aggregate = store.stats();
+        let disk = store.disk().stats();
+        let memory = store.memory().stats();
+        for stats in [aggregate, disk] {
+            assert_eq!((stats.fetched, stats.fetch_failed, stats.bytes_in, stats.reused_tokens),
+                (1, 0, record_bytes, consumed));
+            assert_eq!(stats.inbound_in_flight, 0);
+        }
+        assert_eq!((memory.fetched, memory.fetch_failed, memory.bytes_in, memory.reused_tokens),
+            (0, 0, 0, 0));
+        assert_eq!(memory.inbound_in_flight, 0);
+        assert!(aggregate.inbound_rate.is_finite() && aggregate.inbound_rate > 0.0);
+        assert!(disk.inbound_rate.is_finite() && disk.inbound_rate > 0.0);
+        // Composite retains the completion-time sample. The disk's live
+        // estimate can recover toward its seed after that same completion.
+        assert!(disk.inbound_rate >= aggregate.inbound_rate);
+        assert!(disk.inbound_rate <= aggregate.inbound_rate
+            .max(flare_selene::store::INITIAL_STAGED_DISK_RATE));
         store.close().unwrap();
         drop(store);
 
@@ -1386,6 +1414,8 @@ mod composite {
         }
         check(&read_unit);
         assert_eq!(store.stats().memory_records, 0);
+        assert_eq!((store.stats().slots_used, store.stats().memory_bytes), (0, 0));
+        assert_eq!(store.memory().pool().free_slots(), total_slots);
         assert!(store.disk().index().nodes().all(|node| !node.pinned()));
         store.close().unwrap();
         drop(store);

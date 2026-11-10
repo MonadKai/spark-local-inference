@@ -30,7 +30,7 @@ fn scheduler_with_resources(
             pages: (65_536 / page_tokens * active) as u32,
             snapshots,
         },
-        SchedulerCapabilities {
+        SchedulerCapabilities { immutable_request_values: vec![], audio: None,
             completion_token_capacity: 16,
             vocabulary: 248_320,
             page_tokens,
@@ -59,7 +59,7 @@ fn inputs(count: usize) -> Vec<ConditionedInput> {
         .map(|image| ConditionedInput {
             token_span: 17 + image * 4096..17 + (image + 1) * 4096,
             feature_range: image * 4096..(image + 1) * 4096,
-            patches: 16_384,
+            encodings: vec![EncoderJob::Vision { patches: 16_384 }],
         })
         .collect()
 }

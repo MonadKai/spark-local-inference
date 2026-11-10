@@ -1,0 +1,464 @@
+{
+  "scope": "Same frozen operands: page max-key extent and split partition attribution, with actual profiler kernel names. No whole-prompt geometry policy, model/native/performance qualification.",
+  "status": "completed_attribution_only",
+  "cases": [
+    {
+      "keys": 123,
+      "variants": {
+        "queries-2_maxk-123_splits-1": {
+          "changed": 0,
+          "max_abs": 0.0,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 64, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, false, false>(pytorch_flash::Flash_fwd_params)": 1
+          },
+          "captured_repeat_allocation_stable": true
+        },
+        "queries-2_maxk-123_splits-2": {
+          "changed": 418,
+          "max_abs": 0.000244140625,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 1, true>(pytorch_flash::Flash_fwd_params)": 1
+          },
+          "captured_repeat_allocation_stable": true
+        },
+        "queries-2_maxk-256_splits-1": {
+          "changed": 0,
+          "max_abs": 0.0,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 64, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, false, false>(pytorch_flash::Flash_fwd_params)": 1
+          },
+          "captured_repeat_allocation_stable": true
+        },
+        "queries-2_maxk-256_splits-2": {
+          "changed": 418,
+          "max_abs": 0.000244140625,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 1, true>(pytorch_flash::Flash_fwd_params)": 1
+          },
+          "captured_repeat_allocation_stable": true
+        },
+        "queries-2_maxk-8192_splits-1": {
+          "changed": 0,
+          "max_abs": 0.0,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 64, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, false, false>(pytorch_flash::Flash_fwd_params)": 1
+          },
+          "captured_repeat_allocation_stable": true
+        },
+        "queries-2_maxk-8192_splits-2": {
+          "changed": 418,
+          "max_abs": 0.000244140625,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 1, true>(pytorch_flash::Flash_fwd_params)": 1
+          },
+          "captured_repeat_allocation_stable": true
+        },
+        "queries-2_maxk-8192_splits-64": {
+          "changed": 418,
+          "max_abs": 0.000244140625,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 6, true>(pytorch_flash::Flash_fwd_params)": 1
+          },
+          "captured_repeat_allocation_stable": true
+        },
+        "queries-123_maxk-123_splits-1": {
+          "changed": 0,
+          "max_abs": 0.0,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 64, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, false, false>(pytorch_flash::Flash_fwd_params)": 1
+          }
+        },
+        "queries-123_maxk-123_splits-2": {
+          "changed": 418,
+          "max_abs": 0.000244140625,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 1, true>(pytorch_flash::Flash_fwd_params)": 1
+          }
+        },
+        "queries-123_maxk-256_splits-1": {
+          "changed": 0,
+          "max_abs": 0.0,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 64, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, false, false>(pytorch_flash::Flash_fwd_params)": 1
+          }
+        },
+        "queries-123_maxk-256_splits-2": {
+          "changed": 418,
+          "max_abs": 0.000244140625,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 1, true>(pytorch_flash::Flash_fwd_params)": 1
+          }
+        },
+        "queries-123_maxk-8192_splits-1": {
+          "changed": 0,
+          "max_abs": 0.0,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 64, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, false, false>(pytorch_flash::Flash_fwd_params)": 1
+          }
+        },
+        "queries-123_maxk-8192_splits-2": {
+          "changed": 418,
+          "max_abs": 0.000244140625,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 1, true>(pytorch_flash::Flash_fwd_params)": 1
+          }
+        },
+        "queries-123_maxk-8192_splits-64": {
+          "changed": 418,
+          "max_abs": 0.000244140625,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 6, true>(pytorch_flash::Flash_fwd_params)": 1
+          }
+        }
+      },
+      "sdk_kernels": {
+        "void pytorch_flash::flash_fwd_kernel<Flash_fwd_kernel_traits<128, 128, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 128, 64, 4, cutlass::bfloat16_t> >, false, true, false, false, false, true, false, false>(pytorch_flash::Flash_fwd_params)": 1
+      }
+    },
+    {
+      "keys": 165,
+      "variants": {
+        "queries-2_maxk-165_splits-1": {
+          "changed": 588,
+          "max_abs": 0.000244140625,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 64, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, false, false>(pytorch_flash::Flash_fwd_params)": 1
+          },
+          "captured_repeat_allocation_stable": true
+        },
+        "queries-2_maxk-165_splits-2": {
+          "changed": 0,
+          "max_abs": 0.0,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 1, true>(pytorch_flash::Flash_fwd_params)": 1
+          },
+          "captured_repeat_allocation_stable": true
+        },
+        "queries-2_maxk-256_splits-1": {
+          "changed": 588,
+          "max_abs": 0.000244140625,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 64, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, false, false>(pytorch_flash::Flash_fwd_params)": 1
+          },
+          "captured_repeat_allocation_stable": true
+        },
+        "queries-2_maxk-256_splits-2": {
+          "changed": 0,
+          "max_abs": 0.0,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 1, true>(pytorch_flash::Flash_fwd_params)": 1
+          },
+          "captured_repeat_allocation_stable": true
+        },
+        "queries-2_maxk-8192_splits-1": {
+          "changed": 588,
+          "max_abs": 0.000244140625,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 64, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, false, false>(pytorch_flash::Flash_fwd_params)": 1
+          },
+          "captured_repeat_allocation_stable": true
+        },
+        "queries-2_maxk-8192_splits-2": {
+          "changed": 322,
+          "max_abs": 0.000244140625,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 1, true>(pytorch_flash::Flash_fwd_params)": 1
+          },
+          "captured_repeat_allocation_stable": true
+        },
+        "queries-2_maxk-8192_splits-64": {
+          "changed": 0,
+          "max_abs": 0.0,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 6, true>(pytorch_flash::Flash_fwd_params)": 1
+          },
+          "captured_repeat_allocation_stable": true
+        },
+        "queries-165_maxk-165_splits-1": {
+          "changed": 588,
+          "max_abs": 0.000244140625,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 64, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, false, false>(pytorch_flash::Flash_fwd_params)": 1
+          }
+        },
+        "queries-165_maxk-165_splits-2": {
+          "changed": 0,
+          "max_abs": 0.0,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 1, true>(pytorch_flash::Flash_fwd_params)": 1
+          }
+        },
+        "queries-165_maxk-256_splits-1": {
+          "changed": 588,
+          "max_abs": 0.000244140625,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 64, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, false, false>(pytorch_flash::Flash_fwd_params)": 1
+          }
+        },
+        "queries-165_maxk-256_splits-2": {
+          "changed": 0,
+          "max_abs": 0.0,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 1, true>(pytorch_flash::Flash_fwd_params)": 1
+          }
+        },
+        "queries-165_maxk-8192_splits-1": {
+          "changed": 588,
+          "max_abs": 0.000244140625,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 64, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, false, false>(pytorch_flash::Flash_fwd_params)": 1
+          }
+        },
+        "queries-165_maxk-8192_splits-2": {
+          "changed": 322,
+          "max_abs": 0.000244140625,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 1, true>(pytorch_flash::Flash_fwd_params)": 1
+          }
+        },
+        "queries-165_maxk-8192_splits-64": {
+          "changed": 0,
+          "max_abs": 0.0,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 6, true>(pytorch_flash::Flash_fwd_params)": 1
+          }
+        }
+      },
+      "sdk_kernels": {
+        "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+        "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 1, true>(pytorch_flash::Flash_fwd_params)": 1
+      }
+    },
+    {
+      "keys": 443,
+      "variants": {
+        "queries-2_maxk-443_splits-1": {
+          "changed": 0,
+          "max_abs": 0.0,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 64, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, false, false>(pytorch_flash::Flash_fwd_params)": 1
+          },
+          "captured_repeat_allocation_stable": true
+        },
+        "queries-2_maxk-443_splits-2": {
+          "changed": 680,
+          "max_abs": 0.0001220703125,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 1, true>(pytorch_flash::Flash_fwd_params)": 1
+          },
+          "captured_repeat_allocation_stable": true
+        },
+        "queries-2_maxk-512_splits-1": {
+          "changed": 0,
+          "max_abs": 0.0,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 64, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, false, false>(pytorch_flash::Flash_fwd_params)": 1
+          },
+          "captured_repeat_allocation_stable": true
+        },
+        "queries-2_maxk-512_splits-2": {
+          "changed": 680,
+          "max_abs": 0.0001220703125,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 1, true>(pytorch_flash::Flash_fwd_params)": 1
+          },
+          "captured_repeat_allocation_stable": true
+        },
+        "queries-2_maxk-8192_splits-1": {
+          "changed": 0,
+          "max_abs": 0.0,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 64, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, false, false>(pytorch_flash::Flash_fwd_params)": 1
+          },
+          "captured_repeat_allocation_stable": true
+        },
+        "queries-2_maxk-8192_splits-2": {
+          "changed": 356,
+          "max_abs": 0.0001220703125,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 1, true>(pytorch_flash::Flash_fwd_params)": 1
+          },
+          "captured_repeat_allocation_stable": true
+        },
+        "queries-2_maxk-8192_splits-64": {
+          "changed": 817,
+          "max_abs": 0.0001220703125,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 6, true>(pytorch_flash::Flash_fwd_params)": 1
+          },
+          "captured_repeat_allocation_stable": true
+        },
+        "queries-443_maxk-443_splits-1": {
+          "changed": 0,
+          "max_abs": 0.0,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 64, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, false, false>(pytorch_flash::Flash_fwd_params)": 1
+          }
+        },
+        "queries-443_maxk-443_splits-2": {
+          "changed": 680,
+          "max_abs": 0.0001220703125,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 1, true>(pytorch_flash::Flash_fwd_params)": 1
+          }
+        },
+        "queries-443_maxk-512_splits-1": {
+          "changed": 0,
+          "max_abs": 0.0,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 64, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, false, false>(pytorch_flash::Flash_fwd_params)": 1
+          }
+        },
+        "queries-443_maxk-512_splits-2": {
+          "changed": 680,
+          "max_abs": 0.0001220703125,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 1, true>(pytorch_flash::Flash_fwd_params)": 1
+          }
+        },
+        "queries-443_maxk-8192_splits-1": {
+          "changed": 0,
+          "max_abs": 0.0,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 64, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, false, false>(pytorch_flash::Flash_fwd_params)": 1
+          }
+        },
+        "queries-443_maxk-8192_splits-2": {
+          "changed": 356,
+          "max_abs": 0.0001220703125,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 1, true>(pytorch_flash::Flash_fwd_params)": 1
+          }
+        },
+        "queries-443_maxk-8192_splits-64": {
+          "changed": 817,
+          "max_abs": 0.0001220703125,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 6, true>(pytorch_flash::Flash_fwd_params)": 1
+          }
+        }
+      },
+      "sdk_kernels": {
+        "void pytorch_flash::flash_fwd_kernel<Flash_fwd_kernel_traits<128, 128, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 128, 64, 4, cutlass::bfloat16_t> >, false, true, false, false, false, true, false, false>(pytorch_flash::Flash_fwd_params)": 1
+      }
+    },
+    {
+      "keys": 8192,
+      "variants": {
+        "queries-2_maxk-8192_splits-1": {
+          "changed": 0,
+          "max_abs": 0.0,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 64, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, false, false>(pytorch_flash::Flash_fwd_params)": 1
+          },
+          "captured_repeat_allocation_stable": true
+        },
+        "queries-2_maxk-8192_splits-2": {
+          "changed": 651,
+          "max_abs": 3.0517578125e-05,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 1, true>(pytorch_flash::Flash_fwd_params)": 1
+          },
+          "captured_repeat_allocation_stable": true
+        },
+        "queries-2_maxk-8192_splits-64": {
+          "changed": 837,
+          "max_abs": 3.0517578125e-05,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 6, true>(pytorch_flash::Flash_fwd_params)": 1
+          },
+          "captured_repeat_allocation_stable": true
+        },
+        "queries-8192_maxk-8192_splits-1": {
+          "changed": 0,
+          "max_abs": 0.0,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 64, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, false, false>(pytorch_flash::Flash_fwd_params)": 1
+          }
+        },
+        "queries-8192_maxk-8192_splits-2": {
+          "changed": 651,
+          "max_abs": 3.0517578125e-05,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 1, true>(pytorch_flash::Flash_fwd_params)": 1
+          }
+        },
+        "queries-8192_maxk-8192_splits-64": {
+          "changed": 837,
+          "max_abs": 3.0517578125e-05,
+          "kernels": {
+            "void pytorch_flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, true, false, false, false, true, false, true, false>(pytorch_flash::Flash_fwd_params)": 1,
+            "void pytorch_flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::bfloat16_t> >, 4, 6, true>(pytorch_flash::Flash_fwd_params)": 1
+          }
+        }
+      },
+      "sdk_kernels": {
+        "void pytorch_flash::flash_fwd_kernel<Flash_fwd_kernel_traits<128, 128, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 128, 64, 4, cutlass::bfloat16_t> >, false, true, false, false, true, true, false, false>(pytorch_flash::Flash_fwd_params)": 1
+      }
+    }
+  ],
+  "errors": [],
+  "started_at": "2026-11-08T09:39:43.819397+00:00",
+  "finished_at": "2026-11-08T09:39:45.990725+00:00",
+  "torch_revision": "5c4886908584029761b579af026dcfb627c84070",
+  "torch_flash_submodule_revision": "14c377950125c70b7a9dabf9c561fca53715ac7d",
+  "hardware": "NVIDIA GB10 / sm_121",
+  "dtype": "bfloat16",
+  "operand_generation": {
+    "seed": 20261106,
+    "generator": "torch.Generator(device=\"cuda\")",
+    "normal_std": 0.2,
+    "query": [
+      1,
+      16,
+      128
+    ],
+    "key_and_value": [
+      8192,
+      8,
+      128
+    ],
+    "draw_order": [
+      "query",
+      "key",
+      "value"
+    ]
+  },
+  "reference": "Pinned Torch fixed-length FLASH_ATTENTION GQA, byte checked against prior frozen output for every case",
+  "profiler": "Separate attribution process without ModuleImages; actual CUDA kernel names/counts, no performance duration claim",
+  "captured_replay": "Five Q2 replays per variant; exact repeat/eager identity and allocation/free counters checked",
+  "qualified_scope": "Same attention operands only. No model integration, full-network numerical, fragment/readmission/slot, recognition or service/performance qualification.",
+  "interpretation": {
+    "requested_varlen_splits": "The pinned nonpaged varlen entry with Q>1 ignores requested num_splits; old0/1/2 labels do not establish distinct actual splits.",
+    "max_key_geometry": "Paged maxK8192/split2 partitions at4096 rather than128; final row still differs322 BF16 values atK165.",
+    "input_independent_control": "Fixed8192/split64 gives absolute128-key partitions, but differs418/817/837 BF16 values atK123/443/8192. Not selected as a qualified model configuration.",
+    "fixed_torch_165": "Actual splitkv N128 plus FP32 combine. Paged maxK165/256 split2 and fixed8192 split64 exactly reproduce its final row."
+  }
+}

@@ -390,9 +390,12 @@ def _inspect_indexed_checkpoint(snapshot: Path, index: dict) -> IndexedCheckpoin
     if missing:
         raise CheckpointError(f"indexed tensor missing from shards: {min(missing)}")
     total = sum(tensor.nbytes for tensor in tensors.values())
+    # Some publisher indices (including original Qwen3-ASR) omit total_size.
+    # Header byte ranges and index coverage above remain mandatory; a supplied
+    # total_size must still agree with all stored tensors.
     if (
         not isinstance(index.get("metadata"), dict)
-        or index["metadata"].get("total_size") != total
+        or "total_size" in index["metadata"] and index["metadata"]["total_size"] != total
     ):
         raise CheckpointError(f"index total_size does not match tensor payload bytes: {total}")
     return IndexedCheckpoint(snapshot, MappingProxyType(tensors), tuple(shards))

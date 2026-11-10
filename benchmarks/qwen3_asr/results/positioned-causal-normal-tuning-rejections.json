@@ -1,0 +1,149 @@
+{
+  "scope": "Rejected recipe integration prototype, original numerical regression retained; no production activation or qualification",
+  "status": "failed_retained",
+  "source_base": "3d079fa2a03d1b833aaadfdcffa9e0b71df245a4",
+  "source_patch": "positioned-causal-recipe-rejected.patch.gz",
+  "prototype_source_bytes_match_execution_snapshot": true,
+  "torch": "2.14.1+cu132",
+  "precision": "BF16 Q/K/V and output, original Torch FLASH SDPA byte assertions unchanged",
+  "autotune_effort": "default",
+  "suites": [
+    {
+      "trial": "unprotected-SPAWN-harness",
+      "tests": [
+        {
+          "name": "test_shared_projection_scratch_preserves_published_rows_and_decode_arithmetic",
+          "seconds": 0.92,
+          "status": "failed",
+          "failure": "CPU tuning SPAWN reexecuted GPU discovery: CUDA_ERROR_NO_DEVICE"
+        },
+        {
+          "name": "test_prompt_history_attention_matches_original_and_each_decode_position[64-8192-165]",
+          "seconds": 1.072,
+          "status": "failed",
+          "failure": "CPU tuning SPAWN reexecuted GPU discovery: CUDA_ERROR_NO_DEVICE"
+        },
+        {
+          "name": "test_prompt_history_attention_matches_original_and_each_decode_position[128-8192-165]",
+          "seconds": 0.66,
+          "status": "failed",
+          "failure": "CPU tuning SPAWN reexecuted GPU discovery: CUDA_ERROR_NO_DEVICE"
+        },
+        {
+          "name": "test_prompt_history_attention_matches_original_and_each_decode_position[4096-128-123]",
+          "seconds": 0.671,
+          "status": "failed",
+          "failure": "CPU tuning SPAWN reexecuted GPU discovery: CUDA_ERROR_NO_DEVICE"
+        },
+        {
+          "name": "test_captured_feature_injection_stops_at_the_original_prompt_boundary",
+          "seconds": 1.129,
+          "status": "passed"
+        },
+        {
+          "name": "test_prompt_extent_smaller_than_fragment_keeps_prompt_and_history_bytes",
+          "seconds": 0.77,
+          "status": "failed",
+          "failure": "CPU tuning SPAWN reexecuted GPU discovery: CUDA_ERROR_NO_DEVICE"
+        }
+      ],
+      "passed": 1,
+      "failed": 5
+    },
+    {
+      "trial": "main-protected-full-affected-suite",
+      "tests": [
+        {
+          "name": "test_shared_projection_scratch_preserves_published_rows_and_decode_arithmetic",
+          "seconds": 5.949,
+          "status": "passed"
+        },
+        {
+          "name": "test_prompt_history_attention_matches_original_and_each_decode_position[64-8192-165]",
+          "seconds": 55.528,
+          "status": "failed",
+          "failure": "unchanged BF16 byte assertion",
+          "first_failure_M_start_count": [
+            64,
+            0,
+            64
+          ]
+        },
+        {
+          "name": "test_prompt_history_attention_matches_original_and_each_decode_position[128-8192-165]",
+          "seconds": 27.198,
+          "status": "failed",
+          "failure": "unchanged BF16 byte assertion",
+          "first_failure_M_start_count": [
+            128,
+            0,
+            128
+          ]
+        },
+        {
+          "name": "test_prompt_history_attention_matches_original_and_each_decode_position[4096-128-123]",
+          "seconds": 59.519,
+          "status": "failed",
+          "failure": "unchanged BF16 byte assertion",
+          "first_failure_M_start_count": [
+            4096,
+            0,
+            4096
+          ]
+        },
+        {
+          "name": "test_captured_feature_injection_stops_at_the_original_prompt_boundary",
+          "seconds": 0.077,
+          "status": "passed"
+        },
+        {
+          "name": "test_prompt_extent_smaller_than_fragment_keeps_prompt_and_history_bytes",
+          "seconds": 4.091,
+          "status": "passed"
+        }
+      ],
+      "passed": 3,
+      "failed": 3
+    },
+    {
+      "trial": "tight-original-byte-regression",
+      "tests": [
+        {
+          "name": "test_prompt_history_attention_matches_original_and_each_decode_position[64-8192-165]",
+          "seconds": 5.382,
+          "status": "failed",
+          "failure": "unchanged BF16 byte assertion",
+          "first_failure_M_start_count": [
+            64,
+            0,
+            64
+          ]
+        }
+      ],
+      "passed": 0,
+      "failed": 1
+    }
+  ],
+  "tight_raw": "positioned-causal-normal-tuning-red.json.gz",
+  "tight_case": {
+    "M": 64,
+    "C": 8192,
+    "N": 165,
+    "selected_config": {
+      "tile_m": 128,
+      "tile_n": 48
+    },
+    "differing_BF16_elements": 5777,
+    "total_elements": 131072,
+    "first_differing_row": 48,
+    "nonfinite": 0,
+    "maximum_absolute": 0.00048828125
+  },
+  "model_qualified": false,
+  "performance_qualified": false,
+  "formal_sustained_comparative_cells": 0,
+  "followup": "Enumerate all existing legal arithmetic candidates on identical saved operands and original references; no oracle, threshold or regression removal.",
+  "source_patch_encoding": "gzip-compressed unchanged unified diff",
+  "subsequent_candidate_matrix": "positioned-causal-arithmetic-candidates.json.gz",
+  "resolution": "Recipe substitution rejected; original production recipe and tests retained byte-for-byte. No numerical reference or threshold changed."
+}

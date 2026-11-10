@@ -1,0 +1,149 @@
+{
+  "scope": "Frozen workload/statistical design before candidate ASR inference; input manifest and runnable deployment configurations must be fixed before the first candidate measurement.",
+  "primary_model": {
+    "repository": "Qwen/Qwen3-ASR-1.7B",
+    "revision": "7278e1e70fe206f11671096ffdd38061171dd6e5",
+    "precision": "BF16 with specified FP32 accumulation and retained BF16 boundaries"
+  },
+  "reference": {
+    "version": "vLLM v0.29.0",
+    "source_revision": "98dff2a81d747d1dba01a47f939f48c3526d4206",
+    "runnable_image_configuration": "must be measured and recorded; source revision alone is insufficient"
+  },
+  "request": {
+    "endpoint": "/v1/audio/transcriptions",
+    "temperature": 0,
+    "seed": 0,
+    "language": "row.language",
+    "prompt": "",
+    "context_capacity": 8192,
+    "max_completion_tokens_per_service_chunk": 1024,
+    "response_format": "json",
+    "stream": false
+  },
+  "serving": {
+    "flare": "ignition export then separate flare run PACKAGE after preparer exit",
+    "embedding_table_storage_primary": "ram",
+    "deployment_delivery_mode": "separate cell if different",
+    "vllm": "reasonably tuned compile, batching, CUDA graphs and caches; limitations retained; eager only if actual prepared graph failure is established"
+  },
+  "short_cells": {
+    "concurrency": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "load": "saturated closed loop up to target outstanding count; every engine consumes the entire same frozen performance-inputs.json corpus exactly once, in its declared order",
+    "stop_admitting": "only after all fixed utterances have been admitted; drain every request",
+    "elapsed": "first timed send through final completion, including drain",
+    "primary": [
+      4,
+      8
+    ],
+    "duration_qualification": "each paired run must last at least300 seconds and complete at least100 requests; a shorter run is ineligible, never padded with idle time or repeated audio"
+  },
+  "cache_regimes": [
+    {
+      "name": "unique-content",
+      "primary": true,
+      "content": "each distinct PCM at most once per timed run; fixed performance manifest order; disjoint from warmup and qualification PCM",
+      "warmup": "fixed development split, at least one full pass then 120 seconds and stable captured execution; all attempts retained",
+      "cache": "disable prefix and processor/encoder/feature reuse where supported; drain and reset all observable cache levels before timed run; actual encoder executions must confirm no reuse; unknown levels prevent equivalence claim",
+      "exhaustion": "the fixed complete corpus is not recycled; if any final paired run is shorter than300 seconds it is ineligible; no post-result sample replacement or renamed/repeated audio"
+    },
+    {
+      "name": "repeated-content",
+      "primary": false,
+      "content": "a fixed request list of the same size as the unique-content corpus, cycling the256 development utterances in fixed manifest order; both engines consume every listed request once; same PCM warmup populates allowed caches",
+      "cache": "all implemented layered caches enabled; actual conditions and encoder work reported"
+    },
+    {
+      "name": "reasonable-deployment",
+      "primary": false,
+      "content": "same complete fixed unique-content set and fixed mixed arrival schedule",
+      "cache": "each engine independently reasonable deployment settings; complete configurations and any non-equivalent cache conditions reported"
+    }
+  ],
+  "mixed": {
+    "short_client_limit": 4,
+    "short_content": "first301 distinct utterances from the frozen unique manifest, in fixed order, one use per run",
+    "short_scheduled_arrival_seconds": "0,1,...,300 inclusive, one request per second",
+    "client_queue": "bound actual short HTTP requests to4; latency begins at the scheduled arrival and includes client waiting for capacity, so backpressure cannot hide delay",
+    "long_content": "each of the nine long-speech.json utterances once in listed order; repeated-content600s stress excluded",
+    "long_arrival_seconds": [
+      0,
+      30,
+      60,
+      90,
+      120,
+      150,
+      180,
+      210,
+      240
+    ],
+    "stop_admitting": "after all301 short and9 long fixed scheduled requests; drain all requests",
+    "latency_budget_metrics": [
+      "short P95 from scheduled arrival",
+      "combined P95 from scheduled arrival"
+    ],
+    "long_latency": "all samples and count reported; nine requests do not establish a reliable P95"
+  },
+  "long_standalone": {
+    "concurrency": 1,
+    "content": "all nine annotated long utterances once per repetition",
+    "repetitions": 5,
+    "report": "all samples, counts, makespan and complete ASR throughput; no reliable long P95 claim"
+  },
+  "blocks": {
+    "count": 5,
+    "within_block_order": [
+      "vllm-before",
+      "flare",
+      "vllm-after"
+    ],
+    "independence": "different time windows, fresh run/cache state; no compile, tuning or other GPU work during sampling; all warmups complete before each run",
+    "input_order": "identical fixed complete request sets and parameters in each paired run; no engine-dependent duration prefix; statistical units are blocks, not individual requests or tokens"
+  },
+  "statistics": {
+    "reference_estimate": "geometric mean of the two bracketing vLLM run values in each block",
+    "throughput_ratio": "fixed complete successful ASR audio seconds / full elapsed for each engine; divide Flare by the geometric mean of bracketing vLLM values",
+    "latency_ratio": "flare per-run latency statistic divided by bracketing reference estimate",
+    "confidence_interval": "two-sided 95% Student t interval on five independent block log ratios, exponentiated",
+    "degrees_of_freedom": 4,
+    "t_critical": 2.7764451051977987,
+    "assumption": "block log ratios are approximately normal; five blocks are a minimum design, not automatic precision qualification",
+    "primary_success": "both B4 and B8 throughput ratio lower bounds >1, quality/lifecycle gates pass, and latency budgets pass",
+    "latency_budget": "B1 mean and P95 latency, mixed short P95 and combined P95 upper ratio bounds <=1.05",
+    "no_optional_stopping": "complete all five blocks, retain all attempts; no selection of fastest repeats; an inconclusive result is not a win; further qualification uses a separately frozen complete experiment"
+  },
+  "failures": {
+    "timed": "failed/truncated/nonfinite/empty-for-nonempty-reference requests retained, credited zero complete audio, invalidate the cell",
+    "warmup": "failed warmup retained and invalidates corresponding qualification attempt",
+    "generated_tokens": "actual engine counter, never retokenized cleaned text",
+    "natural_vs_equal_tokens": "natural complete ASR is primary; equal-token diagnostics separate"
+  },
+  "metrics": [
+    "makespan",
+    "external request P50/P95/mean",
+    "internal model TTFT when available",
+    "actual generated tokens/s",
+    "successful requests/s",
+    "complete audio seconds/elapsed",
+    "actual batch/padding",
+    "queue wait",
+    "decode/resample/Log-Mel/encoder/prefill/decode/LM-head/sampling/delivery/postprocess",
+    "selected-process CPU",
+    "sampled RSS",
+    "device/pinned allocation peaks",
+    "GPU activity intervals and available cache metrics"
+  ],
+  "interpretation": {
+    "nonstreaming_first_byte": "not model TTFT",
+    "shared_events": "do not sum shared batch events per request",
+    "overlap": "do not sum overlapping stages as elapsed",
+    "memory": "allocated bytes are not physical DRAM; CPU/GPU share DRAM budget",
+    "missing_metrics": "null with reason, not fabricated zero"
+  },
+  "optimization": "profile baseline first; independent ablations per major optimization; qualification against fixed model/numerical/workload protocol after final configuration freeze"
+}

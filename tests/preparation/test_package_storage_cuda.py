@@ -4,6 +4,7 @@
 """Preparation storage preserves GPU capabilities and mapped mailbox publication."""
 
 import os
+import json
 from pathlib import Path
 import subprocess
 import sys
@@ -12,12 +13,22 @@ import time
 import pytest
 
 
+@pytest.fixture(scope="module")
+def package_inspector():
+    root = Path(__file__).resolve().parents[2]
+    manifest = root / "helios/Cargo.toml"
+    subprocess.run(["cargo", "build", "--manifest-path", str(manifest),
+        "--features", "runtime-package,test-tools", "--bin", "test_package_protection"],
+        check=True, capture_output=True, text=True)
+    metadata = json.loads(subprocess.check_output(["cargo", "metadata", "--manifest-path", str(manifest),
+        "--no-deps", "--format-version", "1"], text=True))
+    return Path(metadata["target_directory"]) / "debug" / ("test_package_protection.exe" if os.name == "nt" else "test_package_protection")
+
+
 @pytest.mark.skipif(os.environ.get("FLARE_RUN_CUDA_TESTS") != "1",
                     reason="requires an explicitly assigned CUDA device")
-def test_export_keeps_host_mailbox_and_omits_unused_library_storage(tmp_path):
+def test_export_keeps_host_mailbox_and_omits_unused_library_storage(tmp_path, package_inspector):
     from ignition.preparation.package_storage import PackageStorage
-    from ignition.preparation import runtime_package_pb2 as proto
-    from ignition.preparation.package_file import read_index
 
     assert os.environ.get("CUDA_VISIBLE_DEVICES")
     root = Path(__file__).resolve().parents[2]
@@ -29,15 +40,18 @@ def test_export_keeps_host_mailbox_and_omits_unused_library_storage(tmp_path):
     assert "Rank 0 / CUDA 0" in result.stderr
     assert "Graph I/O / persistent state" in result.stderr
     assert "not resident VRAM" in result.stderr
-    index, _ = read_index(output / "package")
-    allocations = index.ranks[0].allocations
-    host, = (allocation for allocation in allocations if allocation.memory == proto.MAPPED_HOST)
-    assert host.address == PackageStorage.HOST_BASE
-    assert all(allocation.address >= PackageStorage.EXTERNAL_FLOOR
-               for allocation in allocations if allocation.memory == proto.DEVICE)
-    assert all(not allocation.name.startswith("external-") for allocation in allocations)
-    assert all(allocation.name == host.name or allocation.address + allocation.nbytes <= host.address
-               or allocation.address >= host.address + host.nbytes for allocation in allocations)
+    published = output / "package" / "model.safetensors"
+    assert published.is_file()
+    inspected = subprocess.run([str(package_inspector), str(published), "allocation-map"],
+        capture_output=True, text=True, check=True, timeout=30)
+    allocations = json.loads(inspected.stdout)[0]
+    host, = (allocation for allocation in allocations if allocation["memory"] == "MAPPED_HOST")
+    assert host["address"] == PackageStorage.HOST_BASE
+    assert all(allocation["address"] >= PackageStorage.EXTERNAL_FLOOR
+               for allocation in allocations if allocation["memory"] == "DEVICE")
+    assert all(not allocation["name"].startswith("external-") for allocation in allocations)
+    assert all(allocation["name"] == host["name"] or allocation["address"] + allocation["nbytes"] <= host["address"]
+               or allocation["address"] >= host["address"] + host["nbytes"] for allocation in allocations)
 
 
 @pytest.mark.skipif(os.environ.get("FLARE_RUN_CUDA_TESTS") != "1",
@@ -145,11 +159,28 @@ def mailbox_storage():
 
 @pytest.mark.skipif(os.environ.get("FLARE_RUN_CUDA_TESTS") != "1",
                     reason="requires an explicitly assigned CUDA device")
-def test_retired_loading_pools_release_staging_and_preserve_graph_reachability(mailbox_storage, tmp_path):
+def test_retired_loading_pools_release_staging_and_preserve_graph_reachability(tmp_path):
+    # CUPTI must observe the first module loads. Other tests can initialize
+    # ATen modules before this preparation-scoped recorder starts.
+    result = subprocess.run([sys.executable, "-c", """
+from pathlib import Path
+import sys
+import torch
+from ignition.preparation.module_images import ModuleImages
+from ignition.preparation.package_storage import PackageStorage
+from tests.preparation.test_package_storage_cuda import _retired_loading_pool_control
+with ModuleImages() as images:
+    torch.cuda.set_device(0)
+    with PackageStorage(device=0) as storage:
+        _retired_loading_pool_control(storage, Path(sys.argv[1]), images)
+""", str(tmp_path)], capture_output=True, text=True, timeout=180)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def _retired_loading_pool_control(mailbox_storage, tmp_path, images):
     import ctypes as C
     import torch
     from torch.multiprocessing.reductions import StorageWeakRef
-    from ignition.preparation.module_images import ModuleImages
     from ignition.preparation.runtime_package import Allocation, RuntimePackage
 
     storage = mailbox_storage
@@ -170,29 +201,28 @@ def test_retired_loading_pools_release_staging_and_preserve_graph_reachability(m
     assert sum(segment["total_size"] for segment in retained) <= sum(t.nbytes for t in weights) + 3 * storage.granularity
     assert storage.graph_pool.id == graph_pool and graph_pool not in storage._preparation_pools
 
-    with ModuleImages() as images:
-        output = torch.empty_like(weights[-1])
+    output = torch.empty_like(weights[-1])
+    output.add_(0)
+    stream = torch.cuda.Stream()
+    stream.wait_stream(torch.cuda.current_stream())
+    graph = torch.cuda.CUDAGraph(keep_graph=True)
+    with torch.cuda.graph(graph, pool=graph_pool, stream=stream):
+        storage.cuda.call("cuMemcpyDtoDAsync_v2", C.c_uint64(output.data_ptr()), C.c_uint64(weights[-1].data_ptr()),
+                          C.c_size_t(output.nbytes), C.c_void_p(stream.cuda_stream))
         output.add_(0)
-        stream = torch.cuda.Stream()
-        stream.wait_stream(torch.cuda.current_stream())
-        graph = torch.cuda.CUDAGraph(keep_graph=True)
-        with torch.cuda.graph(graph, pool=graph_pool, stream=stream):
-            storage.cuda.call("cuMemcpyDtoDAsync_v2", C.c_uint64(output.data_ptr()), C.c_uint64(weights[-1].data_ptr()),
-                              C.c_size_t(output.nbytes), C.c_void_p(stream.cuda_stream))
-            output.add_(0)
-        graph.instantiate()
-        mappings = storage.mappings
-        allocations = tuple(Allocation(f"device-{i}", m.address, m.nbytes, preserve_address=True)
-                            for i, m in enumerate(mappings.values()))
-        package = RuntimePackage(allocations=allocations, modules={}, kernels=(), recorder=images.native,
-                                 owners=(weights, output, storage, graph))
-        package.write(tmp_path / "rank.json", {"weight-copy": graph}, sources=True)
-        for tensor in (weights[-1], output):
-            assert any(a.address <= tensor.data_ptr() < a.address + a.nbytes for a in package.allocations)
-        graph.replay()
-        torch.cuda.synchronize()
-        torch.testing.assert_close(output, weights[-1], rtol=0, atol=0)
-        graph.reset()
+    graph.instantiate()
+    mappings = storage.mappings
+    allocations = tuple(Allocation(f"device-{i}", m.address, m.nbytes, preserve_address=True)
+                        for i, m in enumerate(mappings.values()))
+    package = RuntimePackage(allocations=allocations, modules={}, kernels=(), recorder=images.native,
+                             owners=(weights, output, storage, graph))
+    package.write(tmp_path / "rank.json", {"weight-copy": graph}, sources=True)
+    for tensor in (weights[-1], output):
+        assert any(a.address <= tensor.data_ptr() < a.address + a.nbytes for a in package.allocations)
+    graph.replay()
+    torch.cuda.synchronize()
+    torch.testing.assert_close(output, weights[-1], rtol=0, atol=0)
+    graph.reset()
 
 
 
@@ -236,13 +266,22 @@ with PackageStorage(device=0) as storage:
     buffers.allocation_pool = arena.allocation_pool = None
     torch.cuda.synchronize()
     cached = torch.cuda.mem_get_info()[0]
+    mapped_before = sum(mapping.nbytes for mapping in storage.mappings.values())
     pool.retire()
-    assert torch.cuda.mem_get_info()[0] >= cached + (256 << 20)
+    retired_free = torch.cuda.mem_get_info()[0]
+    mapped_after = sum(mapping.nbytes for mapping in storage.mappings.values())
+    assert mapped_before - mapped_after >= 256 << 20, (mapped_before, mapped_after)
+    assert retired_free >= cached + (256 << 20), dict(
+        free_before=cached, free_after=retired_free, mapped_before=mapped_before, mapped_after=mapped_after)
     addresses = tuple(t.data_ptr() for t in tensors)
     torch.cuda.synchronize()
     before = torch.cuda.mem_get_info()[0]
     pool.release_backing()
-    assert torch.cuda.mem_get_info()[0] >= before + buffers.nbytes + arena.nbytes
+    released_free = torch.cuda.mem_get_info()[0]
+    assert sum(size for _, size in pool.unbacked) >= buffers.nbytes + arena.nbytes
+    assert released_free >= before + buffers.nbytes + arena.nbytes, dict(
+        free_before=before, free_after=released_free, buffers=buffers.nbytes, arena=arena.nbytes,
+        unmapped=pool.unbacked)
     try:
         compiled = aot_forward(forward)
     finally:

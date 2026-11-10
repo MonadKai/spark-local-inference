@@ -33,8 +33,9 @@ def recipes() -> tuple[Recipe, ...]:
     from .nemotron_h.recipe import RECIPE as nemotron_h
     from .minimax_m3.recipe import RECIPE as minimax_m3
     from .muse_spark.recipe import RECIPE as muse_spark
+    from .qwen3_asr.recipe import RECIPE as qwen3_asr
 
-    return qwen38, qwen38_dense, glm53, deepseek41, deepseek4, mimo_v2, kimi3, step5, nemotron_h, minimax_m3, gemma4, muse_spark
+    return qwen38, qwen38_dense, glm53, deepseek41, deepseek4, mimo_v2, kimi3, step5, nemotron_h, minimax_m3, gemma4, muse_spark, qwen3_asr
 
 
 def snapshot_directory(hub_cache: Path, checkpoint: Checkpoint) -> Path:
@@ -131,7 +132,12 @@ class ResolvedModel:
             return
         except (OSError, ValueError) as error:
             raise UsageError(f"{snapshot} has an unreadable safetensors index: {error}") from error
-        stored = index.get("metadata", {}).get("total_size") if isinstance(index, dict) else None
+        metadata = index.get("metadata") if isinstance(index, dict) else None
+        if isinstance(metadata, dict) and "total_size" not in metadata:
+            # Publisher totals are optional. Recipe loading still validates
+            # every shard header and indexed tensor after acquisition.
+            return
+        stored = metadata.get("total_size") if isinstance(metadata, dict) else None
         if type(stored) is not int or stored <= 0:
             raise UsageError(f"{snapshot} has an invalid safetensors total_size: {stored!r}")
 
@@ -162,9 +168,16 @@ def _supporting(config_path: Path, source: str) -> tuple[Recipe, Checkpoint]:
 
 def _stored_bytes(index_path: Path, source: str) -> int:
     try:
-        stored = json.loads(index_path.read_text())["metadata"]["total_size"]
+        metadata = json.loads(index_path.read_text())["metadata"]
+        if isinstance(metadata, dict) and "total_size" not in metadata:
+            from ignition.preparation.checkpoint import inspect_indexed_checkpoint
+
+            checkpoint = inspect_indexed_checkpoint(index_path.parent)
+            stored = sum(tensor.nbytes for tensor in checkpoint.tensors.values())
+        else:
+            stored = metadata["total_size"]
     except (OSError, ValueError, KeyError, TypeError) as error:
-        raise UsageError(f"{source} has no readable model.safetensors.index.json total_size") from error
+        raise UsageError(f"{source} cannot read indexed safetensors size: {error}") from error
     if type(stored) is not int or stored <= 0:
         raise UsageError(f"{source} has an invalid safetensors total_size: {stored!r}")
     return stored

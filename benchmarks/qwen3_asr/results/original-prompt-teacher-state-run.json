@@ -1,0 +1,76 @@
+{
+  "scope": "Run configuration for original-prompt captured-network numerical/state diagnosis. Raw measurements are preserved separately; no native serving or comparative performance qualification.",
+  "source_commit": "baf78ac9d53d06b9c7bcb23e9d9a96e7aef26f4d",
+  "source_correspondence": "All 428 Ignition Python files match this commit except preparation/package_storage.py: the executed snapshot predates its allocator-snapshot error propagation fix. The executed model, components, compiler metadata and candidate teacher qualifier match. Uncommitted logical-B projection tuning was excluded.",
+  "native_extension": {
+    "sha256": "066a7c1bcab09f60fc591c9e7bac23934df34edc4a1615f356e4861009fe9491",
+    "allocator": "Prior installed preparation allocator; the later quarantine fix was not executed in this run.",
+    "identity_observation": "Retrospective R240 import verification of the unchanged installed library after the R239 preparer exited; R239 did not sample this digest directly."
+  },
+  "checkpoint": {
+    "repository": "Qwen/Qwen3-ASR-1.7B",
+    "revision": "7278e1e70fe206f11671096ffdd38061171dd6e5",
+    "format": "original"
+  },
+  "references": {
+    "transformers": "1d9654e78a23fb167ef539cbd699dfbd3e4830cf",
+    "qwen_sdk": "7c6daf77a2421100f5fb066495372c00129d39ff",
+    "numerical_contract": "benchmarks/qwen3_asr/numerical-contract.json"
+  },
+  "hardware": "NVIDIA GB10 / sm_121 / Linux AArch64",
+  "preparation": {
+    "context": 8192,
+    "max_active": 8,
+    "prefill_chunk_size": 512,
+    "compile_workers": 2,
+    "compile_decoder": true,
+    "inference_mode": true,
+    "autotune_effort": "default",
+    "collective_tuning": "static",
+    "memory_reserve": "12GiB",
+    "blas": "Cublas"
+  },
+  "qualifier": "qualify/asr_candidate_teacher.py",
+  "arguments": [
+    "--checkpoint",
+    "CHECKPOINT_DIR",
+    "--config",
+    "CONFIG.toml",
+    "--output",
+    "RESULT_DIR",
+    "--compile-workers",
+    "2",
+    "--prefill-chunk-size",
+    "512",
+    "--prefix-kv-layers",
+    "28",
+    "--prefill-capacity",
+    "smallest",
+    "--audio-capacity",
+    "smallest",
+    "--full-prefill",
+    "--prefill-network-nodes",
+    "--encoder-network-nodes",
+    "--sdk-observations",
+    "SDK_ORIGINAL_OBSERVATIONS",
+    "--sdk-observations",
+    "SDK_BOUNDARY_OBSERVATIONS",
+    "--sdk-observations",
+    "SDK_MINIMUM_OBSERVATIONS",
+    "--canonical-observations",
+    "CANONICAL_ORIGINAL_OBSERVATIONS",
+    "--canonical-observations",
+    "CANONICAL_BOUNDARY_OBSERVATIONS",
+    "--canonical-observations",
+    "CANONICAL_MINIMUM_OBSERVATIONS"
+  ],
+  "input": "Twenty frozen original/boundary/minimum SDK BF16 model-input Mel matrices widened exactly to FP32. This is not the native PCM frontend.",
+  "schedule": "B1/2/4/8, forward/reverse placements and reverse placements with another row retired between replays: twelve schedules, twenty cases each. Thirty-eight traces deliberately retain only the planned two-row prefix.",
+  "not_qualified": [
+    "Full local-operator qualification: 1120 activation-hook entries remain unbudgeted",
+    "Ordinary CLI ambient inference_mode=False preparation and exported Rust serving",
+    "Native generated-history parking/readmission, asynchronous HTTP cancellation and slot reuse",
+    "Prefill capacities above 512",
+    "Recognition quality, complete API/lifecycle/old-package qualification and comparative serving performance"
+  ]
+}

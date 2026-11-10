@@ -6,7 +6,7 @@
 
 import torch
 
-from ignition.components.vision_delivery import PreparedFeaturePublication
+from ignition.components.feature_delivery import PreparedFeaturePublication
 
 from .vision import FEATURES
 
@@ -16,7 +16,9 @@ class PreparedVisionGeneration:
         self.encoder, self.state = encoder, state
         self.errors = (torch.zeros(1, dtype=torch.int32, device=completion.records.device) if buffers is None
                        else buffers.zeros((1,), torch.int32))
-        self.publish = PreparedFeaturePublication(state, encoder.inputs, completion, frame, sequence)
+        self.publish = PreparedFeaturePublication(state, completion, frame, sequence,
+            request_slot=encoder.inputs.vision_slot, generation=encoder.inputs.vision_generation,
+            offset=encoder.inputs.vision_feature_offset)
 
     def __call__(self):
         e, s = self.encoder, self.state

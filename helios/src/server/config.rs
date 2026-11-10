@@ -17,6 +17,21 @@ use crate::{
 };
 use serde_json::Value;
 
+/// Parse the same serving capacities before cache sizing and HTTP startup.
+/// Defaults come from ServerConfig; this does not load frontend assets.
+pub(crate) fn frontend_capacities(object: &serde_json::Map<String, Value>) -> Result<(usize, usize, usize)> {
+    let defaults = ServerConfig::default();
+    let integer = |name: &str, default: usize| -> Result<usize> {
+        let value = object.get(name).map(|value| value.as_u64()
+            .ok_or_else(|| format!("server configuration {name} must be a nonnegative integer")))
+            .transpose()?.unwrap_or(default as u64);
+        usize::try_from(value).map_err(|_| format!("server configuration {name} exceeds usize").into())
+    };
+    Ok((integer("queue_capacity", defaults.queue_capacity)?,
+        integer("frontend_workers", defaults.frontend_workers)?,
+        integer("max_body_bytes", defaults.max_body_bytes)?))
+}
+
 pub struct Bootstrap {
     pub model: ModelConfig,
     pub frontend: Frontend,
@@ -103,19 +118,9 @@ impl Bootstrap {
             })?;
         sampling_ranges.validate(&sampling_defaults)?;
 
-        if identity.len() != 64 || !identity.bytes().all(|byte| byte.is_ascii_hexdigit()) {
-            return Err("model identity must be 64 hexadecimal characters".into());
-        }
-        let mut digest = [0u8; 32];
-        for (index, byte) in digest.iter_mut().enumerate() {
-            *byte =
-                u8::from_str_radix(&identity[index * 2..index * 2 + 2], 16).map_err(|error| {
-                    crate::ExecutionError::Manifest(crate::Failure::caused_by(
-                        error.to_string(),
-                        error,
-                    ))
-                })?;
-        }
+        let producer = object.get("cache_producer_identity").map(|value| value.as_str()
+            .ok_or("cache producer identity must be a string")).transpose()?;
+        let digest = crate::cache::model_cache_identity(identity, producer)?;
         let contract = serde_json::from_value(
             object
                 .get("model_contract")
@@ -333,8 +338,20 @@ impl Bootstrap {
                 .filter(|v| v.is_finite() && *v > 0.0)
                 .ok_or("adaptive verification alpha must be finite and greater than zero")?;
         }
+        let prefix_cache_reuse = match object.get("prefix_cache_reuse") {
+            None => super::PrefixCacheReuse::default(),
+            Some(Value::String(value)) => value.parse().map_err(|error: String|
+                format!("prefix_cache_reuse: {error}"))?,
+            Some(_) => return Err("prefix_cache_reuse must be shared or request".into()),
+        };
+        let (queue_capacity, frontend_workers, max_body_bytes) = frontend_capacities(object)?;
         let server = ServerConfig {
             scheduling_policy,
+            prefix_cache_reuse,
+            prepared_input_cache: object.get("prepared_input_cache")
+                .map(|value| value.as_str().ok_or("prepared_input_cache must be a string")?
+                    .parse().map_err(|error: String| crate::Error::from(error)))
+                .transpose()?,
             thinking_token_budget: object.get("thinking_token_budget")
                 .filter(|value| !value.is_null())
                 .map(|value| value.as_u64()
@@ -357,14 +374,7 @@ impl Bootstrap {
                         error,
                     ))
                 })?,
-            queue_capacity: usize::try_from(integer("queue_capacity", Some(16))?).map_err(
-                |error| {
-                    crate::ExecutionError::Manifest(crate::Failure::caused_by(
-                        "request queue capacity overflow",
-                        error,
-                    ))
-                },
-            )?,
+            queue_capacity,
             event_capacity: usize::try_from(integer("event_capacity", Some(128))?).map_err(
                 |error| {
                     crate::ExecutionError::Manifest(crate::Failure::caused_by(
@@ -373,21 +383,8 @@ impl Bootstrap {
                     ))
                 },
             )?,
-            frontend_workers: usize::try_from(integer("frontend_workers", Some(2))?).map_err(
-                |error| {
-                    crate::ExecutionError::Manifest(crate::Failure::caused_by(
-                        "frontend capacity overflow",
-                        error,
-                    ))
-                },
-            )?,
-            max_body_bytes: usize::try_from(integer("max_body_bytes", Some(32 * 1024 * 1024))?)
-                .map_err(|error| {
-                    crate::ExecutionError::Manifest(crate::Failure::caused_by(
-                        "HTTP body capacity overflow",
-                        error,
-                    ))
-                })?,
+            frontend_workers,
+            max_body_bytes,
         };
         server.validate_thinking_budget(&frontend, &model)?;
         Ok(Self {
@@ -580,6 +577,21 @@ mod tests {
             "frontend":{"tokenizer":{},"eos_token_ids":[0]},
             "assets":{"tokenizer":tokenizer_asset}
         });
+        let mut cached = config.clone();
+        cached["frontend"]["prompt_encoder"] = json!(1);
+        let original = Bootstrap::load(&cached.to_string(), &manifest).unwrap().model.identity;
+        assert_eq!(original, [0x11; 32]);
+        cached["cache_producer_identity"] = json!("ab".repeat(32));
+        let producer = Bootstrap::load(&cached.to_string(), &manifest).unwrap().model.identity;
+        assert_ne!(original, producer);
+        cached["cache_producer_identity"] = json!("AB".repeat(32));
+        assert_eq!(producer, Bootstrap::load(&cached.to_string(), &manifest).unwrap().model.identity);
+        assert_eq!(cached["identity"], config["identity"]);
+        for invalid in [json!(null), json!(1), json!(""), json!("ff".repeat(31)), json!("gg".repeat(32))] {
+            cached["cache_producer_identity"] = invalid;
+            let error = Bootstrap::load(&cached.to_string(), &manifest).err().unwrap();
+            assert!(error.to_string().contains("cache producer identity"), "{error}");
+        }
         for (suffix, supported) in [
             ("", false),
             (" to=self<|message|>", true),
@@ -711,6 +723,36 @@ mod tests {
         let loaded = Bootstrap::load(&legacy.to_string(), &manifest).unwrap();
         assert_eq!(loaded.frontend.prompt_encoder(), PromptEncoder::Jinja);
         assert_eq!(loaded.server.scheduling_policy.adaptive_verification_alpha, 1.0);
+        assert_eq!(loaded.server.prefix_cache_reuse, super::super::PrefixCacheReuse::Shared);
+        assert_eq!(loaded.server.prepared_input_cache, None);
+        for name in ["off", "preprocessed", "encoded", "both"] {
+            let mut configured = legacy.clone();
+            configured["prepared_input_cache"] = name.into();
+            configured["prefix_cache_reuse"] = "request".into();
+            let server = Bootstrap::load(&configured.to_string(), &manifest).unwrap().server;
+            assert_eq!(server.prepared_input_cache.unwrap().as_str(), name);
+            assert_eq!(server.prefix_cache_reuse, super::super::PrefixCacheReuse::Request);
+        }
+        for invalid in [json!("unknown"), json!(false), json!(0), json!(null)] {
+            let mut configured = legacy.clone();
+            configured["prepared_input_cache"] = invalid;
+            let error = Bootstrap::load(&configured.to_string(), &manifest).err().unwrap().to_string();
+            assert!(error.contains("prepared input cache") || error.contains("prepared_input_cache"));
+        }
+        for (mode, expected) in [("shared", super::super::PrefixCacheReuse::Shared),
+                                 ("request", super::super::PrefixCacheReuse::Request)] {
+            let mut configured = legacy.clone();
+            configured["prefix_cache_reuse"] = mode.into();
+            assert_eq!(Bootstrap::load(&configured.to_string(), &manifest).unwrap()
+                .server.prefix_cache_reuse, expected);
+        }
+        for invalid in [json!("off"), json!(false), json!(0), json!(null)] {
+            let mut configured = legacy.clone();
+            configured["prefix_cache_reuse"] = invalid;
+            assert!(Bootstrap::load(&configured.to_string(), &manifest).err().unwrap()
+                .to_string().contains("prefix_cache_reuse"));
+        }
+
         for preference in ["balanced", "throughput"] {
             let mut configured = legacy.clone();
             configured["scheduler_policy"] = preference.into();

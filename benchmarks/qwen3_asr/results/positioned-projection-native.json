@@ -1,0 +1,67 @@
+{
+  "scope": "Complete affected canonical/positioned projection CUDA test files, including separate-process synthetic component package export/reconstruction/replay. No native ASR, immutable-source packing, cache, model, quality, historical-package or performance qualification.",
+  "hardware": "NVIDIA GB10 SM121",
+  "test_files": [
+    "tests/components/test_canonical_projection_cuda.py",
+    "tests/components/test_positioned_projection_cuda.py"
+  ],
+  "summary": "29 passed in 122.73s",
+  "exit_code": 0,
+  "retained_previous_attempt": {
+    "summary": "4 failed, 25 passed in 168.19s",
+    "cause": "Compiler subprocess private noneditable Ignition wheel lacked new module; all four new package preparations failed before export",
+    "remedy": "Built wheel from committed6695823c plus the exact positioned component; reinstalled only task-private Ignition without dependency changes, independently verified import and source bytes"
+  },
+  "new_component_native_cases": [
+    {
+      "physical": 256,
+      "count": 165,
+      "start": 0,
+      "initial_sequence_tokens": 165,
+      "full_projection_rows": 8192,
+      "replays": 5,
+      "preparer_exited_before_rust_load": true,
+      "output_poisoned_before_every_rust_replay": true,
+      "native_python_or_torch_mappings": false,
+      "passed": true
+    },
+    {
+      "physical": 128,
+      "count": 128,
+      "start": 0,
+      "initial_sequence_tokens": 165,
+      "full_projection_rows": 8192,
+      "replays": 5,
+      "preparer_exited_before_rust_load": true,
+      "output_poisoned_before_every_rust_replay": true,
+      "native_python_or_torch_mappings": false,
+      "passed": true
+    },
+    {
+      "physical": 64,
+      "count": 37,
+      "start": 128,
+      "initial_sequence_tokens": 165,
+      "full_projection_rows": 8192,
+      "replays": 5,
+      "preparer_exited_before_rust_load": true,
+      "output_poisoned_before_every_rust_replay": true,
+      "native_python_or_torch_mappings": false,
+      "passed": true
+    },
+    {
+      "physical": 8,
+      "count": 0,
+      "start": 0,
+      "initial_sequence_tokens": 165,
+      "full_projection_rows": 8192,
+      "replays": 5,
+      "preparer_exited_before_rust_load": true,
+      "output_poisoned_before_every_rust_replay": true,
+      "native_python_or_torch_mappings": false,
+      "passed": true
+    }
+  ],
+  "constant_operand_fixture": true,
+  "model_qualification": false
+}

@@ -71,6 +71,14 @@ def test_prefix_cache_settings_validate(tmp_path):
     configuration = load(tmp_path, "[prefix_cache]\nmemory = \"4G\"\n")
     assert configuration.get("prefix_cache.memory") == Setting("4G", "[prefix_cache]")
     assert configuration.directory("prefix_cache") is None
+    assert configuration.get("prefix_cache.reuse") == Setting("shared", "default")
+    for value in ("shared", "request"):
+        configured = load(tmp_path, f'[prefix_cache]\nreuse="{value}"\n')
+        assert configured.get("prefix_cache.reuse") == Setting(value, "[prefix_cache]")
+        assert configured.get("prefix_cache.reuse", "shared") == Setting("shared", "flag")
+    for value in ('"off"', '"REQUEST"', '""', 'true', '0'):
+        with pytest.raises(UsageError, match="reuse"):
+            load(tmp_path, f'[prefix_cache]\nreuse={value}\n')
     with pytest.raises(UsageError, match="prefix_cache disk_limit"):
         load(tmp_path, "[prefix_cache]\ndisk_limit = \"lots\"\n")
     for transport in ("nvme", "staged", "direct"):
@@ -88,6 +96,17 @@ def test_prefix_cache_settings_validate(tmp_path):
 def test_recipe_supplies_concurrency_when_the_file_is_silent(tmp_path):
     configuration = load(tmp_path, "[server]\nport = 8001\n")
     assert configuration.max_concurrency("qwen3.8-flash", 4) == Setting(4, "recipe")
+
+
+def test_native_input_cache_modes_remain_valid_in_shared_preparation_config(tmp_path):
+    assert load(tmp_path, "").get("prepared_input_cache.mode") == Setting(None, "default")
+    for mode in ("off", "preprocessed", "encoded", "both"):
+        config = load(tmp_path, f'[prepared_input_cache]\nmode="{mode}"\n[prefix_cache]\nreuse="request"\n')
+        assert config.get("prepared_input_cache.mode") == Setting(mode, "[prepared_input_cache]")
+        assert config.get("prefix_cache.reuse") == Setting("request", "[prefix_cache]")
+    for value in ('"unknown"', '""', 'true', '0'):
+        with pytest.raises(UsageError, match="mode"):
+            load(tmp_path, f'[prepared_input_cache]\nmode={value}\n')
 
 
 def test_image_concurrency_configuration_is_scoped_to_vision_and_flags_win(tmp_path):

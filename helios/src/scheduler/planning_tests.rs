@@ -82,7 +82,7 @@ fn ranked_prefix_allocation_matches_greedy_frontiers() {
             for source in [speculation::ProposalSource::Mtp, speculation::ProposalSource::Copy] {
                 let mut scheduler = planning_scheduler(active, allocation);
                 scheduler.proposal_source = source;
-                let round = ScheduledStep {
+                let round = ScheduledStep { initial_prompt_capacity: 0,
                     kind: GraphKind::Speculative, batch_capacity: active.next_power_of_two(),
                     draft_tokens: 7, token_capacity: 8, packed_token_capacity: active.next_power_of_two() * 8,
                     mixed: None, requires_feedback: false,

@@ -1,0 +1,36 @@
+{
+  "scope": "Actual pinned vLLM CPU decode/split plans for frozen benchmark inputs; no model or GPU execution in these plan runs",
+  "image_config_id": "sha256:5531937957eb47e4062d9c45b784f9339705262f2d69f735aa99322e901e06a5",
+  "vllm": "0.29.0",
+  "vllm_revision": "98dff2a81d747d1dba01a47f939f48c3526d4206",
+  "configuration": {
+    "sample_rate": 16000,
+    "max_audio_clip_s": 30,
+    "overlap_chunk_second": 1,
+    "min_energy_split_window_size": 1600
+  },
+  "cuda_initialization_prohibited": true,
+  "decoded_pcm_exact_s16le_over_32768": true,
+  "cohorts": [
+    {
+      "manifest": "benchmarks/qwen3_asr/performance-inputs.json",
+      "http_parents": 8169,
+      "engine_chunks": 8176,
+      "measurements": "vllm-cpu-chunks-performance.json.gz"
+    },
+    {
+      "manifest": "benchmarks/qwen3_asr/development.json",
+      "http_parents": 256,
+      "engine_chunks": 258,
+      "measurements": "vllm-cpu-chunks-development.json.gz"
+    },
+    {
+      "manifest": "benchmarks/qwen3_asr/long-speech.json",
+      "http_parents": 9,
+      "engine_chunks": 95,
+      "measurements": "vllm-cpu-chunks-long.json.gz"
+    }
+  ],
+  "execution_scope": "Three task-owned containers with runc/no GPU, network disabled, bounded CPU/memory, exact PCM verification and actual pinned media helpers. All were removed after exit.",
+  "performance_qualified": false
+}

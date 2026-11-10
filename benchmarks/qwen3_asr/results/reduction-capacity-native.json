@@ -1,0 +1,157 @@
+{
+  "scope": "Component CUDA/native correctness of the existing sixteen-chain BF16 projection at prepared multiples of eight rows; no ASR/readmission, checkpoint-quality or comparative-performance qualification",
+  "source": {
+    "commit": "c1f595d929303a4b35d7bbd5bc5da222a213b6c6",
+    "overlay": [
+      "ignition/components/reduction_projection.py",
+      "tests/components/test_reduction_projection.py",
+      "tests/components/test_reduction_projection_cuda.py",
+      "helios/tests/canonical_projection_package_fixture.py"
+    ],
+    "native_immutable_prompt_contract_wip_present_but_not_bound_in_these_fixtures": true
+  },
+  "device": "NVIDIA GB10",
+  "compute_capability": [
+    12,
+    1
+  ],
+  "torch": "2.14.1+cu132",
+  "triton": "3.8.0",
+  "cuda_toolkit": "13.0.2",
+  "arithmetic": "16 FP32 FMA chains, unchanged terminal sums and BF16 store within each eight-row group; all six legal tactics compared byte-for-byte with an eight-row baseline on the same represented inputs",
+  "gates": {
+    "cuda": {
+      "passed": 26,
+      "failed": 0,
+      "duration_seconds": 108.75,
+      "full_affected_file": "tests/components/test_reduction_projection_cuda.py"
+    },
+    "native_packages": {
+      "capacity_count": [
+        [
+          8,
+          0
+        ],
+        [
+          8,
+          3
+        ],
+        [
+          8,
+          8
+        ],
+        [
+          64,
+          0
+        ],
+        [
+          64,
+          37
+        ],
+        [
+          128,
+          127
+        ],
+        [
+          256,
+          256
+        ]
+      ],
+      "replays_each": 5,
+      "preparer_exited_before_rust": true,
+      "python_torch_mappings_absent": true
+    },
+    "cpu_reduction_query": {
+      "passed": 28,
+      "failed": 0
+    },
+    "separate_worktree_contract_subset": {
+      "passed": 12,
+      "failed": 0,
+      "includes_uncommitted_immutable_prompt_contract_test": true
+    }
+  },
+  "coverage": {
+    "all_six_tactics_geometry": [
+      [
+        64,
+        17,
+        40
+      ],
+      [
+        64,
+        17,
+        4096
+      ],
+      [
+        2048,
+        4096,
+        16
+      ],
+      [
+        2048,
+        2048,
+        16
+      ],
+      [
+        2048,
+        12288,
+        16
+      ],
+      [
+        6144,
+        2048,
+        16
+      ],
+      [
+        2048,
+        151936,
+        16
+      ]
+    ],
+    "geometry_order": "K,N,physical rows",
+    "logical_rows": "0,1,2,3,4,7,8,9,rows-1,rows, including reversal and inactive poison",
+    "maximum_legal_grid_y": 65535,
+    "maximum_grid_test_rows": 524280,
+    "replays_per_case": 5,
+    "allocation_counters": [
+      "allocation.all.allocated",
+      "allocation.all.freed",
+      "segment.all.allocated",
+      "segment.all.freed"
+    ],
+    "checks": [
+      "byte equality with repeated eight-row baseline",
+      "independent FP64 linear envelope subset",
+      "active and inactive nonfinite handling",
+      "invalid count poison",
+      "recovery",
+      "guards",
+      "alignment and alias rejection",
+      "normal production tuning and complete-forward compilation/capture",
+      "independent native package replay"
+    ]
+  },
+  "failed_attempts": [
+    {
+      "scope": "First full CUDA file before grid query correction; all exercised capacities at most4096",
+      "passed": 25,
+      "failed": 0,
+      "duration_seconds": 139.28
+    },
+    {
+      "scope": "New CPU grid query regression against pre-fix implementation",
+      "exit_code": 1,
+      "expected_failure": "DID NOT RAISE ValueError for grid Y65536",
+      "invalid_cuda_launch_attempted": false
+    }
+  ],
+  "limits": [
+    "No whole-model generated-history equivalence",
+    "No native immutable-N upload proof",
+    "No all-capacity full-model-dimensional numerical qualification",
+    "Compiler/device resource measurements remain a separate gate",
+    "No service or kernel speedup conclusion; concurrent CPU lifecycle checks invalidate performance interpretation",
+    "Differential bytes against the previous eight-row cubin remain a separate gate; the all-tactic comparison here uses the current eight-row baseline"
+  ]
+}

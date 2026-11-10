@@ -35,7 +35,8 @@ def test_resume_projection_matches_gather_byte_geometry(monkeypatch, dtype, pool
             self.logits = logits
 
         @staticmethod
-        def scratch_layout(rows, vocab):
+        def scratch_layout(rows, vocab, *, selection):
+            assert selection is paged_resume.SamplingSelection.CATEGORICAL
             return {"scores": ((rows, vocab), torch.float32)}
 
         def prepare(self):

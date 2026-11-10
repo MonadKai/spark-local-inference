@@ -28,6 +28,12 @@ through `onig_sys`, zstd through `zstd-sys`, and BoringSSL-derived and fiat code
 through `ring`. The permissive BSD license alternative is used for zstd; retaining
 its upstream COPYING file does not select its alternative GPL license.
 
+The optional native audio feature compiles the pinned PocketFFT header and
+SLEEF static math library used by the FP32 fused Slaney transform. Their source
+revisions are documented in [NOTICE](NOTICE); complete license texts are shipped
+as `licenses/PocketFFT.txt` and `licenses/SLEEF.txt`. The separate FFmpeg shared
+libraries continue to provide audio decoding and legacy feature arithmetic.
+
 ### MPL source availability
 
 `option-ext` 0.2.0 is used unmodified under MPL-2.0. Its covered source is available
@@ -47,6 +53,11 @@ The Linux aarch64 runtime also compiles the RoCE proxy in
 FlashInfer/b12x source. Its upstream Apache-2.0 license
 is retained in `helios/licenses/FlashInfer.txt` and included in binary archives.
 This native C source is distinct from the separately installed Python package.
+
+The native request seed text normalizer adapts Pydantic's MIT-licensed integer
+cleanup from pydantic-core 2.46.5. Its copyright and complete license are retained
+in `helios/licenses/Pydantic.txt` and included in binary archives. This is compiled
+Rust code; the native server does not link or execute Python/Pydantic.
 
 The vLLM-derived sampler and DeepSeek recipe assets belong to the source and
 preparation tools. Their existing notices and license texts remain in the source
